@@ -8,6 +8,10 @@ import KhanUI
 struct AnchorView: View {
     @ObservedObject var model: AnchorModel
     let position: AnchorPosition
+    /// True when the screen the anchor lives on has a real camera notch. Drives whether
+    /// the idle visual is a small circle (next to the real notch) or a fake-notch pill.
+    /// Passed in by AnchorController so it tracks the same screen as the panel itself.
+    let screenHasNotch: Bool
     let onTapIdle: () -> Void
     let onTapMessage: (AnchorMessage) -> Void
     let onDismissMessage: (AnchorMessage) -> Void
@@ -49,7 +53,13 @@ struct AnchorView: View {
     }
 
     private var rendersAsFakeNotch: Bool {
-        AnchorPanelLayout.rendersAsFakeNotch(position: position)
+        // Fake-notch pill on a screen that doesn't have a real notch (and the user picked
+        // the auto/notchAdjacent position) or when explicitly anchored at top center.
+        switch position {
+        case .notchAdjacent: return !screenHasNotch
+        case .topCenter:     return true
+        default:             return false
+        }
     }
 
     // MARK: - Idle
@@ -145,70 +155,156 @@ struct AnchorView: View {
         .onTapGesture { onTapMessage(m) }
     }
 
-    // MARK: - Expanded summary (click → big panel with inbox + notes)
+    // MARK: - Expanded summary (click → big panel with character on left, content on right)
 
     private var expandedSummaryView: some View {
         let useFakeNotch = rendersAsFakeNotch
-        return VStack(spacing: 0) {
-            // Header bar
-            HStack {
-                AnchorAvatarView(state: model.avatarState, size: 22)
-                    .frame(width: 26, height: 26)
-                Text("Khan").font(.headline).foregroundStyle(.white)
-                Spacer()
-                Button {
-                    onCloseExpanded()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.7))
+        return HStack(spacing: 0) {
+            // LEFT: cyber girl scene with neon glow.
+            AnchorSceneView(state: model.avatarState == .notify ? .alerted : .idle)
+                .frame(width: 200)
+                .clipShape(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: 22,
+                        bottomLeadingRadius: 22,
+                        bottomTrailingRadius: 0,
+                        topTrailingRadius: 0,
+                        style: .continuous
+                    )
+                )
+
+            // Vertical divider with a neon accent
+            Rectangle()
+                .fill(LinearGradient(
+                    colors: [
+                        Color(red: 1.0, green: 0.30, blue: 0.75).opacity(0.0),
+                        Color(red: 1.0, green: 0.30, blue: 0.75).opacity(0.6),
+                        Color(red: 0.0, green: 0.85, blue: 1.0).opacity(0.6),
+                        Color(red: 0.0, green: 0.85, blue: 1.0).opacity(0.0)
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                ))
+                .frame(width: 1)
+
+            // RIGHT: header + tabs + content
+            VStack(spacing: 0) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("KHAN")
+                        .font(.system(size: 16, weight: .heavy, design: .rounded))
+                        .kerning(2)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color(red: 1.0, green: 0.85, blue: 1.0),
+                                         Color(red: 0.6, green: 1.0, blue: 1.0)],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                        )
+                    Text("cyber helper")
+                        .font(.caption2.monospaced())
+                        .foregroundStyle(Color(red: 0.0, green: 0.85, blue: 1.0).opacity(0.7))
+                    Spacer()
+                    Button {
+                        onCloseExpanded()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.55))
+                            .padding(4)
+                            .background(Circle().fill(.white.opacity(0.06)))
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.borderless)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, useFakeNotch ? 10 : 14)
-            .padding(.bottom, 8)
+                .padding(.horizontal, 14)
+                .padding(.top, useFakeNotch ? 12 : 16)
+                .padding(.bottom, 10)
 
-            Divider().background(.white.opacity(0.15))
-
-            // Tabs
-            HStack(spacing: 0) {
-                tabButton("Inbox", tag: .inbox)
-                tabButton("Notes", tag: .notes)
-                tabButton("Today", tag: .today)
-                Spacer()
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-
-            Divider().background(.white.opacity(0.1))
-
-            // Body
-            Group {
-                switch model.expandedTab {
-                case .inbox: AnchorInboxView()
-                case .notes: AnchorNotesView()
-                case .today: AnchorTodayView()
+                // Tabs
+                HStack(spacing: 6) {
+                    tabButton("Inbox", tag: .inbox)
+                    tabButton("Notes", tag: .notes)
+                    tabButton("Today", tag: .today)
+                    Spacer()
                 }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 6)
+
+                Rectangle()
+                    .fill(.white.opacity(0.08))
+                    .frame(height: 1)
+
+                // Body
+                Group {
+                    switch model.expandedTab {
+                    case .inbox: AnchorInboxView()
+                    case .notes: AnchorNotesView()
+                    case .today: AnchorTodayView()
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(width: AnchorController.expandedWidth, height: AnchorController.expandedHeight, alignment: .top)
-        .background(backgroundShape(useFakeNotch: useFakeNotch))
+        .background(panelBackground(useFakeNotch: useFakeNotch))
+        .overlay(panelBorder)
         .colorScheme(.dark)
     }
 
+    private var panelBorder: some View {
+        RoundedRectangle(cornerRadius: 22, style: .continuous)
+            .strokeBorder(
+                LinearGradient(
+                    colors: [
+                        Color(red: 1.0, green: 0.30, blue: 0.75).opacity(0.35),
+                        Color(red: 0.0, green: 0.85, blue: 1.0).opacity(0.35)
+                    ],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                ),
+                lineWidth: 1
+            )
+    }
+
+    @ViewBuilder
+    private func panelBackground(useFakeNotch: Bool) -> some View {
+        if useFakeNotch {
+            FakeNotchShape(cornerRadius: 22)
+                .fill(LinearGradient(
+                    colors: [Color(red: 0.04, green: 0.05, blue: 0.09), Color.black],
+                    startPoint: .top, endPoint: .bottom
+                ))
+        } else {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(LinearGradient(
+                    colors: [Color(red: 0.04, green: 0.05, blue: 0.09), Color.black],
+                    startPoint: .top, endPoint: .bottom
+                ))
+        }
+    }
+
     private func tabButton(_ label: String, tag: AnchorModel.Tab) -> some View {
-        Button {
+        let isSelected = model.expandedTab == tag
+        return Button {
             model.expandedTab = tag
         } label: {
             Text(label)
-                .font(.subheadline.weight(model.expandedTab == tag ? .semibold : .regular))
-                .foregroundStyle(model.expandedTab == tag ? .white : .white.opacity(0.5))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
+                .font(.system(size: 12, weight: isSelected ? .semibold : .regular, design: .rounded))
+                .kerning(0.5)
+                .foregroundStyle(isSelected ? .white : .white.opacity(0.45))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
                 .background(
-                    Capsule().fill(model.expandedTab == tag ? Color.white.opacity(0.12) : Color.clear)
+                    Capsule()
+                        .fill(isSelected
+                              ? Color(red: 0.0, green: 0.85, blue: 1.0).opacity(0.15)
+                              : Color.clear)
+                )
+                .overlay(
+                    Capsule()
+                        .stroke(
+                            isSelected
+                            ? Color(red: 0.0, green: 0.85, blue: 1.0).opacity(0.5)
+                            : Color.clear,
+                            lineWidth: 0.5
+                        )
                 )
         }
         .buttonStyle(.plain)

@@ -37,21 +37,46 @@ public enum AnchorPanelLayout {
         let frame = idleFrame(position: position, screen: screen)
         let panel = KhanAnchorPanel(
             contentRect: frame,
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: true
+        )
+        panel.isReleasedWhenClosed = false
+        panel.level = .screenSaver
+        panel.collectionBehavior = [.canJoinAllSpaces, .stationary]
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
+        panel.hasShadow = false
+        panel.isFloatingPanel = false
+        panel.becomesKeyOnlyIfNeeded = true
+        panel.hidesOnDeactivate = false
+        panel.ignoresMouseEvents = false
+        panel.isMovable = true
+        panel.contentViewController = NSHostingController(rootView: AnyView(content()))
+        return panel
+    }
+
+    /// Drop-down surface anchored to a status-item button. Doesn't try to draw inside
+    /// the menu-bar exclusion zone — the status item handles the in-bar avatar.
+    public static func makeFloating<Content: View>(
+        initialSize: NSSize,
+        @ViewBuilder content: () -> Content
+    ) -> KhanAnchorPanel {
+        let panel = KhanAnchorPanel(
+            contentRect: NSRect(origin: .zero, size: initialSize),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: true
         )
         panel.isReleasedWhenClosed = false
-        panel.level = .statusBar
+        panel.level = .popUpMenu
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         panel.backgroundColor = .clear
         panel.isOpaque = false
-        panel.hasShadow = false
+        panel.hasShadow = true
         panel.isFloatingPanel = true
         panel.becomesKeyOnlyIfNeeded = true
         panel.hidesOnDeactivate = false
-        panel.ignoresMouseEvents = false
-        panel.isMovable = true
         panel.contentViewController = NSHostingController(rootView: AnyView(content()))
         return panel
     }
@@ -64,13 +89,22 @@ public enum AnchorPanelLayout {
 
         switch position {
         case .notchAdjacent:
-            if let notch = s.notchFrame {
+            if s.hasNotch {
+                // Real notch: place the avatar circle just right of the notch, vertically
+                // anchored so its TOP aligns with the screen edge (= top of menu bar).
+                // Centering inside safeAreaInsets.top makes the visible logo hang below
+                // the status icons because the inset is taller than the icons themselves.
                 let size = circleIdleSize
-                let menuBarTop = f.maxY
-                let menuBarHeight = notch.height
+                let yInBar = f.maxY - size + 2 // 2pt overshoot keeps it visually pinned to top
+                let xRightOfNotch: CGFloat
+                if #available(macOS 12.0, *), let rightArea = s.auxiliaryTopRightArea {
+                    xRightOfNotch = rightArea.minX + 6
+                } else {
+                    xRightOfNotch = f.midX + 100 + 6
+                }
                 return NSRect(
-                    x: notch.maxX + 4,
-                    y: menuBarTop - menuBarHeight + (menuBarHeight - size) / 2,
+                    x: xRightOfNotch,
+                    y: yInBar,
                     width: size,
                     height: size
                 )
@@ -125,8 +159,23 @@ public enum AnchorPanelLayout {
 
         switch position {
         case .notchAdjacent:
-            if let notch = s.notchFrame {
-                return NSRect(x: notch.maxX - 4, y: f.maxY - height, width: width, height: height)
+            if s.hasNotch {
+                // Drop down anchored to the avatar's idle x (just right of the notch).
+                let xRightOfNotch: CGFloat
+                if #available(macOS 12.0, *), let rightArea = s.auxiliaryTopRightArea {
+                    xRightOfNotch = rightArea.minX + 6
+                } else {
+                    xRightOfNotch = f.midX + 100 + 6
+                }
+                // Clamp so the panel doesn't run off the right edge.
+                let maxX = f.maxX - width - 6
+                let xClamped = min(xRightOfNotch, maxX)
+                return NSRect(
+                    x: xClamped,
+                    y: f.maxY - height,
+                    width: width,
+                    height: height
+                )
             } else {
                 return NSRect(x: f.midX - width / 2, y: f.maxY - height, width: width, height: height)
             }
@@ -149,10 +198,11 @@ public enum AnchorPanelLayout {
 // MARK: - Screen persistence
 
 public enum AnchorScreenStore {
-    private static let key = "khan.anchorScreenDisplayID"
+    private static let screenKey = "khan.anchorScreenDisplayID"
+    private static let edgeKey = "khan.anchorEdge"
 
     public static func savedScreen() -> NSScreen? {
-        let raw = UserDefaults.standard.integer(forKey: key)
+        let raw = UserDefaults.standard.integer(forKey: screenKey)
         guard raw != 0 else { return nil }
         let target = CGDirectDisplayID(raw)
         return NSScreen.screens.first { screen in
@@ -162,6 +212,15 @@ public enum AnchorScreenStore {
 
     public static func save(screen: NSScreen) {
         guard let id = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID else { return }
-        UserDefaults.standard.set(Int(id), forKey: key)
+        UserDefaults.standard.set(Int(id), forKey: screenKey)
+    }
+
+    public static func savedEdge() -> AnchorEdge {
+        let raw = UserDefaults.standard.string(forKey: edgeKey) ?? AnchorEdge.top.rawValue
+        return AnchorEdge(rawValue: raw) ?? .top
+    }
+
+    public static func save(edge: AnchorEdge) {
+        UserDefaults.standard.set(edge.rawValue, forKey: edgeKey)
     }
 }

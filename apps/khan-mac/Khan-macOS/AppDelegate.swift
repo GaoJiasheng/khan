@@ -45,8 +45,9 @@ final class KhanAppDelegate: NSObject, NSApplicationDelegate {
             }
 
             _ = SettingsStore(container: container).load()
-            // Anchor is the primary surface. Sidebar / hot-side are deprecated for v0.1.
-            let anchor = AnchorController(position: .notchAdjacent, modelContainer: container)
+            // Anchor lives as an NSStatusItem in the menu bar (system handles placement
+            // & cross-screen routing). Click → dropdown panel below it.
+            let anchor = AnchorController(modelContainer: container)
             self.anchorController = anchor
             anchor.show()
 
