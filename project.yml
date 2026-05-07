@@ -1,0 +1,265 @@
+name: Khan
+options:
+  bundleIdPrefix: com.gavin.khan
+  deploymentTarget:
+    macOS: "14.0"
+    iOS: "17.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    DEVELOPMENT_TEAM: "$(KHAN_TEAM_ID)"
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+    SWIFT_STRICT_CONCURRENCY: minimal
+    GCC_TREAT_WARNINGS_AS_ERRORS: NO
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: NO
+
+packages:
+  DynamicNotchKit:
+    url: https://github.com/MrKai77/DynamicNotchKit
+    from: 1.1.0
+  KeyboardShortcuts:
+    url: https://github.com/sindresorhus/KeyboardShortcuts
+    from: 2.0.0
+  ArgumentParser:
+    url: https://github.com/apple/swift-argument-parser
+    from: 1.4.0
+  KhanCore:
+    path: packages/KhanCore
+  KhanUI:
+    path: packages/KhanUI
+  KhanMacChrome:
+    path: packages/KhanMacChrome
+
+targets:
+  Khan-macOS:
+    type: application
+    platform: macOS
+    sources:
+      - path: apps/khan-mac/Khan-macOS
+        excludes:
+          - "Khan-macOS.entitlements"
+          - "Resources/Info.plist"
+    resources:
+      - path: apps/khan-mac/Khan-macOS/AppleScript/Khan.sdef
+      - path: apps/khan-mac/Khan-macOS/Resources/Avatar/khan-avatar.png
+    info:
+      path: apps/khan-mac/Khan-macOS/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: Khan
+        LSApplicationCategoryType: public.app-category.productivity
+        LSUIElement: false
+        NSHumanReadableCopyright: ""
+        NSAppleScriptEnabled: true
+        OSAScriptingDefinition: Khan.sdef
+        CFBundleURLTypes:
+          - CFBundleURLName: com.gavin.khan.url
+            CFBundleURLSchemes: [khan]
+        NSUserActivityTypes: []
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.khan
+        CODE_SIGN_ENTITLEMENTS: apps/khan-mac/Khan-macOS/Khan-macOS.entitlements
+        ENABLE_HARDENED_RUNTIME: YES
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+    dependencies:
+      - package: KhanCore
+        product: KhanCore
+      - package: KhanUI
+        product: KhanUI
+      - package: KhanMacChrome
+        product: KhanMacChrome
+      - package: DynamicNotchKit
+      - package: KeyboardShortcuts
+
+  KhanShareExtension-macOS:
+    type: app-extension
+    platform: macOS
+    sources:
+      - apps/khan-mac/KhanShareExtension-macOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.khan.share-mac
+        CODE_SIGN_ENTITLEMENTS: apps/khan-mac/KhanShareExtension-macOS/KhanShareExtension-macOS.entitlements
+    info:
+      path: apps/khan-mac/KhanShareExtension-macOS/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsImageWithMaxCount: 5
+              NSExtensionActivationSupportsFileWithMaxCount: 5
+    dependencies:
+      - package: KhanCore
+        product: KhanCore
+
+  KhanWidget-macOS:
+    type: app-extension
+    platform: macOS
+    sources:
+      - apps/khan-mac/KhanWidget-macOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.khan.widget-mac
+        CODE_SIGN_ENTITLEMENTS: apps/khan-mac/KhanWidget-macOS/KhanWidget-macOS.entitlements
+    info:
+      path: apps/khan-mac/KhanWidget-macOS/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    dependencies:
+      - package: KhanCore
+        product: KhanCore
+      - package: KhanUI
+        product: KhanUI
+
+  Khan-iOS:
+    type: application
+    platform: iOS
+    sources:
+      - path: apps/khan-ios/Khan-iOS
+        excludes:
+          - "Khan-iOS.entitlements"
+          - "Resources/Info.plist"
+    info:
+      path: apps/khan-ios/Khan-iOS/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: Khan
+        LSApplicationCategoryType: public.app-category.productivity
+        UIBackgroundModes: [remote-notification, processing]
+        BGTaskSchedulerPermittedIdentifiers: [com.gavin.khan.refresh]
+        CFBundleURLTypes:
+          - CFBundleURLName: com.gavin.khan.url
+            CFBundleURLSchemes: [khan]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.khan.ios
+        CODE_SIGN_ENTITLEMENTS: apps/khan-ios/Khan-iOS/Khan-iOS.entitlements
+        TARGETED_DEVICE_FAMILY: "1,2"
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+    dependencies:
+      - package: KhanCore
+        product: KhanCore
+      - package: KhanUI
+        product: KhanUI
+
+  KhanShareExtension-iOS:
+    type: app-extension
+    platform: iOS
+    sources:
+      - apps/khan-ios/KhanShareExtension-iOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.khan.ios.share
+        CODE_SIGN_ENTITLEMENTS: apps/khan-ios/KhanShareExtension-iOS/KhanShareExtension-iOS.entitlements
+    info:
+      path: apps/khan-ios/KhanShareExtension-iOS/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsImageWithMaxCount: 5
+              NSExtensionActivationSupportsFileWithMaxCount: 5
+    dependencies:
+      - package: KhanCore
+        product: KhanCore
+
+  KhanWidget-iOS:
+    type: app-extension
+    platform: iOS
+    sources:
+      - apps/khan-ios/KhanWidget-iOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.khan.ios.widget
+        CODE_SIGN_ENTITLEMENTS: apps/khan-ios/KhanWidget-iOS/KhanWidget-iOS.entitlements
+    info:
+      path: apps/khan-ios/KhanWidget-iOS/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    dependencies:
+      - package: KhanCore
+        product: KhanCore
+      - package: KhanUI
+        product: KhanUI
+
+  KhanIntents-macOS:
+    type: app-extension
+    platform: macOS
+    sources:
+      - extensions/KhanIntents
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.khan.intents-mac
+        CODE_SIGN_ENTITLEMENTS: extensions/KhanIntents/KhanIntents.entitlements
+    info:
+      path: extensions/KhanIntents/Info-macOS.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.appintents-extension
+    dependencies:
+      - package: KhanCore
+        product: KhanIPC
+
+  KhanIntents-iOS:
+    type: app-extension
+    platform: iOS
+    sources:
+      - extensions/KhanIntents
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.khan.intents-ios
+        CODE_SIGN_ENTITLEMENTS: extensions/KhanIntents/KhanIntents.entitlements
+    info:
+      path: extensions/KhanIntents/Info-iOS.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.appintents-extension
+    dependencies:
+      - package: KhanCore
+        product: KhanIPC
+
+schemes:
+  Khan-macOS:
+    build:
+      targets:
+        Khan-macOS: all
+        KhanShareExtension-macOS: all
+        KhanWidget-macOS: all
+        KhanIntents-macOS: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+    archive:
+      config: Release
+
+  Khan-iOS:
+    build:
+      targets:
+        Khan-iOS: all
+        KhanShareExtension-iOS: all
+        KhanWidget-iOS: all
+        KhanIntents-iOS: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+    archive:
+      config: Release
