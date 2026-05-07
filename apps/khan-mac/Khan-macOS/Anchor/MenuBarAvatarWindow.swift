@@ -209,6 +209,7 @@ final class MenuBarModel: ObservableObject {
 private struct MenuBarAvatarContent: View {
     @ObservedObject var model: MenuBarModel
     @ObservedObject var settings = AppearanceSettings.shared
+    @ObservedObject private var lang = LanguageSettings.shared
     let onClick: () -> Void
     let onDragChanged: (CGSize) -> Void
     let onDragEnded: (CGSize) -> Void
@@ -229,13 +230,19 @@ private struct MenuBarAvatarContent: View {
         }
         .buttonStyle(.plain)
         .onHover { hovered = $0 }
-        .help("Khan — drag to a different screen edge · right-click for settings")
+        .help(L(
+            "Khan — drag to a different screen edge · right-click for settings",
+            "Khan — 拖动可切换屏幕边缘 · 右键打开设置"
+        ))
         .contextMenu {
-            Button("Settings…") {
+            Button(L("Sync Now", "立即同步")) {
+                AppCommands.syncNow()
+            }
+            Button(L("Settings…", "设置…")) {
                 SettingsWindowController.shared.show()
             }
             Divider()
-            Button("Quit Khan") {
+            Button(L("Quit Khan", "退出 Khan")) {
                 NSApp.terminate(nil)
             }
         }

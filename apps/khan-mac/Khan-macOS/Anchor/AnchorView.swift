@@ -7,6 +7,7 @@ import KhanUI
 
 struct AnchorView: View {
     @ObservedObject var model: AnchorModel
+    @ObservedObject private var lang = LanguageSettings.shared
     let position: AnchorPosition
     /// True when the screen the anchor lives on has a real camera notch. Drives whether
     /// the idle visual is a small circle (next to the real notch) or a fake-notch pill.
@@ -199,7 +200,7 @@ struct AnchorView: View {
                                 startPoint: .leading, endPoint: .trailing
                             )
                         )
-                    Text("cyber helper")
+                    Text(L("cyber helper", "赛博助手"))
                         .font(.caption2.monospaced())
                         .foregroundStyle(Color(red: 0.0, green: 0.85, blue: 1.0).opacity(0.7))
                     Spacer()
@@ -220,9 +221,9 @@ struct AnchorView: View {
 
                 // Tabs
                 HStack(spacing: 6) {
-                    tabButton("Inbox", tag: .inbox)
-                    tabButton("Notes", tag: .notes)
-                    tabButton("Today", tag: .today)
+                    tabButton(L("Inbox", "收件箱"), tag: .inbox)
+                    tabButton(L("Notes", "笔记"), tag: .notes)
+                    tabButton(L("Today", "今日"), tag: .today)
                     Spacer()
                 }
                 .padding(.horizontal, 12)
@@ -325,11 +326,12 @@ struct AnchorView: View {
 private struct AnchorInboxView: View {
     @Query(sort: [SortDescriptor(\Message.receivedAt, order: .reverse)])
     private var messages: [Message]
+    @ObservedObject private var lang = LanguageSettings.shared
 
     var body: some View {
         let active = messages.filter { $0.state == .inbox }
         if active.isEmpty {
-            empty("No new messages", systemImage: "tray")
+            empty(L("No new messages", "暂无新消息"), systemImage: "tray")
         } else {
             ScrollView {
                 VStack(spacing: 4) {
@@ -373,16 +375,17 @@ private struct AnchorNotesView: View {
     @Query(sort: [SortDescriptor(\Note.updatedAt, order: .reverse)])
     private var notes: [Note]
     @Environment(\.modelContext) private var ctx
+    @ObservedObject private var lang = LanguageSettings.shared
 
     var body: some View {
         VStack {
             HStack {
                 Spacer()
                 Button {
-                    let n = Note(title: "New note")
+                    let n = Note(title: L("New note", "新笔记"))
                     ctx.insert(n)
                 } label: {
-                    Label("New", systemImage: "plus")
+                    Label(L("New", "新建"), systemImage: "plus")
                         .font(.caption)
                         .foregroundStyle(.white)
                 }
@@ -391,13 +394,13 @@ private struct AnchorNotesView: View {
                 .padding(.top, 6)
             }
             if notes.isEmpty {
-                empty("No notes yet", systemImage: "note.text")
+                empty(L("No notes yet", "暂无笔记"), systemImage: "note.text")
             } else {
                 ScrollView {
                     VStack(spacing: 4) {
                         ForEach(notes.prefix(20)) { n in
                             HStack {
-                                Text(n.title.isEmpty ? "Untitled" : n.title)
+                                Text(n.title.isEmpty ? L("Untitled", "无标题") : n.title)
                                     .font(.subheadline)
                                     .foregroundStyle(.white)
                                     .lineLimit(1)
@@ -419,8 +422,16 @@ private struct AnchorNotesView: View {
 }
 
 private struct AnchorTodayView: View {
+    @ObservedObject private var lang = LanguageSettings.shared
     var body: some View {
-        empty("Today", systemImage: "sun.max", subtitle: "Recent captures and quick links will live here.")
+        empty(
+            L("Today", "今日"),
+            systemImage: "sun.max",
+            subtitle: L(
+                "Recent captures and quick links will live here.",
+                "最近的记录和快捷入口将显示在这里。"
+            )
+        )
     }
 }
 

@@ -14,6 +14,7 @@ enum AnchorSceneState: Equatable {
 struct AnchorSceneView: View {
     var state: AnchorSceneState = .idle
 
+    @StateObject private var weather = WeatherViewModel()
     @State private var glowPhase: Double = 0
     @State private var scanlineOffset: CGFloat = 0
 
@@ -34,6 +35,7 @@ struct AnchorSceneView: View {
             scanlines
             character
             cornerAccents
+            weatherOverlay
         }
         .onAppear {
             withAnimation(.easeInOut(duration: 3.5).repeatForever(autoreverses: true)) {
@@ -42,6 +44,19 @@ struct AnchorSceneView: View {
             withAnimation(.linear(duration: 7).repeatForever(autoreverses: false)) {
                 scanlineOffset = 1
             }
+            weather.start()
+        }
+        .onDisappear {
+            weather.stop()
+        }
+    }
+
+    /// Floating weather pill, top-center inside the corner brackets.
+    private var weatherOverlay: some View {
+        VStack {
+            WeatherBubble(vm: weather)
+                .padding(.top, 22)
+            Spacer()
         }
     }
 

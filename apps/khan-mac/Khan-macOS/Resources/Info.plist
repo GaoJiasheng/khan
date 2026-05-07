@@ -8,6 +8,8 @@
 	<string>Khan</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -39,6 +41,10 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string></string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Khan listens through the microphone so you can dictate prompts to ChatGPT and other AI apps.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Khan uses Apple Speech Recognition to convert your voice to text before sending it to your chosen AI app.</string>
 	<key>NSUserActivityTypes</key>
 	<array/>
 	<key>OSAScriptingDefinition</key>

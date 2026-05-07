@@ -10,4 +10,5 @@ public enum KhanLog {
     public static let sync = Logger(subsystem: subsystem, category: "sync")
     public static let push = Logger(subsystem: subsystem, category: "push")
     public static let ui = Logger(subsystem: subsystem, category: "ui")
+    public static let voice = Logger(subsystem: subsystem, category: "voice")
 }

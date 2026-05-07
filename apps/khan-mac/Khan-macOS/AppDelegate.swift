@@ -15,7 +15,7 @@ final class KhanAppDelegate: NSObject, NSApplicationDelegate {
     private var syncTimer: SyncTimer?
     private var outboxPublisher: OutboxPublisher?
     private var silentPushHandler: SilentPushHandler?
-    private var menuBarController: KhanMenuBarController?
+    private var voiceController: VoiceController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // When launched directly (not via launchd / `open`) the process is a background
@@ -75,11 +75,15 @@ final class KhanAppDelegate: NSObject, NSApplicationDelegate {
             self.syncTimer = SyncTimer(container: container, interval: 60)
             await self.syncTimer?.start()
 
-            self.menuBarController = KhanMenuBarController(
-                onOpenInbox: { [weak self] in self?.anchorController?.show() },
-                onSyncNow: { [weak self] in Task { @MainActor in await self?.syncTimer?.pokeNow() } },
-                onQuit: { NSApp.terminate(nil) }
-            )
+            // Avatar's right-click menu calls into these hooks.
+            AppCommands.syncNow = { [weak self] in
+                Task { @MainActor in await self?.syncTimer?.pokeNow() }
+            }
+
+            // Voice capture: long-press the configured modifier → mic →
+            // route to ChatGPT (or web fallback).
+            self.voiceController = VoiceController()
+            self.voiceController?.start()
 
             if !cloudKitDisabled {
                 Task.detached {

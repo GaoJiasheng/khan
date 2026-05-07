@@ -1,0 +1,189 @@
+import AppKit
+import SwiftUI
+
+/// Floating, click-through, top-most pill that displays the live state of a
+/// voice capture session: "Listening…" while recording, the partial
+/// transcript while speaking, and a brief "→ ChatGPT" hand-off animation
+/// before disappearing. Lives across all spaces and full-screen apps so the
+/// user sees it no matter what's frontmost.
+@MainActor
+final class VoiceFloater {
+    enum Phase: Equatable {
+        case listening(partial: String)
+        case sending(text: String, target: String)
+        case error(message: String)
+    }
+
+    private var window: NSPanel?
+    private let model = FloaterModel()
+
+    func show(initial: Phase) {
+        model.phase = initial
+        if window == nil { build() }
+        positionAndDisplay()
+    }
+
+    func update(_ phase: Phase) {
+        model.phase = phase
+    }
+
+    func hide(after delay: TimeInterval = 0.0) {
+        let target = window
+        Task { @MainActor in
+            if delay > 0 {
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            }
+            target?.orderOut(nil)
+        }
+    }
+
+    private func build() {
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 280, height: 64),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: true
+        )
+        panel.level = .statusBar
+        panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
+        panel.isMovable = false
+        panel.isMovableByWindowBackground = false
+        panel.hasShadow = true
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
+        panel.ignoresMouseEvents = true
+        panel.contentView = NSHostingView(rootView: FloaterView(model: model))
+        self.window = panel
+    }
+
+    private func positionAndDisplay() {
+        guard let window else { return }
+        let size = window.frame.size
+        let screen = NSScreen.screens.first(where: { $0.frame.origin == .zero })
+            ?? NSScreen.main
+            ?? NSScreen.screens.first!
+        // Center horizontally near the top of the primary screen, just under
+        // the menu bar so it reads as a system overlay.
+        let x = screen.frame.midX - size.width / 2
+        let y = screen.frame.maxY - size.height - 36
+        window.setFrame(NSRect(x: x, y: y, width: size.width, height: size.height), display: false)
+        window.alphaValue = 0
+        window.orderFrontRegardless()
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.16
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            window.animator().alphaValue = 1
+        }
+    }
+}
+
+@MainActor
+private final class FloaterModel: ObservableObject {
+    @Published var phase: VoiceFloater.Phase = .listening(partial: "")
+}
+
+private struct FloaterView: View {
+    @ObservedObject var model: FloaterModel
+    @ObservedObject private var lang = LanguageSettings.shared
+    @State private var pulse = false
+
+    var body: some View {
+        HStack(spacing: 10) {
+            icon
+                .frame(width: 22, height: 22)
+            content
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            Capsule(style: .continuous)
+                .fill(LinearGradient(
+                    colors: [Color.black.opacity(0.78), Color.black.opacity(0.55)],
+                    startPoint: .top, endPoint: .bottom
+                ))
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(.ultraThinMaterial)
+                        .opacity(0.5)
+                )
+        )
+        .overlay(
+            Capsule(style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 1.0, green: 0.30, blue: 0.75).opacity(0.55),
+                            Color(red: 0.0, green: 0.85, blue: 1.0).opacity(0.65)
+                        ],
+                        startPoint: .leading, endPoint: .trailing
+                    ),
+                    lineWidth: 1
+                )
+        )
+        .frame(width: 280, height: 64)
+        .colorScheme(.dark)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                pulse = true
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var icon: some View {
+        switch model.phase {
+        case .listening:
+            Image(systemName: "waveform")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(Color(red: 0.0, green: 0.85, blue: 1.0))
+                .scaleEffect(pulse ? 1.10 : 0.90)
+        case .sending:
+            Image(systemName: "paperplane.fill")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Color(red: 1.0, green: 0.30, blue: 0.75))
+        case .error:
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Color(red: 1.0, green: 0.55, blue: 0.20))
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch model.phase {
+        case .listening(let partial):
+            VStack(alignment: .leading, spacing: 1) {
+                Text(L("Listening…", "正在聆听…"))
+                    .font(.caption.monospaced())
+                    .foregroundStyle(Color(red: 0.0, green: 0.85, blue: 1.0).opacity(0.75))
+                Text(partial.isEmpty ? L("speak now", "请说话") : partial)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .truncationMode(.head)
+            }
+        case .sending(let text, let target):
+            VStack(alignment: .leading, spacing: 1) {
+                Text(L("→ \(target)", "→ \(target)"))
+                    .font(.caption.monospaced())
+                    .foregroundStyle(Color(red: 1.0, green: 0.30, blue: 0.75).opacity(0.85))
+                Text(text)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .truncationMode(.head)
+            }
+        case .error(let message):
+            VStack(alignment: .leading, spacing: 1) {
+                Text(L("Voice error", "语音错误"))
+                    .font(.caption.monospaced())
+                    .foregroundStyle(Color(red: 1.0, green: 0.55, blue: 0.20).opacity(0.9))
+                Text(message)
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(.white.opacity(0.85))
+                    .lineLimit(2)
+            }
+        }
+    }
+}
