@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import KhanIPC
 import KhanMacChrome
+import KhanUI
 
 /// Borderless NSWindow that hosts the avatar at one of four screen edges.
 /// On the TOP edge of a notched display it extends the camera notch to the right.

@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import KhanUI
 
 /// Scene state — drives the avatar's pose / animation. Right now we have one static
 /// pose (idle); future states will trigger sprite swaps, scale bounces, etc.

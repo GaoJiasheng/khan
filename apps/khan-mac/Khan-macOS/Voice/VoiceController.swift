@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import Combine
 import KhanIPC
+import KhanUI
 
 /// Top-level coordinator. Listens to all configured trigger keys, and on a
 /// long-press → release cycle:

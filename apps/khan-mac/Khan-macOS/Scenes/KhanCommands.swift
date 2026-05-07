@@ -1,4 +1,5 @@
 import SwiftUI
+import KhanUI
 
 struct KhanCommands: Commands {
     var body: some Commands {

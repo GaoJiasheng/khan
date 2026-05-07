@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import KhanUI
 
 /// Stand-alone settings panel. Lives outside the menu-bar avatar so the
 /// pickers and bindings table can be a regular floating window the user

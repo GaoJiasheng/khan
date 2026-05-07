@@ -136,6 +136,8 @@ targets:
         excludes:
           - "Khan-iOS.entitlements"
           - "Resources/Info.plist"
+    resources:
+      - path: apps/khan-ios/Khan-iOS/Resources/Assets.xcassets
     info:
       path: apps/khan-ios/Khan-iOS/Resources/Info.plist
       properties:
@@ -143,6 +145,10 @@ targets:
         LSApplicationCategoryType: public.app-category.productivity
         UIBackgroundModes: [remote-notification, processing]
         BGTaskSchedulerPermittedIdentifiers: [com.gavin.khan.refresh]
+        NSMicrophoneUsageDescription: "Khan listens through the microphone so you can dictate prompts to ChatGPT and other AI apps."
+        NSSpeechRecognitionUsageDescription: "Khan uses Apple Speech Recognition to convert your voice to text before sending it to your chosen AI app."
+        UIUserInterfaceStyle: Dark
+        LSApplicationQueriesSchemes: [chatgpt, claude]
         CFBundleURLTypes:
           - CFBundleURLName: com.gavin.khan.url
             CFBundleURLSchemes: [khan]
@@ -151,8 +157,9 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.gavin.khan.ios
         CODE_SIGN_ENTITLEMENTS: apps/khan-ios/Khan-iOS/Khan-iOS.entitlements
         TARGETED_DEVICE_FAMILY: "1,2"
-        MARKETING_VERSION: "0.1.0"
+        MARKETING_VERSION: "0.3.0"
         CURRENT_PROJECT_VERSION: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     dependencies:
       - package: KhanCore
         product: KhanCore

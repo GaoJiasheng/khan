@@ -7,6 +7,26 @@ public enum KhanColors {
     public static let cardBackground = Color.secondary.opacity(0.06)
 }
 
+/// Shared neon palette used across the expanded panel, weather bubble, voice
+/// floater, and (now) the iOS UI. Centralized so all surfaces match — pink
+/// halo + cyan rim + deep purple/black backdrop are the brand.
+public enum CyberPalette {
+    public static let neonPink   = Color(red: 1.0, green: 0.30, blue: 0.75)
+    public static let neonCyan   = Color(red: 0.0, green: 0.85, blue: 1.0)
+    public static let backdropTop    = Color(red: 0.10, green: 0.06, blue: 0.18)
+    public static let backdropBottom = Color(red: 0.02, green: 0.02, blue: 0.05)
+
+    public static let panelStroke = LinearGradient(
+        colors: [neonPink.opacity(0.40), neonCyan.opacity(0.55)],
+        startPoint: .topLeading, endPoint: .bottomTrailing
+    )
+
+    public static let backdrop = LinearGradient(
+        colors: [backdropTop, backdropBottom],
+        startPoint: .top, endPoint: .bottom
+    )
+}
+
 public extension Color {
     init?(hex: String) {
         var s = hex.trimmingCharacters(in: .whitespacesAndNewlines)

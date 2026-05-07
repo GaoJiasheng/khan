@@ -2,31 +2,35 @@ import SwiftUI
 import KhanCore
 import KhanUI
 
+/// Top-level tab bar. Order: Today / Inbox / Notes — Today is the cyber-girl
+/// hero scene + weather + voice button (iOS counterpart of the Mac
+/// expanded panel), Inbox/Notes pull from the shared SwiftData store.
 struct RootTabView: View {
+    @ObservedObject private var lang = LanguageSettings.shared
+    @State private var selection: Tab = .today
+
+    enum Tab: Hashable { case today, inbox, notes }
+
     var body: some View {
-        TabView {
-            NavigationStack {
-                InboxListView()
-                    .navigationTitle("Inbox")
-            }
-            .tabItem { Label("Inbox", systemImage: "tray") }
+        TabView(selection: $selection) {
+            TodayScreen()
+                .tabItem {
+                    Label(L("Today", "今日"), systemImage: "sun.max.fill")
+                }
+                .tag(Tab.today)
 
-            NavigationStack {
-                NoteListView()
-            }
-            .tabItem { Label("Notes", systemImage: "note.text") }
+            InboxScreen()
+                .tabItem {
+                    Label(L("Inbox", "收件箱"), systemImage: "tray.fill")
+                }
+                .tag(Tab.inbox)
 
-            NavigationStack {
-                IOSDevicesView()
-            }
-            .tabItem { Label("Devices", systemImage: "iphone") }
+            NotesScreen()
+                .tabItem {
+                    Label(L("Notes", "笔记"), systemImage: "note.text")
+                }
+                .tag(Tab.notes)
         }
-    }
-}
-
-private struct IOSDevicesView: View {
-    var body: some View {
-        KhanEmptyStateView(title: "Devices", systemImage: "iphone", subtitle: "Devices on your iCloud account will appear here once they sync.")
-            .navigationTitle("Devices")
+        .tint(CyberPalette.neonCyan)
     }
 }

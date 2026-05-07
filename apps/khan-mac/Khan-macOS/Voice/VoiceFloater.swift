@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import KhanUI
 
 /// Floating, click-through, top-most pill that displays the live state of a
 /// voice capture session: "Listening…" while recording, the partial

@@ -37,10 +37,21 @@
 	<string>1</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>chatgpt</string>
+		<string>claude</string>
+	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Khan listens through the microphone so you can dictate prompts to ChatGPT and other AI apps.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Khan uses Apple Speech Recognition to convert your voice to text before sending it to your chosen AI app.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
 		<string>processing</string>
 	</array>
+	<key>UIUserInterfaceStyle</key>
+	<string>Dark</string>
 </dict>
 </plist>

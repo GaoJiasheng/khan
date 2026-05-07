@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import KhanUI
 
 /// One row in the user's voice-bindings table. Each binding is fully
 /// independent: its own trigger key, language, target app, and auto-submit
