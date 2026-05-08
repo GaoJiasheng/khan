@@ -54,6 +54,18 @@ struct AnchorView: View {
         )
     }
 
+    /// Translate the dropdown's avatar state into a HeroMood for the
+    /// shared `AvatarHero` view. `.click` maps to a one-shot greeting
+    /// bounce, `.notify` to the alert head-shake.
+    private func heroMood(for state: AvatarState) -> HeroMood {
+        switch state {
+        case .idle:     return .idle
+        case .click:    return .greeting
+        case .notify:   return .alerted
+        case .expanded: return .idle
+        }
+    }
+
     private var rendersAsFakeNotch: Bool {
         // Fake-notch pill on a screen that doesn't have a real notch (and the user picked
         // the auto/notchAdjacent position) or when explicitly anchored at top center.
@@ -162,18 +174,26 @@ struct AnchorView: View {
     private var expandedSummaryView: some View {
         let useFakeNotch = rendersAsFakeNotch
         return HStack(spacing: 0) {
-            // LEFT: cyber girl scene with neon glow.
-            AnchorSceneView(state: model.avatarState == .notify ? .alerted : .idle)
-                .frame(width: 200)
-                .clipShape(
-                    UnevenRoundedRectangle(
-                        topLeadingRadius: 22,
-                        bottomLeadingRadius: 22,
-                        bottomTrailingRadius: 0,
-                        topTrailingRadius: 0,
-                        style: .continuous
-                    )
+            // LEFT: same cyber-girl hero used in the main window's sidebar,
+            // here stretched to 200pt with the right corners flat (the
+            // panel's outer border draws the chrome). selfChrome=false to
+            // skip its built-in rounded clip so our UnevenRoundedRectangle
+            // is the only clip.
+            AvatarHero(
+                mood: heroMood(for: model.avatarState),
+                showWeather: true,
+                selfChrome: false
+            )
+            .frame(width: 200)
+            .clipShape(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 22,
+                    bottomLeadingRadius: 22,
+                    bottomTrailingRadius: 0,
+                    topTrailingRadius: 0,
+                    style: .continuous
                 )
+            )
 
             // Vertical divider with a neon accent
             Rectangle()

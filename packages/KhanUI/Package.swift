@@ -19,7 +19,10 @@ let package = Package(
             dependencies: [
                 .product(name: "KhanCore", package: "KhanCore")
             ],
-            path: "Sources/KhanUI"
+            path: "Sources/KhanUI",
+            resources: [
+                .copy("HeroAnim")
+            ]
         )
     ]
 )

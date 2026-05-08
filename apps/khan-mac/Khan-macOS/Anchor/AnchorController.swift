@@ -4,6 +4,7 @@ import SwiftData
 import KhanCore
 import KhanIPC
 import KhanMacChrome
+import KhanUI
 
 @MainActor
 final class AnchorController: NotificationPresenter {
@@ -88,6 +89,7 @@ final class AnchorController: NotificationPresenter {
         } else {
             model.state = .expanded
             showPanel()
+            HeroEvents.shared.greet()
         }
     }
 
@@ -241,6 +243,7 @@ final class AnchorController: NotificationPresenter {
         Task { @MainActor [weak self] in
             guard let self else { return }
             self.model.flashNotifyReaction()
+            HeroEvents.shared.alert()
             self.model.state = .banner(message: m)
             self.showPanel()
             self.bannerDismissTask?.cancel()
@@ -268,6 +271,7 @@ final class AnchorController: NotificationPresenter {
             self.bannerDismissTask?.cancel()
             self.bannerDismissTask = nil
             self.model.flashNotifyReaction()
+            HeroEvents.shared.alert()
             self.model.state = .fix(message: m)
             self.showPanel()
         }

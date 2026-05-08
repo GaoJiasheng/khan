@@ -101,6 +101,7 @@ final class VoiceController {
             try r.start()
             recognizer = r
             activeBinding = binding
+            HeroEvents.shared.isListening = true
             floater.show(initial: .listening(partial: ""))
             KhanLog.voice.info("recorder started for binding=\(binding.id.uuidString, privacy: .public) lang=\(binding.language.rawValue, privacy: .public) provider=\(binding.provider.rawValue, privacy: .public)")
         } catch {
@@ -116,6 +117,7 @@ final class VoiceController {
         }
         activeBinding = nil
         recognizer = nil
+        HeroEvents.shared.isListening = false
 
         let result = await r.stop()
         KhanLog.voice.info("transcript len=\(result.text.count, privacy: .public): \(result.text, privacy: .public)")
@@ -128,6 +130,7 @@ final class VoiceController {
         do {
             try await appRouter.send(text: result.text, to: binding.provider, autoSubmit: binding.autoSubmit)
             KhanLog.voice.info("router send ok")
+            HeroEvents.shared.celebrate()
             floater.hide(after: 0.6)
         } catch {
             KhanLog.voice.error("router send failed: \(error.localizedDescription, privacy: .public)")

@@ -4,6 +4,7 @@ import SwiftData
 import KhanCore
 import KhanIPC
 import KhanMacChrome
+import KhanUI
 
 @MainActor
 final class KhanAppDelegate: NSObject, NSApplicationDelegate {
@@ -75,9 +76,13 @@ final class KhanAppDelegate: NSObject, NSApplicationDelegate {
             self.syncTimer = SyncTimer(container: container, interval: 60)
             await self.syncTimer?.start()
 
-            // Avatar's right-click menu calls into these hooks.
+            // Avatar's right-click menu calls into these hooks. Sync
+            // completion fires a celebration so the cyber girl reacts.
             AppCommands.syncNow = { [weak self] in
-                Task { @MainActor in await self?.syncTimer?.pokeNow() }
+                Task { @MainActor in
+                    await self?.syncTimer?.pokeNow()
+                    HeroEvents.shared.celebrate()
+                }
             }
 
             // Voice capture: long-press the configured modifier → mic →

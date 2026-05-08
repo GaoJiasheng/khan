@@ -30,17 +30,8 @@ struct MainWindowView: View {
         }
         .frame(minWidth: 760, minHeight: 520)
         .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Text(L("Khan", "Khan"))
-                    .font(.system(size: 14, weight: .heavy, design: .rounded))
-                    .kerning(2)
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [CyberPalette.neonPink, CyberPalette.neonCyan],
-                            startPoint: .leading, endPoint: .trailing
-                        )
-                    )
-            }
+            // KHAN brand moved into the detail header next to the tab
+            // buttons; keep only the theme toggle here.
             ToolbarItem(placement: .primaryAction) {
                 ThemeToggleButton()
             }
@@ -49,41 +40,24 @@ struct MainWindowView: View {
 
     // MARK: - Sidebar
 
+    /// Sidebar is now just the avatar — fills top to bottom, edge to
+    /// edge, on the same deep-space gradient that the avatar's starry
+    /// sky uses internally so there's no visible seam at the title bar.
+    /// Brand line + nav tabs were moved to the detail header.
     private var sidebar: some View {
-        VStack(spacing: 12) {
-            AvatarHero(compact: true)
-                .frame(width: 180, height: 180)
-                .padding(.top, 12)
-                .padding(.horizontal, 12)
-            VStack(spacing: 1) {
-                Text("KHAN")
-                    .font(.system(size: 14, weight: .heavy, design: .rounded))
-                    .kerning(2)
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [CyberPalette.neonPink, CyberPalette.neonCyan],
-                            startPoint: .leading, endPoint: .trailing
-                        )
-                    )
-                Text(L("cyber helper", "赛博助手"))
-                    .font(.caption2.monospaced())
-                    .foregroundStyle(CyberPalette.neonCyan.opacity(0.65))
-            }
-
-            Divider()
-                .overlay(Color.primary.opacity(0.08))
-                .padding(.horizontal, 12)
-
-            VStack(spacing: 4) {
-                sidebarItem(.inbox, label: L("Inbox", "收件箱"), system: "tray.fill")
-                sidebarItem(.notes, label: L("Notes", "笔记"), system: "note.text")
-            }
-            .padding(.horizontal, 8)
-
-            Spacer()
-        }
-        .frame(minWidth: 220)
-        .background(.thinMaterial)
+        AvatarHero(compact: true, showWeather: true, selfChrome: false)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(minWidth: 240)
+            .background(
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.04, green: 0.04, blue: 0.10),
+                        Color(red: 0.01, green: 0.01, blue: 0.04)
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .ignoresSafeArea()
+            )
     }
 
     private func sidebarItem(_ value: Tab, label: String, system: String) -> some View {
@@ -118,13 +92,83 @@ struct MainWindowView: View {
     // MARK: - Detail
 
     private var detail: some View {
-        Group {
-            switch tab {
-            case .inbox: MainInboxList()
-            case .notes: MainNotesList()
+        VStack(spacing: 0) {
+            detailHeader
+            Divider()
+                .overlay(Color.primary.opacity(0.08))
+            Group {
+                switch tab {
+                case .inbox: MainInboxList()
+                case .notes: MainNotesList()
+                }
             }
+            .scrollContentBackground(.hidden)
         }
-        .scrollContentBackground(.hidden)
+    }
+
+    /// Right-pane header: KHAN brand on the left, tab buttons next to it.
+    /// Replaces the old left-sidebar nav rows so the avatar can own the
+    /// entire left column.
+    private var detailHeader: some View {
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("KHAN")
+                    .font(.system(size: 16, weight: .heavy, design: .rounded))
+                    .kerning(2)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [CyberPalette.neonPink, CyberPalette.neonCyan],
+                            startPoint: .leading, endPoint: .trailing
+                        )
+                    )
+                Text(L("cyber helper", "赛博助手"))
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(CyberPalette.neonCyan.opacity(0.7))
+            }
+
+            HStack(spacing: 6) {
+                tabButton(.inbox, label: L("Inbox", "收件箱"), system: "tray.fill")
+                tabButton(.notes, label: L("Notes", "笔记"), system: "note.text")
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+    }
+
+    /// Capsule-style tab button. Selected = cyan-accented, unselected =
+    /// dim primary. Same vocabulary as the dropdown panel's tab row so
+    /// the two surfaces feel like one product.
+    private func tabButton(_ value: Tab, label: String, system: String) -> some View {
+        let isSelected = tab == value
+        return Button {
+            tab = value
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: system)
+                    .font(.system(size: 11, weight: .semibold))
+                Text(label)
+                    .font(.system(size: 12, weight: isSelected ? .semibold : .regular, design: .rounded))
+                    .kerning(0.4)
+            }
+            .foregroundStyle(
+                isSelected
+                    ? AnyShapeStyle(Color.primary)
+                    : AnyShapeStyle(Color.primary.opacity(0.55))
+            )
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(
+                Capsule()
+                    .fill(isSelected ? CyberPalette.neonCyan.opacity(0.14) : Color.clear)
+            )
+            .overlay(
+                Capsule()
+                    .stroke(isSelected ? CyberPalette.neonCyan.opacity(0.45) : Color.clear, lineWidth: 0.6)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -150,7 +194,6 @@ private struct MainInboxList: View {
             }
             .padding(20)
         }
-        .navigationTitle(L("Inbox", "收件箱"))
     }
 
     private var emptyState: some View {
@@ -234,7 +277,6 @@ private struct MainNotesList: View {
             }
             .padding(20)
         }
-        .navigationTitle(L("Notes", "笔记"))
     }
 
     private var emptyState: some View {
