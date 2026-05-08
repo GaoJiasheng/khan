@@ -161,17 +161,35 @@ public final class WeatherViewModel: ObservableObject {
         let (data, _) = try await URLSession.shared.data(for: req)
         let r = try JSONDecoder().decode(OMResponse.self, from: data)
 
-        // Match the current-hour timestamp against the hourly array to pull the
-        // current hour's precipitation probability. Open-Meteo's `current.time`
-        // and `hourly.time[i]` use the same local-time string format
-        // ("YYYY-MM-DDTHH:MM") with timezone=auto, so a string compare is enough.
+        // Pick the hourly precipitation_probability bucket that contains the
+        // "current" timestamp. Open-Meteo's `current.time` is rounded to the
+        // 15-minute mark (e.g. "...T11:30") whereas `hourly.time[i]` is the
+        // top of each hour ("...T11:00"), so we match on the YYYY-MM-DDTHH
+        // prefix (first 13 chars) — that's the bucket the current observation
+        // falls in.
         var rainChance: Double = 0
+        let hourPrefix = String(r.current.time.prefix(13))
         if let hourly = r.hourly,
            let probs = hourly.precipitation_probability,
-           let idx = hourly.time.firstIndex(of: r.current.time),
+           let idx = hourly.time.firstIndex(where: { $0.hasPrefix(hourPrefix) }),
            idx < probs.count,
            let p = probs[idx] {
             rainChance = p
+        }
+
+        // Sanity floor: if the *observed* condition is some form of
+        // precipitation (drizzle / rain / snow / showers / thunderstorm) but
+        // the model still has a 0% bucket, surface a non-zero number so the
+        // UI doesn't lie about the obvious. The forecast bucket is
+        // authoritative when it agrees with reality.
+        let isPrecipitatingNow: Bool = {
+            switch r.current.weather_code {
+            case 51...57, 61...67, 71...77, 80...86, 95, 96, 99: return true
+            default: return false
+            }
+        }()
+        if isPrecipitatingNow && rainChance < 60 {
+            rainChance = 100
         }
 
         return WeatherFetch(

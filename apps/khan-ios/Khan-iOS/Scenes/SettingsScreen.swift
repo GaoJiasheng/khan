@@ -13,12 +13,14 @@ struct SettingsScreen: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var lang = LanguageSettings.shared
     @ObservedObject private var voice = IOSVoiceSettings.shared
+    @ObservedObject private var theme = ThemeSettings.shared
 
     var body: some View {
         NavigationStack {
             ZStack {
                 CyberBackground()
                 Form {
+                    themeSection
                     languageSection
                     voiceSection
                     aboutSection
@@ -36,6 +38,27 @@ struct SettingsScreen: View {
                 }
             }
         }
+    }
+
+    private var themeSection: some View {
+        Section {
+            Picker(selection: $theme.mode) {
+                ForEach(ThemeSettings.Mode.allCases) { m in
+                    Label(m.displayName, systemImage: m.iconName).tag(m)
+                }
+            } label: {
+                Text(L("Theme", "主题"))
+                    .foregroundStyle(.primary)
+            }
+        } header: {
+            Text(L("Appearance", "外观"))
+                .foregroundStyle(.primary.opacity(0.7))
+        } footer: {
+            Text(L("Dark uses the deep purple cyber backdrop. Light uses a softer cream version with the same neon accents.",
+                   "深色为标准赛博紫黑底,浅色为柔和奶油底,两种模式都保留同样的霓虹粉青配色。"))
+                .foregroundStyle(.primary.opacity(0.5))
+        }
+        .listRowBackground(Color.primary.opacity(0.05))
     }
 
     private var languageSection: some View {

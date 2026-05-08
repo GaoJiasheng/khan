@@ -9,6 +9,7 @@ struct KhanApp: App {
     @UIApplicationDelegateAdaptor(KhanAppDelegate.self) var appDelegate
     @State private var modelContainer: ModelContainer? = makeContainer()
     @ObservedObject private var lang = LanguageSettings.shared
+    @ObservedObject private var theme = ThemeSettings.shared
 
     var body: some Scene {
         WindowGroup {
@@ -21,7 +22,7 @@ struct KhanApp: App {
                     setupErrorView
                 }
             }
-            .preferredColorScheme(.dark)
+            .preferredColorScheme(theme.mode.colorScheme)
             .ignoresSafeArea()
         }
     }

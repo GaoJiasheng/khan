@@ -7,4 +7,5 @@ import Foundation
 @MainActor
 enum AppCommands {
     static var syncNow: () -> Void = {}
+    static var openMainWindow: () -> Void = {}
 }

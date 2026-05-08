@@ -8,6 +8,7 @@ import KhanUI
 struct AnchorView: View {
     @ObservedObject var model: AnchorModel
     @ObservedObject private var lang = LanguageSettings.shared
+    @ObservedObject private var theme = ThemeSettings.shared
     let position: AnchorPosition
     /// True when the screen the anchor lives on has a real camera notch. Drives whether
     /// the idle visual is a small circle (next to the real notch) or a fake-notch pill.
@@ -82,7 +83,7 @@ struct AnchorView: View {
             ZStack {
                 Circle()
                     .fill(Color.black.opacity(0.88))
-                    .overlay(Circle().stroke(.white.opacity(0.08), lineWidth: 0.5))
+                    .overlay(Circle().stroke(.primary.opacity(0.08), lineWidth: 0.5))
                 AnchorAvatarView(state: model.avatarState, size: 18)
             }
             .frame(width: AnchorPanelLayout.circleIdleSize, height: AnchorPanelLayout.circleIdleSize)
@@ -124,12 +125,12 @@ struct AnchorView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(m.title)
                     .font(.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
                 if let body = m.body, !body.isEmpty {
                     Text(body)
                         .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(.primary.opacity(0.7))
                         .lineLimit(2)
                 }
             }
@@ -139,7 +140,7 @@ struct AnchorView: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(.primary.opacity(0.6))
             }
             .buttonStyle(.borderless)
         }
@@ -204,14 +205,15 @@ struct AnchorView: View {
                         .font(.caption2.monospaced())
                         .foregroundStyle(Color(red: 0.0, green: 0.85, blue: 1.0).opacity(0.7))
                     Spacer()
+                    ThemeToggleButton()
                     Button {
                         onCloseExpanded()
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.55))
+                            .foregroundStyle(.primary.opacity(0.55))
                             .padding(4)
-                            .background(Circle().fill(.white.opacity(0.06)))
+                            .background(Circle().fill(.primary.opacity(0.06)))
                     }
                     .buttonStyle(.plain)
                 }
@@ -230,7 +232,7 @@ struct AnchorView: View {
                 .padding(.bottom, 6)
 
                 Rectangle()
-                    .fill(.white.opacity(0.08))
+                    .fill(.primary.opacity(0.08))
                     .frame(height: 1)
 
                 // Body
@@ -247,7 +249,7 @@ struct AnchorView: View {
         .frame(width: AnchorController.expandedWidth, height: AnchorController.expandedHeight, alignment: .top)
         .background(panelBackground(useFakeNotch: useFakeNotch))
         .overlay(panelBorder)
-        .colorScheme(.dark)
+        .preferredColorScheme(theme.mode.colorScheme)
     }
 
     private var panelBorder: some View {
@@ -268,16 +270,10 @@ struct AnchorView: View {
     private func panelBackground(useFakeNotch: Bool) -> some View {
         if useFakeNotch {
             FakeNotchShape(cornerRadius: 22)
-                .fill(LinearGradient(
-                    colors: [Color(red: 0.04, green: 0.05, blue: 0.09), Color.black],
-                    startPoint: .top, endPoint: .bottom
-                ))
+                .fill(CyberPalette.backdrop)
         } else {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(LinearGradient(
-                    colors: [Color(red: 0.04, green: 0.05, blue: 0.09), Color.black],
-                    startPoint: .top, endPoint: .bottom
-                ))
+                .fill(CyberPalette.backdrop)
         }
     }
 
@@ -289,7 +285,7 @@ struct AnchorView: View {
             Text(label)
                 .font(.system(size: 12, weight: isSelected ? .semibold : .regular, design: .rounded))
                 .kerning(0.5)
-                .foregroundStyle(isSelected ? .white : .white.opacity(0.45))
+                .foregroundStyle(isSelected ? AnyShapeStyle(Color.primary) : AnyShapeStyle(Color.primary.opacity(0.45)))
                 .padding(.horizontal, 12)
                 .padding(.vertical, 5)
                 .background(
@@ -314,9 +310,9 @@ struct AnchorView: View {
     @ViewBuilder
     private func backgroundShape(useFakeNotch: Bool) -> some View {
         if useFakeNotch {
-            FakeNotchShape(cornerRadius: 22).fill(Color.black)
+            FakeNotchShape(cornerRadius: 22).fill(CyberPalette.backdrop)
         } else {
-            RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color.black)
+            RoundedRectangle(cornerRadius: 22, style: .continuous).fill(CyberPalette.backdrop)
         }
     }
 }
@@ -338,30 +334,30 @@ private struct AnchorInboxView: View {
                     ForEach(active) { m in
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: m.iconName ?? m.source.sfSymbol)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(.primary)
                                 .frame(width: 18)
                             VStack(alignment: .leading, spacing: 1) {
                                 Text(m.title)
                                     .font(.subheadline.weight(.medium))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(.primary)
                                     .lineLimit(1)
                                 if let body = m.bodyMarkdown, !body.isEmpty {
                                     Text(body)
                                         .font(.caption)
-                                        .foregroundStyle(.white.opacity(0.6))
+                                        .foregroundStyle(.primary.opacity(0.6))
                                         .lineLimit(2)
                                 }
                             }
                             Spacer(minLength: 0)
                             Text(m.receivedAt, style: .relative)
                                 .font(.caption2)
-                                .foregroundStyle(.white.opacity(0.4))
+                                .foregroundStyle(.primary.opacity(0.4))
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
                         .background(
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(.white.opacity(0.04))
+                                .fill(.primary.opacity(0.04))
                         )
                     }
                 }
@@ -387,7 +383,7 @@ private struct AnchorNotesView: View {
                 } label: {
                     Label(L("New", "新建"), systemImage: "plus")
                         .font(.caption)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.primary)
                 }
                 .buttonStyle(.plain)
                 .padding(.trailing, 12)
@@ -402,16 +398,16 @@ private struct AnchorNotesView: View {
                             HStack {
                                 Text(n.title.isEmpty ? L("Untitled", "无标题") : n.title)
                                     .font(.subheadline)
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(.primary)
                                     .lineLimit(1)
                                 Spacer()
                                 Text(n.updatedAt, style: .relative)
                                     .font(.caption2)
-                                    .foregroundStyle(.white.opacity(0.4))
+                                    .foregroundStyle(.primary.opacity(0.4))
                             }
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(RoundedRectangle(cornerRadius: 6).fill(.white.opacity(0.04)))
+                            .background(RoundedRectangle(cornerRadius: 6).fill(.primary.opacity(0.04)))
                         }
                     }
                     .padding(8)
@@ -441,14 +437,14 @@ private func empty(_ title: String, systemImage: String, subtitle: String? = nil
         Spacer()
         Image(systemName: systemImage)
             .font(.system(size: 28))
-            .foregroundStyle(.white.opacity(0.4))
+            .foregroundStyle(.primary.opacity(0.4))
         Text(title)
             .font(.subheadline)
-            .foregroundStyle(.white.opacity(0.6))
+            .foregroundStyle(.primary.opacity(0.6))
         if let subtitle {
             Text(subtitle)
                 .font(.caption2)
-                .foregroundStyle(.white.opacity(0.35))
+                .foregroundStyle(.primary.opacity(0.35))
                 .multilineTextAlignment(.center)
         }
         Spacer()

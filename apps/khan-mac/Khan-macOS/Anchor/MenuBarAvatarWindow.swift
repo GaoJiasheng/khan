@@ -236,6 +236,10 @@ private struct MenuBarAvatarContent: View {
             "Khan — 拖动可切换屏幕边缘 · 右键打开设置"
         ))
         .contextMenu {
+            Button(L("Open Main Window", "打开主窗口")) {
+                AppCommands.openMainWindow()
+            }
+            Divider()
             Button(L("Sync Now", "立即同步")) {
                 AppCommands.syncNow()
             }

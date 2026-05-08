@@ -18,7 +18,7 @@ final class SettingsWindowController {
             return
         }
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 540, height: 600),
+            contentRect: NSRect(x: 0, y: 0, width: 540, height: 660),
             styleMask: [.titled, .closable, .nonactivatingPanel, .hudWindow],
             backing: .buffered,
             defer: true
@@ -43,10 +43,13 @@ private struct AppearanceSettingsView: View {
     @ObservedObject var settings = AppearanceSettings.shared
     @ObservedObject var voice = VoiceSettings.shared
     @ObservedObject var lang = LanguageSettings.shared
+    @ObservedObject var theme = ThemeSettings.shared
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
+                themeSection
+                Divider()
                 languageSection
                 Divider()
                 voiceSection
@@ -55,7 +58,35 @@ private struct AppearanceSettingsView: View {
             }
             .padding(18)
         }
-        .frame(width: 540, height: 600)
+        .frame(width: 540, height: 660)
+    }
+
+    private var themeSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(L("Theme", "主题"))
+                .font(.headline)
+            HStack {
+                Text(L("Mode", "模式"))
+                    .frame(width: 110, alignment: .leading)
+                Picker("", selection: $theme.mode) {
+                    ForEach(ThemeSettings.Mode.allCases) { m in
+                        Label(m.displayName, systemImage: m.iconName).tag(m)
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .frame(maxWidth: 240, alignment: .leading)
+                Spacer()
+                ThemeToggleButton()
+            }
+            Text(L(
+                "Dark = deep purple cyber backdrop. Light = soft cream with the same neon accents. Click the sun/moon button anywhere in the app for a one-click flip.",
+                "深色为赛博紫黑底,浅色为奶油色,两种都保留霓虹粉青配色。任何位置的太阳/月亮按钮都能一键切换。"
+            ))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     // MARK: - Language
