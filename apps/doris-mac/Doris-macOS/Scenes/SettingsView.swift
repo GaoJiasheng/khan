@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import AppKit
 import DorisCore
 import DorisIPC
 import DorisUI
@@ -7,6 +8,7 @@ import KeyboardShortcuts
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
+    @ObservedObject private var theme = ThemeSettings.shared
     @Query private var settingsQuery: [UserSettings]
 
     private var settings: UserSettings {
@@ -17,30 +19,47 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        TabView {
-            generalTab
-                .tabItem { Label("General", systemImage: "gear") }
-            syncTab
-                .tabItem { Label("Sync", systemImage: "icloud.fill") }
-            sidebarTab
-                .tabItem { Label("Sidebar", systemImage: "sidebar.right") }
-            shortcutTab
-                .tabItem { Label("Shortcuts", systemImage: "keyboard") }
-            cliTab
-                .tabItem { Label("CLI", systemImage: "terminal") }
+        // Wrap the whole thing in a ZStack with the adaptive cyber backdrop
+        // behind it. macOS gives Settings windows a vibrancy-blurred chrome
+        // by default — `.preferredColorScheme(...)` flips the foreground but
+        // not the vibrancy, which is why the user saw a half-transparent
+        // window regardless of theme. Painting an opaque adaptive backdrop
+        // on top of the vibrancy fixes that, and the
+        // `SettingsWindowOpacityFix` NSViewRepresentable below also tells
+        // the host NSWindow to render opaquely so light-mode pixels don't
+        // bleed in from the desktop wallpaper.
+        ZStack {
+            CyberPalette.backdrop
+                .ignoresSafeArea()
+            TabView {
+                generalTab
+                    .tabItem { Label("General", systemImage: "gear") }
+                syncTab
+                    .tabItem { Label("Sync", systemImage: "icloud.fill") }
+                sidebarTab
+                    .tabItem { Label("Sidebar", systemImage: "sidebar.right") }
+                shortcutTab
+                    .tabItem { Label("Shortcuts", systemImage: "keyboard") }
+                cliTab
+                    .tabItem { Label("CLI", systemImage: "terminal") }
+            }
+            .scrollContentBackground(.hidden)
+            .padding()
         }
         .frame(width: 480, height: 420)
-        .padding()
+        .preferredColorScheme(theme.mode.colorScheme)
+        .background(SettingsWindowOpacityFix())
     }
 
     private var generalTab: some View {
         Form {
-            Picker("Theme", selection: theme) {
+            Picker("Theme", selection: themeBinding) {
                 ForEach(DorisTheme.allCases, id: \.self) { Text($0.rawValue.capitalized).tag($0) }
             }
             Toggle("Show hex color preview", isOn: showHexColorPreview)
             Toggle("Auto-backup daily", isOn: autoBackupEnabled)
         }
+        .scrollContentBackground(.hidden)
     }
 
     /// Sync tab — controls iCloud-backed CloudKit mirroring + manual
@@ -69,6 +88,7 @@ struct SettingsView: View {
                 ForEach(NotchBehavior.allCases, id: \.self) { Text($0.rawValue).tag($0) }
             }
         }
+        .scrollContentBackground(.hidden)
     }
 
     private var shortcutTab: some View {
@@ -77,6 +97,7 @@ struct SettingsView: View {
             KeyboardShortcuts.Recorder("Toggle notch", name: .toggleNotch)
             KeyboardShortcuts.Recorder("Open inbox", name: .openInbox)
         }
+        .scrollContentBackground(.hidden)
     }
 
     private var cliTab: some View {
@@ -93,10 +114,14 @@ struct SettingsView: View {
                 .font(.caption.monospaced())
                 .foregroundStyle(.secondary)
         }
+        .scrollContentBackground(.hidden)
     }
 
     // Bindings backing onto the persisted UserSettings row.
-    private var theme: Binding<DorisTheme> {
+    // Renamed from `theme` to `themeBinding` so it doesn't collide with the
+    // top-level `@ObservedObject private var theme = ThemeSettings.shared`
+    // we observe to react to live theme switches.
+    private var themeBinding: Binding<DorisTheme> {
         Binding(get: { settings.theme }, set: { settings.theme = $0 })
     }
     private var sidebarEdge: Binding<SidebarEdge> {
@@ -188,6 +213,7 @@ private struct SyncSettingsTab: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .scrollContentBackground(.hidden)
         .onReceive(lastTickTimer) { nowTick = $0 }
     }
 
@@ -211,6 +237,66 @@ private struct SyncSettingsTab: View {
         // poke succeeds.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
             isSyncing = false
+        }
+    }
+}
+
+/// SwiftUI's `Settings` scene hosts content in an NSWindow with
+/// `NSVisualEffectView`-backed vibrancy. That's why the previous Settings
+/// surface looked semi-transparent regardless of theme — the desktop
+/// wallpaper bled through. This NSViewRepresentable reaches up the view
+/// hierarchy on first attach, finds the host NSWindow, and:
+///
+///   · `isOpaque = true`           — stop drawing the window with alpha
+///   · `backgroundColor = .clear`  — but let SwiftUI's own backdrop paint
+///   · removes any vibrancy view   — kills the blur material so the
+///                                   adaptive cyber gradient behind us
+///                                   shows through cleanly
+///
+/// Same TrackingView trick we use for the main window's
+/// `WindowConfigurator` to handle the case where SwiftUI calls
+/// `makeNSView` before the view is attached to its window.
+private struct SettingsWindowOpacityFix: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let v = TrackingView()
+        v.onMoveToWindow = { configure($0) }
+        DispatchQueue.main.async { configure(v.window) }
+        return v
+    }
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async { configure(nsView.window) }
+    }
+
+    private func configure(_ window: NSWindow?) {
+        guard let window else { return }
+        window.isOpaque = true
+        window.backgroundColor = .clear
+        window.titlebarAppearsTransparent = false
+
+        // Remove any NSVisualEffectView SwiftUI inserted as the window's
+        // backing material — the cyber backdrop in `SettingsView.body`
+        // already covers the whole content area, so the vibrancy is
+        // both invisible and the source of the wash-out.
+        if let contentView = window.contentView {
+            stripVisualEffects(from: contentView)
+        }
+    }
+
+    private func stripVisualEffects(from view: NSView) {
+        for sub in view.subviews {
+            if let vfx = sub as? NSVisualEffectView {
+                vfx.isHidden = true
+            } else {
+                stripVisualEffects(from: sub)
+            }
+        }
+    }
+
+    private final class TrackingView: NSView {
+        var onMoveToWindow: ((NSWindow?) -> Void)?
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            onMoveToWindow?(window)
         }
     }
 }
