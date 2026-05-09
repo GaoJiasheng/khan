@@ -60,9 +60,15 @@ final class VoiceFloater {
     private func positionAndDisplay() {
         guard let window else { return }
         let size = window.frame.size
-        let screen = NSScreen.screens.first(where: { $0.frame.origin == .zero })
-            ?? NSScreen.main
-            ?? NSScreen.screens.first!
+        // Avoid the `NSScreen.screens.first!` force-unwrap — it bakes
+        // this file's path into the runtime trap metadata. `guard let`
+        // bails silently in the (effectively impossible) case of zero
+        // screens; nothing to position against anyway.
+        guard let screen = NSScreen.screens.first(where: { $0.frame.origin == .zero })
+                    ?? NSScreen.main
+                    ?? NSScreen.screens.first else {
+            return
+        }
         // Center horizontally near the top of the primary screen, just under
         // the menu bar so it reads as a system overlay.
         let x = screen.frame.midX - size.width / 2

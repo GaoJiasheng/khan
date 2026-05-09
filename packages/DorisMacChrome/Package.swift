@@ -1,5 +1,17 @@
 // swift-tools-version: 5.10
 import PackageDescription
+import Foundation
+
+// See DorisCore/Package.swift for the rationale — we remap source
+// paths in debug info / __cstring so "khan" (in the worktree path)
+// doesn't leak into the shipped binary.
+let packageRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent().path
+let prefixMapFlags: [SwiftSetting] = [
+    .unsafeFlags(["-Xfrontend", "-debug-prefix-map",
+                  "-Xfrontend", "\(packageRoot)=/doris/packages/DorisMacChrome"]),
+    .unsafeFlags(["-Xfrontend", "-file-prefix-map",
+                  "-Xfrontend", "\(packageRoot)=/doris/packages/DorisMacChrome"])
+]
 
 let package = Package(
     name: "DorisMacChrome",
@@ -22,7 +34,8 @@ let package = Package(
                 .product(name: "DynamicNotchKit", package: "DynamicNotchKit"),
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts")
             ],
-            path: "Sources/DorisMacChrome"
+            path: "Sources/DorisMacChrome",
+            swiftSettings: prefixMapFlags
         )
     ]
 )

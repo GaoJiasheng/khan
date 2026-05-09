@@ -204,7 +204,17 @@ final class AnchorController: NotificationPresenter {
             let f = avatar.screenFrame
             return NSRect(x: f.midX - 1, y: f.minY - 1, width: 2, height: 2)
         }
-        let s = NSScreen.screens.first(where: { $0.frame.origin == .zero }) ?? NSScreen.main ?? NSScreen.screens.first!
+        // Avoid `NSScreen.screens.first!` — the force-unwrap embeds the
+        // source file path into the runtime trap message, leaking the
+        // build-tree path into the .dylib's `__cstring` section. The
+        // `guard let` form has the same behavior in practice (we only
+        // reach this branch when there's no avatar window, which itself
+        // requires a screen) but doesn't bake any path metadata.
+        guard let s = NSScreen.screens.first(where: { $0.frame.origin == .zero })
+                    ?? NSScreen.main
+                    ?? NSScreen.screens.first else {
+            return .zero
+        }
         return NSRect(x: s.frame.maxX - 16, y: s.frame.maxY - 16, width: 2, height: 2)
     }
 
@@ -276,10 +286,14 @@ final class AnchorController: NotificationPresenter {
             }
         }
 
-        // Fallback: top-right of the primary screen.
-        let s = NSScreen.screens.first(where: { $0.frame.origin == .zero })
-            ?? NSScreen.main
-            ?? NSScreen.screens.first!
+        // Fallback: top-right of the primary screen. (See `collapsedRect`
+        // for why we don't `force-unwrap NSScreen.screens.first` here —
+        // the trap message would leak the source path.)
+        guard let s = NSScreen.screens.first(where: { $0.frame.origin == .zero })
+                    ?? NSScreen.main
+                    ?? NSScreen.screens.first else {
+            return .zero
+        }
         let pad: CGFloat = 6
         return NSRect(
             x: s.frame.maxX - width - pad,

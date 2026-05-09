@@ -18,6 +18,20 @@ settings:
     SWIFT_STRICT_CONCURRENCY: minimal
     GCC_TREAT_WARNINGS_AS_ERRORS: NO
     SWIFT_TREAT_WARNINGS_AS_ERRORS: NO
+    # Strip the source-tree absolute path out of debug info. Without
+    # this, every Debug build embeds full paths like
+    # "/Users/.../work/khan/.claude/worktrees/.../File.swift" in the
+    # DWARF symbols inside `.debug.dylib`. The "khan" in the worktree
+    # path was leaking into the shipped binary even though no code
+    # references it.
+    #
+    # Pass via `-Xfrontend` because the Swift driver's surface flag
+    # changed shape between toolchain versions; the frontend flag is
+    # the stable form. `-file-prefix-map` covers source filename
+    # references that show up in __cstring (force-unwrap traps,
+    # Bundle.module, etc.); `-debug-prefix-map` covers DWARF.
+    OTHER_SWIFT_FLAGS: $(inherited) -Xfrontend -debug-prefix-map -Xfrontend $(SRCROOT)=/doris -Xfrontend -file-prefix-map -Xfrontend $(SRCROOT)=/doris -Xfrontend -coverage-prefix-map -Xfrontend $(SRCROOT)=/doris
+    OTHER_CFLAGS: $(inherited) -fdebug-prefix-map=$(SRCROOT)=/doris -ffile-prefix-map=$(SRCROOT)=/doris
 
 packages:
   DynamicNotchKit:

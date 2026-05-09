@@ -99,20 +99,30 @@ final class MenuBarAvatarWindow {
     private func dragEnded() {
         dragCursorOffset = nil
         let center = NSPoint(x: window.frame.midX, y: window.frame.midY)
-        let target = NSScreen.screens.first { $0.frame.contains(center) }
-            ?? window.screen
-            ?? NSScreen.main
-            ?? NSScreen.screens.first!
+        // No force-unwrap — bail if there are zero screens (impossible
+        // in practice, but the `!` would bake this file's source path
+        // into runtime trap metadata).
+        guard let target = NSScreen.screens.first(where: { $0.frame.contains(center) })
+                    ?? window.screen
+                    ?? NSScreen.main
+                    ?? NSScreen.screens.first else {
+            return
+        }
         let dTop    = abs(target.frame.maxY - center.y)
         let dBottom = abs(center.y - target.frame.minY)
         let dRight  = abs(target.frame.maxX - center.x)
         let dLeft   = abs(center.x - target.frame.minX)
-        let nearest: AnchorEdge = [
+        // Use `?? .top` instead of `!.0` — the four-element array is
+        // always non-empty so `min(by:)` never returns nil in practice,
+        // but the force-unwrap embeds this file's source path into
+        // runtime trap metadata. The default keeps behavior identical
+        // without the path baking.
+        let nearest: AnchorEdge = ([
             (AnchorEdge.top, dTop),
             (.bottom, dBottom),
             (.right, dRight),
             (.left, dLeft)
-        ].min(by: { $0.1 < $1.1 })!.0
+        ].min(by: { $0.1 < $1.1 })?.0) ?? .top
 
         AnchorScreenStore.save(screen: target)
         AnchorScreenStore.save(edge: nearest)
