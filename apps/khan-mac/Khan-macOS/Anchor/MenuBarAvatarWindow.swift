@@ -246,6 +246,14 @@ private struct MenuBarAvatarContent: View {
     @ObservedObject var model: MenuBarModel
     @ObservedObject var settings = AppearanceSettings.shared
     @ObservedObject private var lang = LanguageSettings.shared
+    /// Captured into `AppCommands.openMainWindow` on first appear. With
+    /// `LSUIElement: true` the main window doesn't auto-create at launch,
+    /// so the previous `WindowOpenerCapture` inside `MainWindowView` would
+    /// never run. This avatar view is always created at launch (AppDelegate
+    /// builds the avatar window unconditionally) so it's the right place
+    /// to grab `openWindow` and stash the closure where the right-click
+    /// menu can reach it.
+    @Environment(\.openWindow) private var openWindow
     let onClick: () -> Void
     let onDragChanged: (CGSize) -> Void
     let onDragEnded: (CGSize) -> Void
@@ -291,6 +299,16 @@ private struct MenuBarAvatarContent: View {
                 .onChanged { v in onDragChanged(v.translation) }
                 .onEnded   { v in onDragEnded(v.translation) }
         )
+        .onAppear {
+            // Grab the SwiftUI `openWindow` action while we're inside a
+            // SwiftUI scene's environment, and store it as the global
+            // hook the avatar's right-click menu (and any other AppKit
+            // entry point) can call.
+            AppCommands.openMainWindow = {
+                openWindow(id: "main")
+                NSApp.activate(ignoringOtherApps: true)
+            }
+        }
     }
 
     /// Notch-extension always solid black (so it fuses with the real notch).

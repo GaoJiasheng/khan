@@ -46,6 +46,16 @@ final class KhanAppDelegate: NSObject, NSApplicationDelegate {
             let anchor = AnchorController(modelContainer: container)
             self.anchorController = anchor
             anchor.show()
+            // Auto-expand the dropdown so the user lands on their inbox /
+            // notes immediately at launch — the main window doesn't open
+            // anymore (LSUIElement: true), the dropdown is the primary UI.
+            // Tiny delay lets the avatar window finish its first layout
+            // pass; without it the panel's "burst-out-of-the-avatar"
+            // animation starts from `.zero` and looks broken.
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 250_000_000)
+                anchor.expand()
+            }
 
             // Route banner/fix through the anchor (replaces DynamicNotchKit).
             router.setPresenter(anchor)

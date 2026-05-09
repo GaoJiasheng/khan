@@ -16,10 +16,14 @@ struct KhanApp: App {
     @ObservedObject private var theme = ThemeSettings.shared
 
     var body: some Scene {
+        // Khan is an `LSUIElement` agent — this WindowGroup does NOT
+        // auto-create its window at launch. The window opens only on
+        // demand (avatar's right-click → "Open Main Window", which calls
+        // `AppCommands.openMainWindow` → SwiftUI's `openWindow(id:)`,
+        // captured into that hook by `MenuBarAvatarContent.onAppear`).
         WindowGroup("Khan", id: "main") {
             MainWindowView()
                 .modelContainer(modelContainer)
-                .background(WindowOpenerCapture())
                 .background(WindowConfigurator())
                 .preferredColorScheme(theme.mode.colorScheme)
         }
@@ -33,25 +37,6 @@ struct KhanApp: App {
                 .modelContainer(modelContainer)
                 .preferredColorScheme(theme.mode.colorScheme)
         }
-    }
-}
-
-/// Hidden view that captures `@Environment(\.openWindow)` and writes a
-/// closure into `AppCommands.openMainWindow` so the avatar's right-click
-/// menu (which lives in AppKit-land, no SwiftUI environment) can call it.
-/// Also reaches into the hosting `NSWindow` to make the green title-bar
-/// button enter native full-screen instead of regular zoom.
-private struct WindowOpenerCapture: View {
-    @Environment(\.openWindow) private var openWindow
-    var body: some View {
-        Color.clear
-            .frame(width: 0, height: 0)
-            .onAppear {
-                AppCommands.openMainWindow = {
-                    openWindow(id: "main")
-                    NSApp.activate(ignoringOtherApps: true)
-                }
-            }
     }
 }
 

@@ -48,6 +48,18 @@ final class AnchorController: NotificationPresenter {
         panel?.orderOut(nil)
     }
 
+    /// Public entry for the launch path — open the dropdown panel at app
+    /// start so the user immediately sees their inbox / notes / today
+    /// instead of staring at an empty menu bar. Idempotent: a second call
+    /// while already expanded does nothing (vs. `toggleExpanded` which
+    /// would collapse it).
+    func expand() {
+        guard model.state != .expanded else { return }
+        model.state = .expanded
+        showPanel()
+        HeroEvents.shared.greet()
+    }
+
     private func buildPanel() {
         let model = self.model
         let container = self.modelContainer

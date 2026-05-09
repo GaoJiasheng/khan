@@ -55,7 +55,12 @@ targets:
         CFBundleDisplayName: Khan
         CFBundleIconName: AppIcon
         LSApplicationCategoryType: public.app-category.productivity
-        LSUIElement: false
+        # Khan is a menu-bar agent — the avatar lives in the notch/menu
+        # bar, the dropdown panel is its primary UI, and the main window
+        # only opens on demand (via the avatar's right-click menu).
+        # `LSUIElement: true` removes the Dock icon and prevents the
+        # SwiftUI WindowGroup from auto-creating its window at launch.
+        LSUIElement: true
         NSHumanReadableCopyright: ""
         NSAppleScriptEnabled: true
         OSAScriptingDefinition: Khan.sdef
