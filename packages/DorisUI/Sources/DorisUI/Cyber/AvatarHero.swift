@@ -78,11 +78,17 @@ public struct AvatarHero: View {
     @ObservedObject private var heroEvents = HeroEvents.shared
     /// Procedural starfield. Generated once on view init so positions stay
     /// stable across renders — only the per-star brightness twinkles.
-    @State private var stars: [HeroStar] = (0..<140).map { _ in HeroStar.random() }
+    /// 100 stars still reads as a dense field in a 200pt-wide card and
+    /// trims ~30 % of the Canvas drawing work per frame.
+    @State private var stars: [HeroStar] = (0..<100).map { _ in HeroStar.random() }
     /// Cursor position in the card's local coordinate space, or nil when
     /// the cursor isn't over the card. Drives the cursor halo + nearby-
     /// star boost. Mac-only; iOS doesn't have hover.
     @State private var cursorPos: CGPoint? = nil
+    /// Timestamp of the last cursor update — `onContinuousHover` is
+    /// throttled to ~30 Hz against this so high-polling-rate input
+    /// devices don't hammer the view tree.
+    @State private var lastCursorUpdate: Date = .distantPast
     /// Active click ripples — each is a circle that expands and fades
     /// over ~1.2s starting from its `origin`.
     @State private var ripples: [Ripple] = []
@@ -140,8 +146,19 @@ public struct AvatarHero: View {
         #if os(macOS)
         .onContinuousHover { phase in
             switch phase {
-            case .active(let p): cursorPos = p
-            case .ended:         cursorPos = nil
+            case .active(let p):
+                // `onContinuousHover` fires on every mouse-moved event
+                // (200+ Hz from a high-polling-rate trackpad/mouse). Each
+                // change of `cursorPos` re-renders both `cursorHalo` and
+                // the starfield Canvas (cursor proximity boost). Throttle
+                // to ~30 Hz — same visual feel, far less view work.
+                let now = Date()
+                if now.timeIntervalSince(lastCursorUpdate) > 0.033 {
+                    cursorPos = p
+                    lastCursorUpdate = now
+                }
+            case .ended:
+                cursorPos = nil
             }
         }
         #endif
@@ -173,17 +190,26 @@ public struct AvatarHero: View {
     /// the closure SwiftUI would re-evaluate them 12 times a second
     /// even though their content hasn't changed.
     private var animatedAmbientLayers: some View {
-        // 30 fps for smooth twinkle, particle drift, and ripple expansion.
-        // `.periodic` (instead of the original `.animation`) uses a plain
-        // dispatch timer rather than binding to the display link, so the
-        // SwiftUI `AnimatorState` doesn't tick at 60–120 Hz when we only
-        // need 30. Same visual quality, structurally cheaper.
-        TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { context in
-            ZStack {
-                starfield(now: context.date)
-                particleLayer(now: context.date)
-                rippleLayer(now: context.date)
+        // 20 fps for ambient (twinkle / particles / ripples). Twinkle is
+        // a slow sin and looks identical at 20fps vs 30fps; particles
+        // and ripples fade over ~1s so a couple fewer interpolated
+        // frames is invisible. AvatarHero is only mounted while the
+        // dropdown is open — closing the panel tears the SwiftUI tree
+        // down (see `AnchorController.tearDownPanelContent`) which is
+        // our canonical "stop animating" trigger.
+        //
+        // All three drawing passes (stars, particles, ripples) share a
+        // single `Canvas`. Each separate Canvas is its own SwiftUI view,
+        // so the layout engine has to walk three nodes per frame; merging
+        // them into one cuts that to a single node and a single
+        // GraphicsContext per tick.
+        TimelineView(.periodic(from: .now, by: 1.0 / 20.0)) { context in
+            Canvas { gc, size in
+                drawStarfield(into: gc, size: size, now: context.date)
+                drawParticles(into: gc, size: size, now: context.date)
+                drawRipples(into: gc, now: context.date)
             }
+            .allowsHitTesting(false)
         }
     }
 
@@ -232,85 +258,90 @@ public struct AvatarHero: View {
         }
     }
 
-    /// Renders the star list with per-frame brightness driven by sin
-    /// waves. Stars within `cursorBoostRadius` of the cursor twinkle at
-    /// 1.6x brightness and 1.5x size.
-    private func starfield(now: Date) -> some View {
-        Canvas { context, size in
-            let t = now.timeIntervalSinceReferenceDate
-            let cursor = cursorPos
-            let boostRadius: CGFloat = 90
+    /// Renders the star list into the shared `GraphicsContext` — drives
+    /// per-star brightness from sin waves, boosts proximity to the
+    /// cursor. Was previously its own `Canvas`; merged into the combined
+    /// ambient Canvas so SwiftUI's layout engine sees one node, not three.
+    private func drawStarfield(into context: GraphicsContext, size: CGSize, now: Date) {
+        let t = now.timeIntervalSinceReferenceDate
+        let cursor = cursorPos
+        let boostRadius: CGFloat = 90
+        let boostRadiusSq = boostRadius * boostRadius // skip sqrt in the hot loop
 
-            for star in stars {
-                let twinkle = 0.5 + 0.5 * sin(t * star.twinkleSpeed + star.twinklePhase)
-                let pos = CGPoint(x: star.x * size.width, y: star.y * size.height)
+        for star in stars {
+            let twinkle = 0.5 + 0.5 * sin(t * star.twinkleSpeed + star.twinklePhase)
+            let pos = CGPoint(x: star.x * size.width, y: star.y * size.height)
 
-                // Boost factor — falls off smoothly with distance.
-                var boost: Double = 0
-                if let c = cursor {
-                    let dx = pos.x - c.x
-                    let dy = pos.y - c.y
-                    let d = sqrt(dx * dx + dy * dy)
-                    if d < boostRadius {
-                        boost = 1.0 - (d / boostRadius)
-                    }
+            // Boost factor — falls off smoothly with distance from cursor.
+            // Compare squared distances first so we only do `sqrt` for
+            // the (small) subset of stars that are actually near the
+            // cursor.
+            var boost: Double = 0
+            if let c = cursor {
+                let dx = pos.x - c.x
+                let dy = pos.y - c.y
+                let dSq = dx * dx + dy * dy
+                if dSq < boostRadiusSq {
+                    boost = 1.0 - (sqrt(dSq) / boostRadius)
                 }
-
-                let opacity = min(1.0, star.baseOpacity * twinkle * (1.0 + boost * 0.6))
-                let drawSize = star.size * CGFloat(1.0 + boost * 0.5)
-
-                if drawSize > 1.7 {
-                    let glow = CGRect(
-                        x: pos.x - drawSize * 1.4,
-                        y: pos.y - drawSize * 1.4,
-                        width: drawSize * 2.8,
-                        height: drawSize * 2.8
-                    )
-                    context.fill(Path(ellipseIn: glow),
-                                 with: .color(star.color.opacity(opacity * 0.30)))
-                }
-                let rect = CGRect(
-                    x: pos.x - drawSize / 2,
-                    y: pos.y - drawSize / 2,
-                    width: drawSize,
-                    height: drawSize
-                )
-                context.fill(Path(ellipseIn: rect),
-                             with: .color(star.color.opacity(opacity)))
             }
+
+            let opacity = min(1.0, star.baseOpacity * twinkle * (1.0 + boost * 0.6))
+            // Skip near-invisible stars entirely — at the bottom of the
+            // sin wave they contribute nothing visible but still cost
+            // two ellipse fills.
+            if opacity < 0.04 { continue }
+            let drawSize = star.size * CGFloat(1.0 + boost * 0.5)
+
+            if drawSize > 1.7 {
+                let glow = CGRect(
+                    x: pos.x - drawSize * 1.4,
+                    y: pos.y - drawSize * 1.4,
+                    width: drawSize * 2.8,
+                    height: drawSize * 2.8
+                )
+                context.fill(Path(ellipseIn: glow),
+                             with: .color(star.color.opacity(opacity * 0.30)))
+            }
+            let rect = CGRect(
+                x: pos.x - drawSize / 2,
+                y: pos.y - drawSize / 2,
+                width: drawSize,
+                height: drawSize
+            )
+            context.fill(Path(ellipseIn: rect),
+                         with: .color(star.color.opacity(opacity)))
         }
-        .allowsHitTesting(false)
     }
 
     /// Click ripples — expanding cyan rings centered on the click point.
-    /// One ring per click; lifetime ~1.2s.
-    private func rippleLayer(now: Date) -> some View {
-        Canvas { context, _ in
-            var alive: [Ripple] = []
-            for ripple in ripples {
-                let elapsed = now.timeIntervalSince(ripple.bornAt)
-                guard elapsed < ripple.lifetime else { continue }
-                let t = elapsed / ripple.lifetime
-                let radius = 6 + 90 * t
-                let opacity = max(0, 0.65 * (1.0 - t))
-                let rect = CGRect(
-                    x: ripple.origin.x - radius,
-                    y: ripple.origin.y - radius,
-                    width: radius * 2,
-                    height: radius * 2
-                )
-                context.stroke(
-                    Path(ellipseIn: rect),
-                    with: .color(CyberPalette.neonCyan.opacity(opacity)),
-                    lineWidth: 1.4
-                )
-                alive.append(ripple)
-            }
-            if alive.count != ripples.count {
-                DispatchQueue.main.async { ripples = alive }
-            }
+    /// One ring per click; lifetime ~1.2s. Usually empty (no ripples in
+    /// flight) so the loop returns immediately.
+    private func drawRipples(into context: GraphicsContext, now: Date) {
+        guard !ripples.isEmpty else { return }
+        var alive: [Ripple] = []
+        for ripple in ripples {
+            let elapsed = now.timeIntervalSince(ripple.bornAt)
+            guard elapsed < ripple.lifetime else { continue }
+            let t = elapsed / ripple.lifetime
+            let radius = 6 + 90 * t
+            let opacity = max(0, 0.65 * (1.0 - t))
+            let rect = CGRect(
+                x: ripple.origin.x - radius,
+                y: ripple.origin.y - radius,
+                width: radius * 2,
+                height: radius * 2
+            )
+            context.stroke(
+                Path(ellipseIn: rect),
+                with: .color(CyberPalette.neonCyan.opacity(opacity)),
+                lineWidth: 1.4
+            )
+            alive.append(ripple)
         }
-        .allowsHitTesting(false)
+        if alive.count != ripples.count {
+            DispatchQueue.main.async { ripples = alive }
+        }
     }
 
     /// Static CRT-scanline overlay. Was previously a `GeometryReader` +
@@ -350,12 +381,16 @@ public struct AvatarHero: View {
     /// head clears the pill. The empty top region just shows more of the
     /// backdrop, which is what we want.
     private var character: some View {
-        // 16 fps — the source clips were rendered at this rate by the AI
-        // generator, so we play frames 1:1 for smooth motion.
+        // Looping moods (idle / listening / walking / sleeping) play at
+        // 12 fps — animation's classic "on twos" cadence (24fps cinema
+        // sampled every other frame). Looks smooth, costs SwiftUI 25%
+        // less per second than 16. One-shots stay at 16 because they
+        // only run for ~5 seconds total, so the higher rate is a bounded
+        // expense.
         AnimatedAvatarPlayer(
             clip: playingMood.clipName,
             isLooping: playingMood.isLooping,
-            fps: 16,
+            fps: playingMood.isLooping ? 12 : 16,
             verticalOffset: showWeather ? (compact ? 36 : 50) : 0,
             onFinished: { handleOneShotFinished() }
         )
@@ -387,30 +422,31 @@ public struct AvatarHero: View {
         }
     }
 
-    private func particleLayer(now: Date) -> some View {
-        Canvas { context, _ in
-            var alive: [HeroParticle] = []
-            for var p in particles {
-                let elapsed = now.timeIntervalSince(p.bornAt)
-                guard elapsed < p.lifetime else { continue }
-                let t = elapsed / p.lifetime
-                // Step constant matches the host TimelineView's 30 fps
-                // tick rate.
-                p.x += p.vx * (1.0 / 30.0)
-                p.y += p.vy * (1.0 / 30.0)
-                let opacity = max(0, 1.0 - t * 1.1)
-                let pos = CGPoint(x: p.x, y: p.y)
-                let symbolText = Text(Image(systemName: p.symbol))
-                    .font(.system(size: p.size, weight: .semibold))
-                    .foregroundStyle(p.color.opacity(opacity))
-                context.draw(symbolText, at: pos)
-                alive.append(p)
-            }
-            if alive.count != particles.count {
-                DispatchQueue.main.async { particles = alive }
-            }
+    /// Particle layer drawn into the shared ambient `GraphicsContext`.
+    /// Usually empty (no particles in flight); the early-return makes
+    /// that the cheap path.
+    private func drawParticles(into context: GraphicsContext, size: CGSize, now: Date) {
+        guard !particles.isEmpty else { return }
+        var alive: [HeroParticle] = []
+        for var p in particles {
+            let elapsed = now.timeIntervalSince(p.bornAt)
+            guard elapsed < p.lifetime else { continue }
+            let t = elapsed / p.lifetime
+            // Step constant matches the host TimelineView's 20 fps tick
+            // rate.
+            p.x += p.vx * (1.0 / 20.0)
+            p.y += p.vy * (1.0 / 20.0)
+            let opacity = max(0, 1.0 - t * 1.1)
+            let pos = CGPoint(x: p.x, y: p.y)
+            let symbolText = Text(Image(systemName: p.symbol))
+                .font(.system(size: p.size, weight: .semibold))
+                .foregroundStyle(p.color.opacity(opacity))
+            context.draw(symbolText, at: pos)
+            alive.append(p)
         }
-        .allowsHitTesting(false)
+        if alive.count != particles.count {
+            DispatchQueue.main.async { particles = alive }
+        }
     }
 
     // MARK: - Loops
@@ -425,6 +461,7 @@ public struct AvatarHero: View {
         // ever want to bring one back.
         _ = scanlineOffset // (silence unused-state warning if ever)
     }
+
 
     private func scheduleAutoSleep() {
         Task { @MainActor in
