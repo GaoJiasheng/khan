@@ -16,12 +16,18 @@ struct KhanApp: App {
     @ObservedObject private var theme = ThemeSettings.shared
 
     var body: some Scene {
-        // Khan is an `LSUIElement` agent — this WindowGroup does NOT
-        // auto-create its window at launch. The window opens only on
-        // demand (avatar's right-click → "Open Main Window", which calls
+        // Khan is an `LSUIElement` agent — this scene does NOT auto-create
+        // its window at launch. The window opens only on demand (avatar's
+        // right-click → "Open Main Window", which calls
         // `AppCommands.openMainWindow` → SwiftUI's `openWindow(id:)`,
         // captured into that hook by `MenuBarAvatarContent.onAppear`).
-        WindowGroup("Khan", id: "main") {
+        //
+        // Use `Window` (singular) NOT `WindowGroup`: WindowGroup spawns
+        // a new window every time `openWindow(id:)` is called, so
+        // clicking notes in the dropdown was popping a fresh main window
+        // each time. `Window` is a single-instance scene — repeated
+        // calls just bring the existing instance forward.
+        Window("Khan", id: "main") {
             MainWindowView()
                 .modelContainer(modelContainer)
                 .background(WindowConfigurator())
