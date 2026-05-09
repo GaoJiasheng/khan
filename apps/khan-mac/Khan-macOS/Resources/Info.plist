@@ -43,6 +43,8 @@
 	<string></string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Khan listens through the microphone so you can dictate prompts to ChatGPT and other AI apps.</string>
+	<key>NSQuitAlwaysKeepsWindows</key>
+	<false/>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Khan uses Apple Speech Recognition to convert your voice to text before sending it to your chosen AI app.</string>
 	<key>NSUserActivityTypes</key>

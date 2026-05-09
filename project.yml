@@ -61,6 +61,12 @@ targets:
         # `LSUIElement: true` removes the Dock icon and prevents the
         # SwiftUI WindowGroup from auto-creating its window at launch.
         LSUIElement: true
+        # Don't carry the main window across relaunches. Even though
+        # `LSUIElement: true` blocks auto-window-at-launch, macOS-level
+        # state restoration would still rebuild whichever windows were
+        # open at last quit. For an agent app that means a stray main
+        # window every relaunch — turn it off.
+        NSQuitAlwaysKeepsWindows: false
         NSHumanReadableCopyright: ""
         NSAppleScriptEnabled: true
         OSAScriptingDefinition: Khan.sdef

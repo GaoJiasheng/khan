@@ -113,4 +113,32 @@ final class KhanAppDelegate: NSObject, NSApplicationDelegate {
             await silentPushHandler?.handleRemoteNotification(userInfo)
         }
     }
+
+    // MARK: - Suppress SwiftUI's "auto-open the main window" reflexes.
+    //
+    // Khan is a menu-bar agent. The dropdown panel is its primary UI.
+    // SwiftUI / AppKit have several reflexes that try to be helpful by
+    // popping the main window open at unwanted moments — we override them
+    // all so the main window only ever appears via an explicit
+    // `AppCommands.openMainWindow()` call (avatar right-click, or note
+    // tap in the dropdown).
+
+    /// Called once at launch, before SwiftUI processes its scenes. Returning
+    /// `false` tells AppKit not to open an "untitled" document at start-up,
+    /// which is the path SwiftUI uses to auto-instantiate the first window.
+    func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool { false }
+
+    /// Same plumbing but for the "click the app icon while no window is
+    /// open" case. We have no Dock icon (LSUIElement: true) so this is
+    /// rarely hit, but other AppKit paths (e.g. `NSApp.activate`) can
+    /// still trip it.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool { false }
+
+    /// State restoration ("Reopen windows when logging back in" + the
+    /// per-app version of it) brings back whatever windows were open at
+    /// last quit. For a menu-bar agent that means the main window pops
+    /// up on every relaunch even though the user never asked for it.
+    /// Always returning `false` keeps the launch experience clean: just
+    /// the avatar + dropdown, nothing else.
+    func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool { false }
 }
