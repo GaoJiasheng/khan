@@ -78,6 +78,13 @@ targets:
         NSUserActivityTypes: []
     settings:
       base:
+        # PRODUCT_NAME drives the .app bundle filename, the executable
+        # name (Activity Monitor / pgrep), and CFBundleName /
+        # CFBundleExecutable in Info.plist. Without this it would
+        # default to the Xcode target name ("Doris-macOS"), which the
+        # user would see all over their Finder + system UI. Override
+        # so they just see "Doris".
+        PRODUCT_NAME: Doris
         PRODUCT_BUNDLE_IDENTIFIER: com.gavin.doris
         CODE_SIGN_ENTITLEMENTS: apps/doris-mac/Doris-macOS/Doris-macOS.entitlements
         ENABLE_HARDENED_RUNTIME: YES
@@ -165,6 +172,10 @@ targets:
             CFBundleURLSchemes: [doris]
     settings:
       base:
+        # See the macOS target above for why this is set explicitly:
+        # the .app bundle / executable / `CFBundleName` should read as
+        # "Doris" everywhere instead of the build target name "Doris-iOS".
+        PRODUCT_NAME: Doris
         PRODUCT_BUNDLE_IDENTIFIER: com.gavin.doris.ios
         CODE_SIGN_ENTITLEMENTS: apps/doris-ios/Doris-iOS/Doris-iOS.entitlements
         TARGETED_DEVICE_FAMILY: "1,2"
