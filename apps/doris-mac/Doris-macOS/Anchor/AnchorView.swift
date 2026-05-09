@@ -393,17 +393,24 @@ private struct AnchorNotesView: View {
     @Environment(\.modelContext) private var ctx
     @ObservedObject private var lang = LanguageSettings.shared
 
-    /// Tapping a row in the dropdown panel can't open a sheet — the
-    /// borderless non-activating panel won't accept keyboard focus.
-    /// Instead, hand off to the main window via `NoteFocus`: it opens
-    /// the editor over there, on the freshly-activated window, with
-    /// real keyboard focus.
-    private func openInMainWindow(_ id: UUID) {
-        NoteFocus.shared.request(id)
-        AppCommands.openMainWindow()
-    }
+    /// `nil` → notes list. Non-nil → in-place editor for that note.
+    /// Doris is meant to feel light: editing happens right here in the
+    /// dropdown panel rather than popping the main window or a sheet.
+    @State private var editing: Note?
 
     var body: some View {
+        Group {
+            if let editing {
+                InlineNoteEditor(note: editing) {
+                    self.editing = nil
+                }
+            } else {
+                listBody
+            }
+        }
+    }
+
+    private var listBody: some View {
         VStack {
             HStack {
                 Spacer()
@@ -411,7 +418,7 @@ private struct AnchorNotesView: View {
                     let n = Note(title: L("New note", "新笔记"))
                     ctx.insert(n)
                     try? ctx.save()
-                    openInMainWindow(n.id)
+                    editing = n
                 } label: {
                     Label(L("New", "新建"), systemImage: "plus")
                         .font(.caption)
@@ -428,7 +435,7 @@ private struct AnchorNotesView: View {
                     VStack(spacing: 4) {
                         ForEach(notes.prefix(20)) { n in
                             Button {
-                                openInMainWindow(n.id)
+                                editing = n
                             } label: {
                                 HStack {
                                     Text(n.title.isEmpty ? L("Untitled", "无标题") : n.title)

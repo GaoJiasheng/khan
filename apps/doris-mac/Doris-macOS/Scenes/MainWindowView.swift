@@ -252,13 +252,28 @@ private struct InboxRow: View {
 
 private struct MainNotesList: View {
     @ObservedObject private var lang = LanguageSettings.shared
-    @ObservedObject private var focus = NoteFocus.shared
     @Environment(\.modelContext) private var ctx
     @Query(sort: [SortDescriptor(\Note.updatedAt, order: .reverse)])
     private var notes: [Note]
+    /// `nil` → list mode. Non-nil → in-place editor for that note. Doris
+    /// is a lightweight notes app — editing happens right here in the
+    /// detail pane, no sheets, no separate windows. Click a row to dive
+    /// in, click Back (or hit Esc) to return.
     @State private var editing: Note?
 
     var body: some View {
+        Group {
+            if let editing {
+                InlineNoteEditor(note: editing) {
+                    self.editing = nil
+                }
+            } else {
+                listBody
+            }
+        }
+    }
+
+    private var listBody: some View {
         ScrollView {
             VStack(spacing: 8) {
                 HStack {
@@ -299,24 +314,6 @@ private struct MainNotesList: View {
                 }
             }
             .padding(20)
-        }
-        .sheet(item: $editing) { note in
-            NoteEditorSheet(note: note)
-        }
-        // The dropdown panel hands off note edits via `NoteFocus`. When
-        // that pending ID matches a known note, open it here in the main
-        // window's editor sheet (where keyboard focus actually works).
-        .onReceive(focus.$pendingNoteID) { id in
-            guard let id, let match = notes.first(where: { $0.id == id }) else { return }
-            editing = match
-            focus.clear()
-        }
-        .onAppear {
-            // Honor any focus request set BEFORE the view first appeared.
-            if let id = focus.pendingNoteID, let match = notes.first(where: { $0.id == id }) {
-                editing = match
-                focus.clear()
-            }
         }
     }
 

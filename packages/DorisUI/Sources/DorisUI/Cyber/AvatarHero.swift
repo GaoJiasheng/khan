@@ -78,9 +78,7 @@ public struct AvatarHero: View {
     @ObservedObject private var heroEvents = HeroEvents.shared
     /// Procedural starfield. Generated once on view init so positions stay
     /// stable across renders — only the per-star brightness twinkles.
-    /// 80 stars looks plenty dense in a 200pt-wide card and cuts the
-    /// per-frame Canvas work nearly in half vs. the original 140.
-    @State private var stars: [HeroStar] = (0..<80).map { _ in HeroStar.random() }
+    @State private var stars: [HeroStar] = (0..<140).map { _ in HeroStar.random() }
     /// Cursor position in the card's local coordinate space, or nil when
     /// the cursor isn't over the card. Drives the cursor halo + nearby-
     /// star boost. Mac-only; iOS doesn't have hover.
@@ -175,13 +173,12 @@ public struct AvatarHero: View {
     /// the closure SwiftUI would re-evaluate them 12 times a second
     /// even though their content hasn't changed.
     private var animatedAmbientLayers: some View {
-        // `.animation` schedule binds to the display link (60–120 Hz)
-        // and keeps SwiftUI's `AnimatorState` ticking even when we throttle
-        // body re-evaluation via `minimumInterval`. `.periodic` uses a
-        // plain dispatch timer so the AnimatorState only wakes 12 times a
-        // second — which is exactly what we want for ambient twinkle and
-        // particle drift. Big drop in CPU for visually-identical output.
-        TimelineView(.periodic(from: .now, by: 1.0 / 12.0)) { context in
+        // 30 fps for smooth twinkle, particle drift, and ripple expansion.
+        // `.periodic` (instead of the original `.animation`) uses a plain
+        // dispatch timer rather than binding to the display link, so the
+        // SwiftUI `AnimatorState` doesn't tick at 60–120 Hz when we only
+        // need 30. Same visual quality, structurally cheaper.
+        TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { context in
             ZStack {
                 starfield(now: context.date)
                 particleLayer(now: context.date)
@@ -353,16 +350,12 @@ public struct AvatarHero: View {
     /// head clears the pill. The empty top region just shows more of the
     /// backdrop, which is what we want.
     private var character: some View {
-        // Loop clips (idle / listening / walking / sleeping) play at 6fps
-        // — slow enough to keep CPU near-flat, fast enough to read as
-        // breathing motion. One-shot reactions (greeting / alerted /
-        // celebrating / confused) play at 12fps so they stay snappy
-        // — they only run for ~5 seconds total, so the higher rate is
-        // bounded.
+        // 16 fps — the source clips were rendered at this rate by the AI
+        // generator, so we play frames 1:1 for smooth motion.
         AnimatedAvatarPlayer(
             clip: playingMood.clipName,
             isLooping: playingMood.isLooping,
-            fps: playingMood.isLooping ? 6 : 12,
+            fps: 16,
             verticalOffset: showWeather ? (compact ? 36 : 50) : 0,
             onFinished: { handleOneShotFinished() }
         )
@@ -401,12 +394,10 @@ public struct AvatarHero: View {
                 let elapsed = now.timeIntervalSince(p.bornAt)
                 guard elapsed < p.lifetime else { continue }
                 let t = elapsed / p.lifetime
-                // Step constant matches the host TimelineView's tick rate
-                // (1/12 s). Was 1/30 when the body wrapped a 30fps
-                // timeline; updated alongside the rate drop so particles
-                // move at the same world-speed as before.
-                p.x += p.vx * (1.0 / 12.0)
-                p.y += p.vy * (1.0 / 12.0)
+                // Step constant matches the host TimelineView's 30 fps
+                // tick rate.
+                p.x += p.vx * (1.0 / 30.0)
+                p.y += p.vy * (1.0 / 30.0)
                 let opacity = max(0, 1.0 - t * 1.1)
                 let pos = CGPoint(x: p.x, y: p.y)
                 let symbolText = Text(Image(systemName: p.symbol))

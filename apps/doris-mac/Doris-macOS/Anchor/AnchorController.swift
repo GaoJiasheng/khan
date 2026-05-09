@@ -13,13 +13,6 @@ final class AnchorController: NotificationPresenter {
     private var avatarWindow: MenuBarAvatarWindow?
     private var screenObserver: NSObjectProtocol?
     private var bannerDismissTask: Task<Void, Never>?
-    /// Auto-collapse the dropdown N seconds after the cursor leaves the
-    /// panel area. Keeps the avatar's Canvas/TimelineView animations
-    /// from running indefinitely when the user opened the panel briefly
-    /// (or it auto-expanded at launch) and walked away. Cancelled +
-    /// rescheduled on cursor activity over the panel.
-    private var autoCollapseTask: Task<Void, Never>?
-    private static let autoCollapseDelay: TimeInterval = 8
     private let modelContainer: ModelContainer
 
     /// Expanded panel size when user clicks the anchor (no notification active).
@@ -65,33 +58,15 @@ final class AnchorController: NotificationPresenter {
         model.state = .expanded
         showPanel()
         HeroEvents.shared.greet()
-        scheduleAutoCollapse()
     }
 
-    /// Cancel any pending auto-collapse and start a fresh one. Called when
-    /// the panel opens, when the cursor enters the panel, etc. — anything
-    /// that should "reset the inactivity clock". Effectively delays the
-    /// collapse for another `autoCollapseDelay` seconds.
-    func resetAutoCollapse() {
-        guard model.state == .expanded else { return }
-        scheduleAutoCollapse()
-    }
-
-    private func scheduleAutoCollapse() {
-        autoCollapseTask?.cancel()
-        autoCollapseTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: UInt64(Self.autoCollapseDelay * 1_000_000_000))
-            guard !Task.isCancelled, let self else { return }
-            // Only collapse if we're still in the expanded state. Don't
-            // gate on "cursor is over the panel" — even if the user is
-            // hovering, we'd rather collapse and let them re-open with
-            // a click than burn CPU forever.
-            if case .expanded = self.model.state {
-                self.model.state = .idle
-                self.hidePanel()
-            }
-        }
-    }
+    // Auto-collapse used to fire 8 seconds after expand to keep idle CPU
+    // down. With inline note editing in the dropdown that became
+    // user-hostile — the panel would disappear out from under whatever
+    // they were typing. We've since moved to "panel stays open until the
+    // user clicks the avatar (or 'X') to close", and rely on the full
+    // panel teardown on close (`tearDownPanelContent`) to flush all
+    // SwiftUI animators when they're done.
 
     private func buildPanel() {
         let model = self.model
@@ -142,18 +117,15 @@ final class AnchorController: NotificationPresenter {
     private func toggleExpanded() {
         if case .expanded = model.state {
             model.state = .idle
-            autoCollapseTask?.cancel()
             hidePanel()
         } else {
             model.state = .expanded
             showPanel()
             HeroEvents.shared.greet()
-            scheduleAutoCollapse()
         }
     }
 
     private func dismissActiveMessage() {
-        autoCollapseTask?.cancel()
         bannerDismissTask?.cancel()
         bannerDismissTask = nil
         model.state = .idle
