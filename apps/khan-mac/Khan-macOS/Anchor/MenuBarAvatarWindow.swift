@@ -133,17 +133,51 @@ final class MenuBarAvatarWindow {
         let f = s.frame
         switch edge {
         case .top:
-            if #available(macOS 12.0, *), let rightArea = s.auxiliaryTopRightArea, s.safeAreaInsets.top > 0 {
-                let height = rightArea.height
+            // Park to the LEFT of the camera notch instead of the right —
+            // the right side of the menu bar is busy with status items
+            // (Wi-Fi, battery, Control Center, time, third-party agents)
+            // and the avatar would crowd them. Left of the notch is shared
+            // only with the frontmost app's menus, which are usually short
+            // (File / Edit / View) and rarely reach the notch on a 14"+
+            // display.
+            //
+            // We don't trust `auxiliaryTopLeftArea` for the geometry on
+            // every macOS revision (it occasionally returns an unexpected
+            // origin offset on multi-display setups). Instead, take its
+            // height for the menu-bar strip and compute the notch's left
+            // edge ourselves: the notch is centered at `screen.midX`, and
+            // its half-width is `(screen.frame.width - rightArea.width -
+            // leftArea.width) / 2`. That math reduces cleanly to
+            // `notchLeftEdge = leftArea.maxX` IF `leftArea` already starts
+            // at the screen's left edge, but defensively we cap to
+            // `min(leftArea.maxX, screenMidXishLeftEdge)` so we always
+            // place the avatar in the screen's LEFT half.
+            if #available(macOS 12.0, *),
+               let leftArea = s.auxiliaryTopLeftArea,
+               let rightArea = s.auxiliaryTopRightArea,
+               s.safeAreaInsets.top > 0 {
+                let height = leftArea.height
                 let visibleWidth: CGFloat = max(36, height + 4)
                 let overshoot: CGFloat = 14
                 let width = visibleWidth + overshoot
-                let xLeft = rightArea.minX - overshoot
+                // Notch left edge: the right edge of the left-of-notch
+                // unobscured area. Both `leftArea.maxX` and
+                // `rightArea.minX` should bracket the notch tightly.
+                let notchLeftEdge = leftArea.maxX
+                let xLeft = notchLeftEdge - visibleWidth
                 let yTop = f.maxY
-                return Layout(
-                    frame: NSRect(x: xLeft, y: yTop - height, width: width, height: height),
-                    shape: .notchExtension
+
+                let frame = NSRect(x: xLeft, y: yTop - height, width: width, height: height)
+                KhanLog.app.notice(
+                    """
+                    notch-extension layout: screen=\(NSStringFromRect(s.frame), privacy: .public) \
+                    leftArea=\(NSStringFromRect(leftArea), privacy: .public) \
+                    rightArea=\(NSStringFromRect(rightArea), privacy: .public) \
+                    avatarFrame=\(NSStringFromRect(frame), privacy: .public)
+                    """
                 )
+
+                return Layout(frame: frame, shape: .notchExtension)
             } else {
                 let width: CGFloat = 96
                 let height: CGFloat = 26
@@ -282,7 +316,11 @@ private struct AvatarOffsetModifier: ViewModifier {
     let shape: MenuBarModel.Shape
     func body(content: Content) -> some View {
         switch shape {
-        case .notchExtension: content.padding(.leading, 14)
+        // Notch extension now lives LEFT of the notch — the `overshoot`
+        // pads the right side (into the notch), so push the avatar LEFT
+        // (away from the notch) so it sits cleanly inside the visible
+        // tab portion.
+        case .notchExtension: content.padding(.trailing, 14)
         case .fakeNotch:      content.padding(.bottom, 2)
         case .edgeRight:      content.padding(.trailing, 10) // shift toward the visible (left) part
         case .edgeLeft:       content.padding(.leading, 10)
@@ -291,17 +329,22 @@ private struct AvatarOffsetModifier: ViewModifier {
     }
 }
 
+/// Tab that fuses with the LEFT side of the camera notch — the notch
+/// itself sits to this rect's right, so the shape's right edge is flat
+/// (it disappears into the notch) and the bottom-LEFT corner is the
+/// only rounded corner (so the tab eases out of the menu bar smoothly).
 struct NotchExtensionShape: Shape {
     var cornerRadius: CGFloat = 10
     func path(in rect: CGRect) -> Path {
         let r = min(cornerRadius, min(rect.width, rect.height) / 2)
         var p = Path()
-        p.move(to: CGPoint(x: rect.minX, y: rect.minY))
-        p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-        p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - r))
-        p.addQuadCurve(to: CGPoint(x: rect.maxX - r, y: rect.maxY), control: CGPoint(x: rect.maxX, y: rect.maxY))
-        p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-        p.closeSubpath()
+        p.move(to: CGPoint(x: rect.minX, y: rect.minY))                                // top-left
+        p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))                             // top-right
+        p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))                             // bottom-right (flat: into the notch)
+        p.addLine(to: CGPoint(x: rect.minX + r, y: rect.maxY))                         // along bottom toward left, leaving room for the curve
+        p.addQuadCurve(to: CGPoint(x: rect.minX, y: rect.maxY - r),
+                       control: CGPoint(x: rect.minX, y: rect.maxY))                   // rounded bottom-left
+        p.closeSubpath()                                                               // up the left edge to top-left
         return p
     }
 }
