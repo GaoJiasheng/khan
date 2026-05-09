@@ -26,21 +26,16 @@ final class KhanAppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             try? IPCDirectory.ensureDirectories()
             let secret = try? KeychainSecretStore.ensureSecret()
-            let optInCloudKit = ProcessInfo.processInfo.environment["KHAN_USE_CLOUDKIT"] == "1"
-            let containerOpt: ModelContainer?
-            if optInCloudKit {
-                containerOpt = (try? ModelContainerFactory.make(useCloudKit: true))
-                    ?? (try? ModelContainerFactory.make(inMemory: true))
-            } else {
-                containerOpt = try? ModelContainerFactory.make(inMemory: true)
-            }
-            guard let container = containerOpt else { return }
 
-            let cloudKitDisabled = !optInCloudKit
+            // Single shared container — KhanRuntime is the only place that
+            // builds one. Anchor + main window + share extension all read
+            // from `.shared.container` so edits in one surface in the other.
+            let container = KhanRuntime.shared.container
+            let cloudKitOn = SyncSettings.shared.cloudKitEnabled
 
             let router = NotificationRouter(modelContainer: container)
             self.router = router
-            if !cloudKitDisabled {
+            if cloudKitOn {
                 self.outboxPublisher = OutboxPublisher()
                 router.setOutbox(self.outboxPublisher)
             }
@@ -68,7 +63,7 @@ final class KhanAppDelegate: NSObject, NSApplicationDelegate {
                 Task { @MainActor in await drainer?.drain() }
             }
 
-            if !cloudKitDisabled {
+            if cloudKitOn {
                 self.silentPushHandler = SilentPushHandler(router: router)
                 NSApp.registerForRemoteNotifications()
             }
@@ -78,6 +73,7 @@ final class KhanAppDelegate: NSObject, NSApplicationDelegate {
 
             // Avatar's right-click menu calls into these hooks. Sync
             // completion fires a celebration so the cyber girl reacts.
+            // Both manual buttons (toolbar + avatar menu) take this path.
             AppCommands.syncNow = { [weak self] in
                 Task { @MainActor in
                     await self?.syncTimer?.pokeNow()
@@ -90,7 +86,7 @@ final class KhanAppDelegate: NSObject, NSApplicationDelegate {
             self.voiceController = VoiceController()
             self.voiceController?.start()
 
-            if !cloudKitDisabled {
+            if cloudKitOn {
                 Task.detached {
                     do {
                         try await CloudKitBootstrap.ensureZonesAndSubscriptions()

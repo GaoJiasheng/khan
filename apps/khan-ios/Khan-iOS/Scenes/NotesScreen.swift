@@ -3,8 +3,13 @@ import SwiftData
 import KhanCore
 import KhanUI
 
-/// Notes tab — list of all Notes, newest-edited first. Tap a row to open a
-/// simple editor sheet; tap the "+" toolbar button to create a new note.
+/// Notes tab — list of all Notes, newest-edited first. Tap a row to open
+/// the shared `NoteEditorSheet` (same one macOS uses, full cyber chrome).
+/// "+" toolbar button creates a fresh note and immediately opens it.
+///
+/// Swipe-to-delete works because the rows are inside a `List` (the new
+/// `.swipeActions` modifier needs that context). Pull-to-refresh runs
+/// the same manual sync hook the Settings screen and Inbox use.
 struct NotesScreen: View {
     @ObservedObject private var lang = LanguageSettings.shared
     @Environment(\.modelContext) private var ctx
@@ -16,12 +21,14 @@ struct NotesScreen: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
+            Group {
                 if notes.isEmpty {
-                    emptyState
-                        .padding(.top, 80)
+                    ScrollView {
+                        emptyState.padding(.top, 80)
+                    }
+                    .refreshable { await runSync() }
                 } else {
-                    LazyVStack(spacing: 8) {
+                    List {
                         ForEach(notes) { n in
                             Button {
                                 editing = n
@@ -29,9 +36,22 @@ struct NotesScreen: View {
                                 NoteRow(note: n)
                             }
                             .buttonStyle(.plain)
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 4, leading: 14, bottom: 4, trailing: 14))
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    ctx.delete(n)
+                                    try? ctx.save()
+                                } label: {
+                                    Label(L("Delete", "删除"), systemImage: "trash")
+                                }
+                            }
                         }
                     }
-                    .padding(14)
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    .refreshable { await runSync() }
                 }
             }
             .scrollContentBackground(.hidden)
@@ -44,6 +64,7 @@ struct NotesScreen: View {
                     Button {
                         let n = Note(title: L("New note", "新笔记"))
                         ctx.insert(n)
+                        try? ctx.save()
                         editing = n
                     } label: {
                         Image(systemName: "plus.circle.fill")
@@ -57,17 +78,24 @@ struct NotesScreen: View {
         }
     }
 
+    private func runSync() async {
+        AppCommands.syncNow()
+        try? await Task.sleep(nanoseconds: 600_000_000)
+    }
+
     private var emptyState: some View {
         VStack(spacing: 8) {
             Image(systemName: "note.text")
                 .font(.system(size: 36))
-                .foregroundStyle(.white.opacity(0.4))
+                .foregroundStyle(.primary.opacity(0.4))
             Text(L("No notes yet", "暂无笔记"))
                 .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.65))
-            Text(L("Tap + to create one.", "点击 + 新建一条。"))
+                .foregroundStyle(.primary.opacity(0.65))
+            Text(L("Tap + to create one. Pull down to sync.",
+                   "点击 + 新建一条。下拉同步。"))
                 .font(.caption)
-                .foregroundStyle(.white.opacity(0.4))
+                .foregroundStyle(.primary.opacity(0.45))
+                .multilineTextAlignment(.center)
         }
     }
 }
@@ -78,74 +106,35 @@ private struct NoteRow: View {
     var body: some View {
         CyberCard {
             HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "note.text")
+                Image(systemName: note.isChecklist ? "checklist" : "note.text")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(CyberPalette.neonPink.opacity(0.85))
                     .frame(width: 22)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(note.title.isEmpty ? L("Untitled", "无标题") : note.title)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
+                    HStack(spacing: 6) {
+                        if note.pinned {
+                            Image(systemName: "pin.fill")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(CyberPalette.neonCyan)
+                        }
+                        Text(note.title.isEmpty ? L("Untitled", "无标题") : note.title)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                    }
                     if !note.bodyMarkdown.isEmpty {
                         Text(note.bodyMarkdown)
                             .font(.caption)
-                            .foregroundStyle(.white.opacity(0.55))
+                            .foregroundStyle(.primary.opacity(0.55))
                             .lineLimit(2)
                     }
                     Text(note.updatedAt, style: .relative)
                         .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(.primary.opacity(0.4))
                 }
                 Spacer(minLength: 0)
             }
             .padding(12)
-        }
-    }
-}
-
-/// Lightweight editor sheet — title field + multi-line body. Edits persist
-/// through the model context automatically (SwiftData property bindings).
-private struct NoteEditorSheet: View {
-    @Bindable var note: Note
-    @Environment(\.dismiss) private var dismiss
-    @ObservedObject private var lang = LanguageSettings.shared
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                CyberBackground()
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 14) {
-                        TextField(L("Title", "标题"), text: $note.title, axis: .vertical)
-                            .font(.title2.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .textFieldStyle(.plain)
-                        Divider().overlay(Color.white.opacity(0.1))
-                        TextEditor(text: $note.bodyMarkdown)
-                            .font(.body)
-                            .foregroundStyle(.white.opacity(0.9))
-                            .frame(minHeight: 320)
-                            .scrollContentBackground(.hidden)
-                            .background(Color.clear)
-                    }
-                    .padding(18)
-                }
-                .scrollContentBackground(.hidden)
-            }
-            .ignoresSafeArea()
-            .navigationTitle(L("Edit", "编辑"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(L("Done", "完成")) {
-                        note.updatedAt = Date()
-                        dismiss()
-                    }
-                    .foregroundStyle(CyberPalette.neonCyan)
-                }
-            }
         }
     }
 }

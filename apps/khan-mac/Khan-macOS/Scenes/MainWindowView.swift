@@ -31,7 +31,10 @@ struct MainWindowView: View {
         .frame(minWidth: 760, minHeight: 520)
         .toolbar {
             // KHAN brand moved into the detail header next to the tab
-            // buttons; keep only the theme toggle here.
+            // buttons; keep theme toggle + sync button on the toolbar.
+            ToolbarItem(placement: .primaryAction) {
+                SyncNowToolbarButton()
+            }
             ToolbarItem(placement: .primaryAction) {
                 ThemeToggleButton()
             }
@@ -249,9 +252,11 @@ private struct InboxRow: View {
 
 private struct MainNotesList: View {
     @ObservedObject private var lang = LanguageSettings.shared
+    @ObservedObject private var focus = NoteFocus.shared
     @Environment(\.modelContext) private var ctx
     @Query(sort: [SortDescriptor(\Note.updatedAt, order: .reverse)])
     private var notes: [Note]
+    @State private var editing: Note?
 
     var body: some View {
         ScrollView {
@@ -261,6 +266,11 @@ private struct MainNotesList: View {
                     Button {
                         let n = Note(title: L("New note", "新笔记"))
                         ctx.insert(n)
+                        try? ctx.save()
+                        // Open the editor immediately for the new note —
+                        // matches the "click + then start typing" muscle
+                        // memory from Notes / SideNotes.
+                        editing = n
                     } label: {
                         Label(L("New", "新建"), systemImage: "plus.circle.fill")
                             .foregroundStyle(CyberPalette.neonPink)
@@ -271,11 +281,42 @@ private struct MainNotesList: View {
                     emptyState.padding(.top, 80)
                 } else {
                     ForEach(notes) { n in
-                        NoteRow(note: n)
+                        Button {
+                            editing = n
+                        } label: {
+                            NoteRow(note: n)
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                ctx.delete(n)
+                                try? ctx.save()
+                            } label: {
+                                Label(L("Delete", "删除"), systemImage: "trash")
+                            }
+                        }
                     }
                 }
             }
             .padding(20)
+        }
+        .sheet(item: $editing) { note in
+            NoteEditorSheet(note: note)
+        }
+        // The dropdown panel hands off note edits via `NoteFocus`. When
+        // that pending ID matches a known note, open it here in the main
+        // window's editor sheet (where keyboard focus actually works).
+        .onReceive(focus.$pendingNoteID) { id in
+            guard let id, let match = notes.first(where: { $0.id == id }) else { return }
+            editing = match
+            focus.clear()
+        }
+        .onAppear {
+            // Honor any focus request set BEFORE the view first appeared.
+            if let id = focus.pendingNoteID, let match = notes.first(where: { $0.id == id }) {
+                editing = match
+                focus.clear()
+            }
         }
     }
 

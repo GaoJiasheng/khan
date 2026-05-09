@@ -16,11 +16,25 @@ public enum IPCDirectory {
         ) {
             return url
         }
-        // Fallback for unsigned dev builds: a per-user dir under ~/Library/Application Support.
+        // Fallback for unsigned dev builds (Mac only — on iOS, the App Group
+        // is always entitled when running on device or simulator, so this
+        // path doesn't apply, and `homeDirectoryForCurrentUser` is iOS-banned).
+        #if os(macOS)
         let home = FileManager.default.homeDirectoryForCurrentUser
         return home
             .appendingPathComponent("Library/Application Support", isDirectory: true)
             .appendingPathComponent("khan-dev", isDirectory: true)
+        #else
+        // On iOS, fall back to the app's caches dir if the App Group is
+        // genuinely missing — better to persist somewhere than crash.
+        let caches = try FileManager.default.url(
+            for: .cachesDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )
+        return caches.appendingPathComponent("khan-fallback", isDirectory: true)
+        #endif
     }
 
     public static func ipcRoot() throws -> URL {

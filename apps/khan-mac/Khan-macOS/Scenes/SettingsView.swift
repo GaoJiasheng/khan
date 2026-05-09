@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import KhanCore
 import KhanIPC
+import KhanUI
 import KeyboardShortcuts
 
 struct SettingsView: View {
@@ -19,6 +20,8 @@ struct SettingsView: View {
         TabView {
             generalTab
                 .tabItem { Label("General", systemImage: "gear") }
+            syncTab
+                .tabItem { Label("Sync", systemImage: "icloud.fill") }
             sidebarTab
                 .tabItem { Label("Sidebar", systemImage: "sidebar.right") }
             shortcutTab
@@ -26,7 +29,7 @@ struct SettingsView: View {
             cliTab
                 .tabItem { Label("CLI", systemImage: "terminal") }
         }
-        .frame(width: 460, height: 360)
+        .frame(width: 480, height: 420)
         .padding()
     }
 
@@ -37,12 +40,15 @@ struct SettingsView: View {
             }
             Toggle("Show hex color preview", isOn: showHexColorPreview)
             Toggle("Auto-backup daily", isOn: autoBackupEnabled)
-            HStack {
-                Text("Sync poke interval")
-                Spacer()
-                Stepper("\(settings.syncPokeIntervalSec) s", value: syncPokeInterval, in: 30...600, step: 30)
-            }
         }
+    }
+
+    /// Sync tab — controls iCloud-backed CloudKit mirroring + manual
+    /// sync. The CloudKit toggle is sticky (next launch) and shows a
+    /// "restart required" hint because SwiftData binds the configuration
+    /// at container init time.
+    private var syncTab: some View {
+        SyncSettingsTab()
     }
 
     private var sidebarTab: some View {
@@ -102,9 +108,6 @@ struct SettingsView: View {
     private var sidebarWidth: Binding<Double> {
         Binding(get: { settings.sidebarWidth }, set: { settings.sidebarWidth = $0 })
     }
-    private var syncPokeInterval: Binding<Int> {
-        Binding(get: { settings.syncPokeIntervalSec }, set: { settings.syncPokeIntervalSec = $0 })
-    }
     private var hotSideEnabled: Binding<Bool> {
         Binding(get: { settings.hotSideEnabled }, set: { settings.hotSideEnabled = $0 })
     }
@@ -119,5 +122,95 @@ struct SettingsView: View {
     }
     private var autoBackupEnabled: Binding<Bool> {
         Binding(get: { settings.autoBackupEnabled }, set: { settings.autoBackupEnabled = $0 })
+    }
+}
+
+/// macOS Sync settings tab — the user-facing surface for CloudKit + auto
+/// sync controls. Lives in its own struct so `SyncSettings.shared` can be
+/// observed without ballooning the parent's body.
+private struct SyncSettingsTab: View {
+    @ObservedObject private var sync = SyncSettings.shared
+    @State private var isSyncing: Bool = false
+    @State private var lastTickTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    @State private var nowTick: Date = Date()
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Use iCloud (CloudKit) sync", isOn: $sync.cloudKitEnabled)
+                    .help("Mirrors notes and inbox messages through your iCloud account so other devices stay in sync.")
+                if sync.cloudKitEnabled {
+                    Text("Restart Khan after toggling iCloud for the change to take effect.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("Local only. Notes stay on this Mac.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("iCloud")
+            }
+
+            Section {
+                Toggle("Auto-sync every 60 seconds", isOn: $sync.autoSyncEnabled)
+                    .help("When on, Khan periodically flushes pending writes so iCloud has the latest state. Turn off if you only want manual sync.")
+            } header: {
+                Text("Auto-sync")
+            }
+
+            Section {
+                HStack {
+                    Button {
+                        runManualSync()
+                    } label: {
+                        HStack(spacing: 6) {
+                            if isSyncing {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                            }
+                            Text(isSyncing ? "Syncing…" : "Sync Now")
+                        }
+                    }
+                    .disabled(isSyncing)
+                    Spacer()
+                    Text(lastSyncedLabel)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+            } header: {
+                Text("Manual sync")
+            } footer: {
+                Text("Sync Now flushes pending writes to disk and lets iCloud pick them up. Independent of the auto-sync toggle.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .onReceive(lastTickTimer) { nowTick = $0 }
+    }
+
+    /// Friendly "Last synced 30s ago" / "Last synced 2 min ago" label.
+    /// Recomputes via `nowTick` once a second so the value stays fresh
+    /// without us hammering the formatter.
+    private var lastSyncedLabel: String {
+        guard let last = sync.lastSyncedAt else { return "Never synced yet" }
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .short
+        _ = nowTick // dependency
+        return "Last synced " + f.localizedString(for: last, relativeTo: Date())
+    }
+
+    private func runManualSync() {
+        isSyncing = true
+        AppCommands.syncNow()
+        // The hook fires off-thread; we just give the UI a beat to show
+        // the spinner before flipping back. The "Last synced" label
+        // updates from SyncSettings.shared.lastSyncedAt the moment the
+        // poke succeeds.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            isSyncing = false
+        }
     }
 }

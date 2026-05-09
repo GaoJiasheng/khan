@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import KhanCore
 import KhanIPC
 import KhanMacChrome
 import KhanUI

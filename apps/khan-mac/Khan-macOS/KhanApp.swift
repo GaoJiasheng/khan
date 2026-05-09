@@ -7,23 +7,21 @@ import KhanUI
 @main
 struct KhanApp: App {
     @NSApplicationDelegateAdaptor(KhanAppDelegate.self) var appDelegate
-    @State private var modelContainer: ModelContainer? = makeContainer()
+    /// Single shared container — owned by `KhanRuntime` so the menu-bar
+    /// dropdown (constructed in AppDelegate) and the main window scene
+    /// (this struct's `WindowGroup`) point at the **same** SwiftData
+    /// store. Earlier versions had two independent `ModelContainer`s in
+    /// the same process; edits never crossed.
+    private let modelContainer: ModelContainer = KhanRuntime.shared.container
     @ObservedObject private var theme = ThemeSettings.shared
 
     var body: some Scene {
         WindowGroup("Khan", id: "main") {
-            Group {
-                if let modelContainer {
-                    MainWindowView()
-                        .modelContainer(modelContainer)
-                        .background(WindowOpenerCapture())
-                        .background(WindowConfigurator())
-                } else {
-                    Text("Khan failed to initialize its data store. Check that iCloud is signed in and the App Group is configured.")
-                        .padding()
-                }
-            }
-            .preferredColorScheme(theme.mode.colorScheme)
+            MainWindowView()
+                .modelContainer(modelContainer)
+                .background(WindowOpenerCapture())
+                .background(WindowConfigurator())
+                .preferredColorScheme(theme.mode.colorScheme)
         }
         .windowResizability(.contentMinSize)
         .commands {
@@ -31,11 +29,9 @@ struct KhanApp: App {
         }
 
         Settings {
-            if let modelContainer {
-                SettingsView()
-                    .modelContainer(modelContainer)
-                    .preferredColorScheme(theme.mode.colorScheme)
-            }
+            SettingsView()
+                .modelContainer(modelContainer)
+                .preferredColorScheme(theme.mode.colorScheme)
         }
     }
 }
@@ -97,16 +93,4 @@ private final class TrackingView: NSView {
         super.viewDidMoveToWindow()
         onMoveToWindow?(window)
     }
-}
-
-private func makeContainer() -> ModelContainer? {
-    // On macOS 26+, ModelConfiguration with cloudKitDatabase: .none still triggers
-    // NSCloudKitMirroringDelegate setup, which crashes on unsigned binaries that
-    // don't have iCloud entitlements. Default to in-memory so the dev build runs.
-    // Production builds opt into CloudKit-backed persistence with KHAN_USE_CLOUDKIT=1.
-    let optInCloudKit = ProcessInfo.processInfo.environment["KHAN_USE_CLOUDKIT"] == "1"
-    if optInCloudKit {
-        if let c = try? ModelContainerFactory.make(useCloudKit: true) { return c }
-    }
-    return try? ModelContainerFactory.make(inMemory: true)
 }

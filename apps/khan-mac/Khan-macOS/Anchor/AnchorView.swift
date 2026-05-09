@@ -393,6 +393,16 @@ private struct AnchorNotesView: View {
     @Environment(\.modelContext) private var ctx
     @ObservedObject private var lang = LanguageSettings.shared
 
+    /// Tapping a row in the dropdown panel can't open a sheet — the
+    /// borderless non-activating panel won't accept keyboard focus.
+    /// Instead, hand off to the main window via `NoteFocus`: it opens
+    /// the editor over there, on the freshly-activated window, with
+    /// real keyboard focus.
+    private func openInMainWindow(_ id: UUID) {
+        NoteFocus.shared.request(id)
+        AppCommands.openMainWindow()
+    }
+
     var body: some View {
         VStack {
             HStack {
@@ -400,6 +410,8 @@ private struct AnchorNotesView: View {
                 Button {
                     let n = Note(title: L("New note", "新笔记"))
                     ctx.insert(n)
+                    try? ctx.save()
+                    openInMainWindow(n.id)
                 } label: {
                     Label(L("New", "新建"), systemImage: "plus")
                         .font(.caption)
@@ -415,19 +427,33 @@ private struct AnchorNotesView: View {
                 ScrollView {
                     VStack(spacing: 4) {
                         ForEach(notes.prefix(20)) { n in
-                            HStack {
-                                Text(n.title.isEmpty ? L("Untitled", "无标题") : n.title)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.primary)
-                                    .lineLimit(1)
-                                Spacer()
-                                Text(n.updatedAt, style: .relative)
-                                    .font(.caption2)
-                                    .foregroundStyle(.primary.opacity(0.4))
+                            Button {
+                                openInMainWindow(n.id)
+                            } label: {
+                                HStack {
+                                    Text(n.title.isEmpty ? L("Untitled", "无标题") : n.title)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(1)
+                                    Spacer()
+                                    Text(n.updatedAt, style: .relative)
+                                        .font(.caption2)
+                                        .foregroundStyle(.primary.opacity(0.4))
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(RoundedRectangle(cornerRadius: 6).fill(.primary.opacity(0.04)))
+                                .contentShape(Rectangle())
                             }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(RoundedRectangle(cornerRadius: 6).fill(.primary.opacity(0.04)))
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    ctx.delete(n)
+                                    try? ctx.save()
+                                } label: {
+                                    Label(L("Delete", "删除"), systemImage: "trash")
+                                }
+                            }
                         }
                     }
                     .padding(8)

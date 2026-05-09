@@ -2,6 +2,17 @@ import Foundation
 import KhanIPC
 import SwiftData
 
+/// Periodically calls `ModelContext.save()` to flush pending writes and let
+/// SwiftData's CloudKit mirror push them upstream. The "poke" model is
+/// deliberately conservative — saves are cheap when there's nothing dirty
+/// and SwiftData handles the actual CloudKit round-trip behind the scenes.
+///
+/// Reads `SyncSettings.shared.autoSyncEnabled` at start; if the user has
+/// auto-sync turned off, `start()` is a no-op until they call `pokeNow()`
+/// manually (the toolbar button) or restart the app with auto-sync back on.
+///
+/// On every successful poke, updates `SyncSettings.shared.lastSyncedAt`
+/// so UI can render a "Last synced 30 s ago" label without polling.
 public actor SyncTimer {
     private let container: ModelContainer
     private let interval: TimeInterval
@@ -12,8 +23,13 @@ public actor SyncTimer {
         self.interval = interval
     }
 
-    public func start() {
+    public func start() async {
         guard task == nil else { return }
+        let auto = await MainActor.run { SyncSettings.shared.autoSyncEnabled }
+        guard auto else {
+            KhanLog.sync.debug("auto-sync disabled by user; timer not started")
+            return
+        }
         let interval = self.interval
         let containerRef = container
         task = Task.detached { [weak self] in
@@ -29,6 +45,8 @@ public actor SyncTimer {
         task = nil
     }
 
+    /// Explicit user-driven sync. Always runs regardless of the auto-sync
+    /// setting; this is the path the "Sync Now" button takes.
     public func pokeNow() async {
         await poke(container: container)
     }
@@ -38,6 +56,7 @@ public actor SyncTimer {
             let context = ModelContext(container)
             do {
                 try context.save()
+                SyncSettings.shared.markSyncedNow()
                 KhanLog.sync.debug("sync poke fired")
             } catch {
                 KhanLog.sync.error("sync poke save failed: \(String(describing: error), privacy: .public)")

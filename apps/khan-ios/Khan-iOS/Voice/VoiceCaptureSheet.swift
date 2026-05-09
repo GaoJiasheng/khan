@@ -16,7 +16,7 @@ struct VoiceCaptureSheet: View {
     @State private var pulse = false
     @State private var recognizer: IOSSpeechRecognizer?
 
-    enum Phase { case idle, listening, sending, done, error(String) }
+    enum Phase: Equatable { case idle, listening, sending, done, error(String) }
 
     var body: some View {
         ZStack {

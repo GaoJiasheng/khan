@@ -13,41 +13,57 @@ final class KhanAppDelegate: NSObject, UIApplicationDelegate {
     private var outbox: OutboxPublisher?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        // BGTaskScheduler must be registered synchronously on the main thread
+        // during launch — UIKit will hard-crash if we register inside a
+        // detached Task. Hook it up before doing async setup work.
+        BGTaskScheduler.shared.register(forTaskWithIdentifier: KhanIdentifiers.bgRefreshTaskID, using: nil) { [weak self] task in
+            Task { @MainActor in
+                await self?.syncTimer?.pokeNow()
+                task.setTaskCompleted(success: true)
+            }
+        }
+
         Task { @MainActor in
             try? IPCDirectory.ensureDirectories()
             _ = try? KeychainSecretStore.ensureSecret()
 
-            guard let container = try? ModelContainerFactory.make(useCloudKit: true)
-                ?? ModelContainerFactory.make(useCloudKit: false) else {
-                return
-            }
+            // Single shared container (see KhanRuntime). Same backing store
+            // as the SwiftUI scene, so anything written from a silent push
+            // handler shows up in the foreground UI immediately.
+            let container = KhanRuntime.shared.container
+            let cloudKitOn = SyncSettings.shared.cloudKitEnabled
 
             let router = NotificationRouter(modelContainer: container)
             self.router = router
-            let outbox = OutboxPublisher()
-            self.outbox = outbox
-            router.setOutbox(outbox)
+            if cloudKitOn {
+                let outbox = OutboxPublisher()
+                self.outbox = outbox
+                router.setOutbox(outbox)
+            }
             router.setPresenter(KhanIOSPresenter())
 
             self.silentPushHandler = SilentPushHandler(router: router)
             self.syncTimer = SyncTimer(container: container, interval: 60)
             await self.syncTimer?.start()
 
-            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { _, _ in }
-            application.registerForRemoteNotifications()
-
-            BGTaskScheduler.shared.register(forTaskWithIdentifier: KhanIdentifiers.bgRefreshTaskID, using: nil) { task in
+            // Wire the manual "Sync Now" hook so the iOS Settings button
+            // and the future widget Intent both reach the same actor.
+            AppCommands.syncNow = { [weak self] in
                 Task { @MainActor in
-                    await self.syncTimer?.pokeNow()
-                    task.setTaskCompleted(success: true)
+                    await self?.syncTimer?.pokeNow()
                 }
             }
 
-            Task.detached {
-                do {
-                    try await CloudKitBootstrap.ensureZonesAndSubscriptions()
-                } catch {
-                    KhanLog.sync.error("bootstrap failed: \(String(describing: error), privacy: .public)")
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { _, _ in }
+            application.registerForRemoteNotifications()
+
+            if cloudKitOn {
+                Task.detached {
+                    do {
+                        try await CloudKitBootstrap.ensureZonesAndSubscriptions()
+                    } catch {
+                        KhanLog.sync.error("bootstrap failed: \(String(describing: error), privacy: .public)")
+                    }
                 }
             }
         }

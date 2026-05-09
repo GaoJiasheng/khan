@@ -16,7 +16,14 @@ public struct ChecklistEditorView: View {
             ForEach(sortedItems) { item in
                 HStack(alignment: .center, spacing: 8) {
                     Toggle("", isOn: Bindable(wrappedValue: item).done)
+                        // `.toggleStyle(.checkbox)` is macOS-only. On iOS
+                        // SwiftUI doesn't ship a built-in checkbox style,
+                        // so fall back to `.switch` (the platform default).
+                        #if os(macOS)
                         .toggleStyle(.checkbox)
+                        #else
+                        .toggleStyle(.switch)
+                        #endif
                         .labelsHidden()
                     TextField("", text: Bindable(wrappedValue: item).text)
                         .textFieldStyle(.plain)
