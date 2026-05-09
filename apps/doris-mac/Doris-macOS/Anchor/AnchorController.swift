@@ -13,6 +13,13 @@ final class AnchorController: NotificationPresenter {
     private var avatarWindow: MenuBarAvatarWindow?
     private var screenObserver: NSObjectProtocol?
     private var bannerDismissTask: Task<Void, Never>?
+    /// Auto-collapse the dropdown N seconds after the cursor leaves the
+    /// panel area. Keeps the avatar's Canvas/TimelineView animations
+    /// from running indefinitely when the user opened the panel briefly
+    /// (or it auto-expanded at launch) and walked away. Cancelled +
+    /// rescheduled on cursor activity over the panel.
+    private var autoCollapseTask: Task<Void, Never>?
+    private static let autoCollapseDelay: TimeInterval = 8
     private let modelContainer: ModelContainer
 
     /// Expanded panel size when user clicks the anchor (no notification active).
@@ -58,6 +65,32 @@ final class AnchorController: NotificationPresenter {
         model.state = .expanded
         showPanel()
         HeroEvents.shared.greet()
+        scheduleAutoCollapse()
+    }
+
+    /// Cancel any pending auto-collapse and start a fresh one. Called when
+    /// the panel opens, when the cursor enters the panel, etc. — anything
+    /// that should "reset the inactivity clock". Effectively delays the
+    /// collapse for another `autoCollapseDelay` seconds.
+    func resetAutoCollapse() {
+        guard model.state == .expanded else { return }
+        scheduleAutoCollapse()
+    }
+
+    private func scheduleAutoCollapse() {
+        autoCollapseTask?.cancel()
+        autoCollapseTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(Self.autoCollapseDelay * 1_000_000_000))
+            guard !Task.isCancelled, let self else { return }
+            // Only collapse if we're still in the expanded state. Don't
+            // gate on "cursor is over the panel" — even if the user is
+            // hovering, we'd rather collapse and let them re-open with
+            // a click than burn CPU forever.
+            if case .expanded = self.model.state {
+                self.model.state = .idle
+                self.hidePanel()
+            }
+        }
     }
 
     private func buildPanel() {
@@ -76,7 +109,7 @@ final class AnchorController: NotificationPresenter {
         // Drag is no longer used (the status item lives where macOS puts it). We pass
         // no-op handlers to satisfy AnchorView's API.
         let noopDrag: (CGSize) -> Void = { _ in }
-        panel = AnchorPanelLayout.makeFloating(initialSize: NSSize(width: 1, height: 1)) {
+        let rootView = AnyView(
             AnchorView(
                 model: model,
                 position: .notchAdjacent,
@@ -89,6 +122,18 @@ final class AnchorController: NotificationPresenter {
                 onDragEnded: noopDrag
             )
             .modelContainer(container)
+        )
+
+        if let existing = panel {
+            // Reuse the existing NSPanel chrome and just remount the
+            // SwiftUI host. We tear `contentViewController` down on hide
+            // (so animations stop) and put a fresh one back here on next
+            // show.
+            existing.contentViewController = NSHostingController(rootView: rootView)
+        } else {
+            panel = AnchorPanelLayout.makeFloating(initialSize: NSSize(width: 1, height: 1)) {
+                rootView
+            }
         }
     }
 
@@ -97,15 +142,18 @@ final class AnchorController: NotificationPresenter {
     private func toggleExpanded() {
         if case .expanded = model.state {
             model.state = .idle
+            autoCollapseTask?.cancel()
             hidePanel()
         } else {
             model.state = .expanded
             showPanel()
             HeroEvents.shared.greet()
+            scheduleAutoCollapse()
         }
     }
 
     private func dismissActiveMessage() {
+        autoCollapseTask?.cancel()
         bannerDismissTask?.cancel()
         bannerDismissTask = nil
         model.state = .idle
@@ -113,6 +161,12 @@ final class AnchorController: NotificationPresenter {
     }
 
     private func showPanel() {
+        // (Re)build the SwiftUI host so the AvatarHero / AnchorView tree
+        // is freshly mounted. We tear it down on hide to stop animations,
+        // so on show we have to put it back.
+        if panel == nil || panel?.contentViewController == nil {
+            buildPanel()
+        }
         guard let panel else { return }
         let target = computeRect()
         let start = collapsedRect()
@@ -135,6 +189,7 @@ final class AnchorController: NotificationPresenter {
     private func hidePanel() {
         guard let panel, panel.isVisible else {
             panel?.orderOut(nil)
+            tearDownPanelContent()
             return
         }
         let end = collapsedRect()
@@ -144,9 +199,30 @@ final class AnchorController: NotificationPresenter {
             ctx.allowsImplicitAnimation = true
             panel.animator().setFrame(end, display: true)
             panel.animator().alphaValue = 0
-        }, completionHandler: { [weak panel] in
+        }, completionHandler: { [weak self, weak panel] in
             panel?.orderOut(nil)
+            // Critical for CPU: drop the SwiftUI host once the close
+            // animation finishes. NSPanel.orderOut on its own only hides
+            // the window — the SwiftUI view tree (AvatarHero with its
+            // TimelineView, particle Canvas, animated player) keeps
+            // running in the background and burning CPU at the display
+            // refresh rate. Setting `contentViewController = nil`
+            // releases the hosting controller and SwiftUI tears down
+            // every animator inside it. Next `showPanel()` rebuilds.
+            self?.tearDownPanelContent()
         })
+    }
+
+    private func tearDownPanelContent() {
+        // Setting `contentViewController = nil` alone doesn't fully tear
+        // down SwiftUI's hosting tree — the GraphHost / animator state
+        // can outlive the controller, keeping CPU spinning even after
+        // the window is `orderOut`'d. Releasing the entire NSPanel is
+        // the only reliable way to flush every animator. `buildPanel()`
+        // recreates a fresh one on the next `showPanel()` call.
+        panel?.close()
+        panel?.contentViewController = nil
+        panel = nil
     }
 
     /// A 2-point rect at the bottom-center of the avatar — the panel scales out from

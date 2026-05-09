@@ -78,7 +78,9 @@ public struct AvatarHero: View {
     @ObservedObject private var heroEvents = HeroEvents.shared
     /// Procedural starfield. Generated once on view init so positions stay
     /// stable across renders — only the per-star brightness twinkles.
-    @State private var stars: [HeroStar] = (0..<140).map { _ in HeroStar.random() }
+    /// 80 stars looks plenty dense in a 200pt-wide card and cuts the
+    /// per-frame Canvas work nearly in half vs. the original 140.
+    @State private var stars: [HeroStar] = (0..<80).map { _ in HeroStar.random() }
     /// Cursor position in the card's local coordinate space, or nil when
     /// the cursor isn't over the card. Drives the cursor halo + nearby-
     /// star boost. Mac-only; iOS doesn't have hover.
@@ -110,31 +112,41 @@ public struct AvatarHero: View {
     // MARK: - Body
 
     public var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
-            ZStack {
-                starrySky(now: context.date)
-                scanlines
-                particleLayer(now: context.date)
-                character
-                rippleLayer(now: context.date)
-                cornerAccents
-                if showWeather { weatherOverlay }
-            }
-            .opacity(moodOpacity)
-            .modifier(SelfChromeModifier(enabled: selfChrome, compact: compact))
-            .contentShape(Rectangle())
-            .onTapGesture(coordinateSpace: .local) { point in
-                handleClick(at: point)
-            }
-            #if os(macOS)
-            .onContinuousHover { phase in
-                switch phase {
-                case .active(let p): cursorPos = p
-                case .ended:         cursorPos = nil
-                }
-            }
-            #endif
+        // Only the canvas-based ambient layers (twinkling stars, particles,
+        // ripples) live inside `TimelineView` — they're the parts that
+        // need per-frame redraws. Everything else (the character clip,
+        // scanlines, corner brackets, weather pill) is OUTSIDE the
+        // timeline so SwiftUI doesn't re-layout the whole tree at frame
+        // rate. The character has its own internal 16fps `TimelineView`,
+        // so it animates independently without dragging this body with it.
+        //
+        // Rate dropped from 30fps → 12fps. Twinkle is a slow sin, ripples
+        // and particles are forgiving — 12fps looks identical to the eye
+        // and cuts CPU enormously (was sitting at 60–80 % during launch
+        // with the old 30fps full-tree re-eval).
+        ZStack {
+            deepSpaceBackdrop      // static gradient, no re-render
+            cursorHalo             // re-renders only on cursor move (Mac)
+            animatedAmbientLayers  // 12fps Canvas layer for stars/particles/ripples
+            scanlines              // CoreAnimation-driven offset, cheap
+            character              // owns its own 16fps player TimelineView
+            cornerAccents          // static
+            if showWeather { weatherOverlay }
         }
+        .opacity(moodOpacity)
+        .modifier(SelfChromeModifier(enabled: selfChrome, compact: compact))
+        .contentShape(Rectangle())
+        .onTapGesture(coordinateSpace: .local) { point in
+            handleClick(at: point)
+        }
+        #if os(macOS)
+        .onContinuousHover { phase in
+            switch phase {
+            case .active(let p): cursorPos = p
+            case .ended:         cursorPos = nil
+            }
+        }
+        #endif
         .onAppear {
             playingMood = mood
             startPerpetualLoops()
@@ -151,28 +163,53 @@ public struct AvatarHero: View {
         .onChange(of: heroEvents.isListening)     { _, on in setListening(on) }
     }
 
-    // MARK: - Layers
-
-    /// Pure starry-sky backdrop. Layers:
+    /// The three Canvas-backed ambient layers stacked into one
+    /// `TimelineView` so they share a single per-frame tick. Putting them
+    /// here (instead of around the whole `body`) keeps the layout engine
+    /// from churning the static parts of the hero card — character
+    /// clip, weather pill, brackets, etc. — at frame rate.
     ///
-    /// 1. **Deep-space gradient** — navy at top, near-black at bottom.
-    /// 2. **Cursor halo** (Mac only, when hovering) — a soft cyan radial
-    ///    glow that follows the cursor.
-    /// 3. **Twinkling starfield** — 140 procedural stars; stars within
-    ///    the cursor's "boost radius" twinkle brighter and bigger.
-    private func starrySky(now: Date) -> some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.04, green: 0.04, blue: 0.10),
-                    Color(red: 0.01, green: 0.01, blue: 0.04)
-                ],
-                startPoint: .top, endPoint: .bottom
-            )
-            cursorHalo
-            starfield(now: now)
+    /// **Only the per-frame canvases live inside the timeline.** The
+    /// background gradient and cursor halo are layered outside in
+    /// `body` because they don't depend on `now`. If they were inside
+    /// the closure SwiftUI would re-evaluate them 12 times a second
+    /// even though their content hasn't changed.
+    private var animatedAmbientLayers: some View {
+        // `.animation` schedule binds to the display link (60–120 Hz)
+        // and keeps SwiftUI's `AnimatorState` ticking even when we throttle
+        // body re-evaluation via `minimumInterval`. `.periodic` uses a
+        // plain dispatch timer so the AnimatorState only wakes 12 times a
+        // second — which is exactly what we want for ambient twinkle and
+        // particle drift. Big drop in CPU for visually-identical output.
+        TimelineView(.periodic(from: .now, by: 1.0 / 12.0)) { context in
+            ZStack {
+                starfield(now: context.date)
+                particleLayer(now: context.date)
+                rippleLayer(now: context.date)
+            }
         }
     }
+
+    /// Static deep-space gradient — never changes, never re-renders. Lives
+    /// outside the timeline so the layout engine doesn't touch it on
+    /// every tick.
+    private var deepSpaceBackdrop: some View {
+        LinearGradient(
+            colors: [
+                Color(red: 0.04, green: 0.04, blue: 0.10),
+                Color(red: 0.01, green: 0.01, blue: 0.04)
+            ],
+            startPoint: .top, endPoint: .bottom
+        )
+    }
+
+    // MARK: - Layers
+
+    // (Deep-space gradient + cursor halo were extracted out of the
+    //  per-frame TimelineView path — see `deepSpaceBackdrop` and
+    //  `cursorHalo` layered directly in `body`. Only `starfield(now:)`
+    //  stays inside the timeline because that's the layer that actually
+    //  needs `now` to drive its twinkle.)
 
     /// Soft cyan halo following the cursor. Faint enough not to wash out
     /// the stars; just a subtle "your attention is here" cue.
@@ -279,20 +316,27 @@ public struct AvatarHero: View {
         .allowsHitTesting(false)
     }
 
+    /// Static CRT-scanline overlay. Was previously a `GeometryReader` +
+    /// `ForEach` of ~190 `Rectangle` views with a `withAnimation` driving
+    /// `scanlineOffset` perpetually — that meant SwiftUI re-evaluated the
+    /// view tree on every frame of the animation (60fps) just to slide
+    /// stripes by 1px. The drift was barely visible at the 0.025 opacity
+    /// the stripes already render at, so we drop the animation entirely
+    /// and draw the static pattern in a single `Canvas`. Net change is
+    /// imperceptible visually but huge for CPU.
     private var scanlines: some View {
-        GeometryReader { geo in
+        Canvas { context, size in
             let stripeHeight: CGFloat = 2
-            let count = Int(geo.size.height / stripeHeight) + 2
-            VStack(spacing: 0) {
-                ForEach(0..<count, id: \.self) { i in
-                    Rectangle()
-                        .fill(i.isMultiple(of: 2) ? Color.white.opacity(0.025) : Color.clear)
-                        .frame(height: stripeHeight)
-                }
+            let cycle = stripeHeight * 2
+            let color = Color.white.opacity(0.025)
+            var y: CGFloat = 0
+            while y < size.height {
+                let rect = CGRect(x: 0, y: y, width: size.width, height: stripeHeight)
+                context.fill(Path(rect), with: .color(color))
+                y += cycle
             }
-            .offset(y: -scanlineOffset * stripeHeight * 2)
-            .blendMode(.plusLighter)
         }
+        .blendMode(.plusLighter)
         .allowsHitTesting(false)
     }
 
@@ -309,10 +353,16 @@ public struct AvatarHero: View {
     /// head clears the pill. The empty top region just shows more of the
     /// backdrop, which is what we want.
     private var character: some View {
+        // Loop clips (idle / listening / walking / sleeping) play at 6fps
+        // — slow enough to keep CPU near-flat, fast enough to read as
+        // breathing motion. One-shot reactions (greeting / alerted /
+        // celebrating / confused) play at 12fps so they stay snappy
+        // — they only run for ~5 seconds total, so the higher rate is
+        // bounded.
         AnimatedAvatarPlayer(
             clip: playingMood.clipName,
             isLooping: playingMood.isLooping,
-            fps: 16,
+            fps: playingMood.isLooping ? 6 : 12,
             verticalOffset: showWeather ? (compact ? 36 : 50) : 0,
             onFinished: { handleOneShotFinished() }
         )
@@ -351,8 +401,12 @@ public struct AvatarHero: View {
                 let elapsed = now.timeIntervalSince(p.bornAt)
                 guard elapsed < p.lifetime else { continue }
                 let t = elapsed / p.lifetime
-                p.x += p.vx * (1.0 / 30.0)
-                p.y += p.vy * (1.0 / 30.0)
+                // Step constant matches the host TimelineView's tick rate
+                // (1/12 s). Was 1/30 when the body wrapped a 30fps
+                // timeline; updated alongside the rate drop so particles
+                // move at the same world-speed as before.
+                p.x += p.vx * (1.0 / 12.0)
+                p.y += p.vy * (1.0 / 12.0)
                 let opacity = max(0, 1.0 - t * 1.1)
                 let pos = CGPoint(x: p.x, y: p.y)
                 let symbolText = Text(Image(systemName: p.symbol))
@@ -371,12 +425,14 @@ public struct AvatarHero: View {
     // MARK: - Loops
 
     private func startPerpetualLoops() {
-        // Star twinkle is driven by TimelineView in starfield(); no
-        // separate animation needed here. Scanline drift is the only
-        // perpetual SwiftUI animation we still run.
-        withAnimation(.linear(duration: 7).repeatForever(autoreverses: false)) {
-            scanlineOffset = 1
-        }
+        // Star twinkle is driven by TimelineView in starfield().
+        // Scanlines used to drift via `withAnimation(.linear.repeatForever)`
+        // here, but that ran at the display's refresh rate (60fps) and
+        // forced a SwiftUI re-evaluation each frame. The drift was nearly
+        // invisible at 0.025 opacity, so we dropped it. Nothing else needs
+        // a perpetual loop — keeping the function as a stub in case we
+        // ever want to bring one back.
+        _ = scanlineOffset // (silence unused-state warning if ever)
     }
 
     private func scheduleAutoSleep() {

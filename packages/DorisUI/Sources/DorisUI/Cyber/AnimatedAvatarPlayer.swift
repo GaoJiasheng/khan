@@ -55,13 +55,21 @@ public struct AnimatedAvatarPlayer: View {
     @State private var hasFired: Bool = false
 
     public var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / max(fps, 1.0))) { context in
+        // Keep the offset / clipped / onAppear modifiers OUTSIDE the
+        // TimelineView. If they live inside the timeline closure, SwiftUI
+        // re-applies them on every tick, which the layout engine has to
+        // chew through. Outside the closure they attach once and only
+        // the Image swap inside happens at the configured fps.
+        //
+        // `.periodic` schedule (vs `.animation`) uses a plain dispatch
+        // timer instead of binding to the display link. Frame-accurate
+        // sync isn't useful for a 10fps PNG sequence anyway, and it
+        // stops SwiftUI's `AnimatorState` from ticking at the display's
+        // refresh rate — which was the dominant CPU cost.
+        TimelineView(.periodic(from: .now, by: 1.0 / max(fps, 1.0))) { context in
             content(at: context.date)
-                .offset(y: verticalOffset)
         }
-        // Fill the parent edge-to-edge: scaling chooses the dimension that
-        // fully covers the frame, the clipped() trims any overflow on the
-        // other axis (and on the bottom when a verticalOffset is in play).
+        .offset(y: verticalOffset)
         .clipped()
         .onAppear { ensureLoaded() }
         .onChange(of: clip) { _, _ in

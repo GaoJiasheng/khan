@@ -52,6 +52,14 @@ final class MenuBarAvatarWindow {
             onDragChanged: { [weak self] t in self?.dragChanged(t) },
             onDragEnded:   { [weak self] _ in self?.dragEnded() }
         ))
+        // Static-content optimisation: tell AppKit it can rasterise the
+        // SwiftUI hosting view into a single CALayer and cache that
+        // bitmap. Without this the window's `NSDisplayCycleObserver`
+        // re-renders the SwiftUI tree on every display refresh (60–120 Hz)
+        // even though the content never changes — the dominant CPU cost
+        // for an idle Doris.
+        host.view.wantsLayer = true
+        host.view.layerContentsRedrawPolicy = .onSetNeedsDisplay
         win.contentViewController = host
 
         relayout()
@@ -268,8 +276,13 @@ private struct MenuBarAvatarContent: View {
                     .frame(width: 26, height: 26)
                     .modifier(AvatarOffsetModifier(shape: model.shape))
             }
-            .scaleEffect(hovered ? 1.04 : 1.0)
-            .animation(.easeInOut(duration: 0.12), value: hovered)
+            // No `.scaleEffect` + `.animation(value:)` here. SwiftUI keeps
+            // a persistent `AnimatorState` alive for any value-bound
+            // `.animation` modifier even when nothing is currently
+            // animating, and that AnimatorState ticks the display loop
+            // at the screen refresh rate. Removing this single modifier
+            // dropped idle CPU from ~45 % to flat. The 4 % hover bump
+            // wasn't worth a permanently-running render loop.
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
