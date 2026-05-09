@@ -1,6 +1,6 @@
-# khan CloudKit schema
+# doris CloudKit schema
 
-All records live in the **private database** of `iCloud.com.gavin.khan`.
+All records live in the **private database** of `iCloud.com.gavin.doris`.
 
 ## Custom zones
 
@@ -42,7 +42,7 @@ Each device upserts its own record on launch; the Devices tab in the app reads f
 
 ## Notes/Messages via SwiftData
 
-SwiftData with `ModelConfiguration(cloudKitDatabase: .private("iCloud.com.gavin.khan"))` mirrors the `@Model` types into the matching custom zone automatically. The CloudKit dashboard shows them under `CD_<ClassName>` record types.
+SwiftData with `ModelConfiguration(cloudKitDatabase: .private("iCloud.com.gavin.doris"))` mirrors the `@Model` types into the matching custom zone automatically. The CloudKit dashboard shows them under `CD_<ClassName>` record types.
 
 ## Cleanup
 

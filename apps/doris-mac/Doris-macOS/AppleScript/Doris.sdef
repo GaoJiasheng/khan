@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE dictionary SYSTEM "file://localhost/System/Library/DTDs/sdef.dtd">
+<dictionary title="Doris Terminology">
+    <suite name="Doris Suite" code="DrIs" description="Doris scripting commands.">
+        <command name="push notification" code="DrIspsNo" description="Push a notification to doris.">
+            <cocoa class="DorisPushNotificationCommand"/>
+            <parameter name="title" code="ttl1" type="text" description="Notification title."/>
+            <parameter name="body" code="bdy1" type="text" optional="yes" description="Notification body."/>
+            <parameter name="mode" code="mod1" type="text" optional="yes" description="banner | fix"/>
+            <result type="boolean" description="True if accepted."/>
+        </command>
+
+        <command name="make new note" code="DrIsmkNt" description="Create a new doris note.">
+            <cocoa class="DorisMakeNoteCommand"/>
+            <parameter name="title" code="ttl2" type="text" description="Note title."/>
+            <parameter name="body" code="bdy2" type="text" optional="yes" description="Note body."/>
+            <parameter name="folder" code="fld2" type="text" optional="yes" description="Folder name."/>
+            <result type="boolean"/>
+        </command>
+
+        <command name="dismiss message" code="DrIsdsMs" description="Dismiss a doris inbox message by id.">
+            <cocoa class="DorisDismissMessageCommand"/>
+            <parameter name="id" code="idd3" type="text" description="Message UUID string."/>
+            <result type="boolean"/>
+        </command>
+    </suite>
+</dictionary>

@@ -1,4 +1,4 @@
-# khan IPC wire format
+# doris IPC wire format
 
 Files dropped into `<AppGroup>/IPC/inbox/` are JSON-encoded `IPCRequest` envelopes.
 

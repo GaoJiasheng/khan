@@ -1,6 +1,6 @@
-name: Khan
+name: Doris
 options:
-  bundleIdPrefix: com.gavin.khan
+  bundleIdPrefix: com.gavin.doris
   deploymentTarget:
     macOS: "14.0"
     iOS: "17.0"
@@ -12,7 +12,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.10"
-    DEVELOPMENT_TEAM: "$(KHAN_TEAM_ID)"
+    DEVELOPMENT_TEAM: "$(DORIS_TEAM_ID)"
     CODE_SIGN_STYLE: Automatic
     ENABLE_USER_SCRIPT_SANDBOXING: NO
     SWIFT_STRICT_CONCURRENCY: minimal
@@ -29,33 +29,33 @@ packages:
   ArgumentParser:
     url: https://github.com/apple/swift-argument-parser
     from: 1.4.0
-  KhanCore:
-    path: packages/KhanCore
-  KhanUI:
-    path: packages/KhanUI
-  KhanMacChrome:
-    path: packages/KhanMacChrome
+  DorisCore:
+    path: packages/DorisCore
+  DorisUI:
+    path: packages/DorisUI
+  DorisMacChrome:
+    path: packages/DorisMacChrome
 
 targets:
-  Khan-macOS:
+  Doris-macOS:
     type: application
     platform: macOS
     sources:
-      - path: apps/khan-mac/Khan-macOS
+      - path: apps/doris-mac/Doris-macOS
         excludes:
-          - "Khan-macOS.entitlements"
+          - "Doris-macOS.entitlements"
           - "Resources/Info.plist"
     resources:
-      - path: apps/khan-mac/Khan-macOS/AppleScript/Khan.sdef
-      - path: apps/khan-mac/Khan-macOS/Resources/Avatar/khan-avatar.png
-      - path: apps/khan-mac/Khan-macOS/Resources/Assets.xcassets
+      - path: apps/doris-mac/Doris-macOS/AppleScript/Doris.sdef
+      - path: apps/doris-mac/Doris-macOS/Resources/Avatar/doris-avatar.png
+      - path: apps/doris-mac/Doris-macOS/Resources/Assets.xcassets
     info:
-      path: apps/khan-mac/Khan-macOS/Resources/Info.plist
+      path: apps/doris-mac/Doris-macOS/Resources/Info.plist
       properties:
-        CFBundleDisplayName: Khan
+        CFBundleDisplayName: Doris
         CFBundleIconName: AppIcon
         LSApplicationCategoryType: public.app-category.productivity
-        # Khan is a menu-bar agent — the avatar lives in the notch/menu
+        # Doris is a menu-bar agent — the avatar lives in the notch/menu
         # bar, the dropdown panel is its primary UI, and the main window
         # only opens on demand (via the avatar's right-click menu).
         # `LSUIElement: true` removes the Dock icon and prevents the
@@ -69,42 +69,42 @@ targets:
         NSQuitAlwaysKeepsWindows: false
         NSHumanReadableCopyright: ""
         NSAppleScriptEnabled: true
-        OSAScriptingDefinition: Khan.sdef
-        NSMicrophoneUsageDescription: "Khan listens through the microphone so you can dictate prompts to ChatGPT and other AI apps."
-        NSSpeechRecognitionUsageDescription: "Khan uses Apple Speech Recognition to convert your voice to text before sending it to your chosen AI app."
+        OSAScriptingDefinition: Doris.sdef
+        NSMicrophoneUsageDescription: "Doris listens through the microphone so you can dictate prompts to ChatGPT and other AI apps."
+        NSSpeechRecognitionUsageDescription: "Doris uses Apple Speech Recognition to convert your voice to text before sending it to your chosen AI app."
         CFBundleURLTypes:
-          - CFBundleURLName: com.gavin.khan.url
-            CFBundleURLSchemes: [khan]
+          - CFBundleURLName: com.gavin.doris.url
+            CFBundleURLSchemes: [doris]
         NSUserActivityTypes: []
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.khan
-        CODE_SIGN_ENTITLEMENTS: apps/khan-mac/Khan-macOS/Khan-macOS.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.doris
+        CODE_SIGN_ENTITLEMENTS: apps/doris-mac/Doris-macOS/Doris-macOS.entitlements
         ENABLE_HARDENED_RUNTIME: YES
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     dependencies:
-      - package: KhanCore
-        product: KhanCore
-      - package: KhanUI
-        product: KhanUI
-      - package: KhanMacChrome
-        product: KhanMacChrome
+      - package: DorisCore
+        product: DorisCore
+      - package: DorisUI
+        product: DorisUI
+      - package: DorisMacChrome
+        product: DorisMacChrome
       - package: DynamicNotchKit
       - package: KeyboardShortcuts
 
-  KhanShareExtension-macOS:
+  DorisShareExtension-macOS:
     type: app-extension
     platform: macOS
     sources:
-      - apps/khan-mac/KhanShareExtension-macOS
+      - apps/doris-mac/DorisShareExtension-macOS
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.khan.share-mac
-        CODE_SIGN_ENTITLEMENTS: apps/khan-mac/KhanShareExtension-macOS/KhanShareExtension-macOS.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.doris.share-mac
+        CODE_SIGN_ENTITLEMENTS: apps/doris-mac/DorisShareExtension-macOS/DorisShareExtension-macOS.entitlements
     info:
-      path: apps/khan-mac/KhanShareExtension-macOS/Info.plist
+      path: apps/doris-mac/DorisShareExtension-macOS/Info.plist
       properties:
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
@@ -116,78 +116,78 @@ targets:
               NSExtensionActivationSupportsImageWithMaxCount: 5
               NSExtensionActivationSupportsFileWithMaxCount: 5
     dependencies:
-      - package: KhanCore
-        product: KhanCore
+      - package: DorisCore
+        product: DorisCore
 
-  KhanWidget-macOS:
+  DorisWidget-macOS:
     type: app-extension
     platform: macOS
     sources:
-      - apps/khan-mac/KhanWidget-macOS
+      - apps/doris-mac/DorisWidget-macOS
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.khan.widget-mac
-        CODE_SIGN_ENTITLEMENTS: apps/khan-mac/KhanWidget-macOS/KhanWidget-macOS.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.doris.widget-mac
+        CODE_SIGN_ENTITLEMENTS: apps/doris-mac/DorisWidget-macOS/DorisWidget-macOS.entitlements
     info:
-      path: apps/khan-mac/KhanWidget-macOS/Info.plist
+      path: apps/doris-mac/DorisWidget-macOS/Info.plist
       properties:
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     dependencies:
-      - package: KhanCore
-        product: KhanCore
-      - package: KhanUI
-        product: KhanUI
+      - package: DorisCore
+        product: DorisCore
+      - package: DorisUI
+        product: DorisUI
 
-  Khan-iOS:
+  Doris-iOS:
     type: application
     platform: iOS
     sources:
-      - path: apps/khan-ios/Khan-iOS
+      - path: apps/doris-ios/Doris-iOS
         excludes:
-          - "Khan-iOS.entitlements"
+          - "Doris-iOS.entitlements"
           - "Resources/Info.plist"
     resources:
-      - path: apps/khan-ios/Khan-iOS/Resources/Assets.xcassets
+      - path: apps/doris-ios/Doris-iOS/Resources/Assets.xcassets
     info:
-      path: apps/khan-ios/Khan-iOS/Resources/Info.plist
+      path: apps/doris-ios/Doris-iOS/Resources/Info.plist
       properties:
-        CFBundleDisplayName: Khan
+        CFBundleDisplayName: Doris
         LSApplicationCategoryType: public.app-category.productivity
         UIBackgroundModes: [remote-notification, processing]
-        BGTaskSchedulerPermittedIdentifiers: [com.gavin.khan.refresh]
-        NSMicrophoneUsageDescription: "Khan listens through the microphone so you can dictate prompts to ChatGPT and other AI apps."
-        NSSpeechRecognitionUsageDescription: "Khan uses Apple Speech Recognition to convert your voice to text before sending it to your chosen AI app."
+        BGTaskSchedulerPermittedIdentifiers: [com.gavin.doris.refresh]
+        NSMicrophoneUsageDescription: "Doris listens through the microphone so you can dictate prompts to ChatGPT and other AI apps."
+        NSSpeechRecognitionUsageDescription: "Doris uses Apple Speech Recognition to convert your voice to text before sending it to your chosen AI app."
         UIUserInterfaceStyle: Dark
         LSApplicationQueriesSchemes: [chatgpt, claude]
         CFBundleURLTypes:
-          - CFBundleURLName: com.gavin.khan.url
-            CFBundleURLSchemes: [khan]
+          - CFBundleURLName: com.gavin.doris.url
+            CFBundleURLSchemes: [doris]
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.khan.ios
-        CODE_SIGN_ENTITLEMENTS: apps/khan-ios/Khan-iOS/Khan-iOS.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.doris.ios
+        CODE_SIGN_ENTITLEMENTS: apps/doris-ios/Doris-iOS/Doris-iOS.entitlements
         TARGETED_DEVICE_FAMILY: "1,2"
         MARKETING_VERSION: "0.3.0"
         CURRENT_PROJECT_VERSION: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     dependencies:
-      - package: KhanCore
-        product: KhanCore
-      - package: KhanUI
-        product: KhanUI
+      - package: DorisCore
+        product: DorisCore
+      - package: DorisUI
+        product: DorisUI
 
-  KhanShareExtension-iOS:
+  DorisShareExtension-iOS:
     type: app-extension
     platform: iOS
     sources:
-      - apps/khan-ios/KhanShareExtension-iOS
+      - apps/doris-ios/DorisShareExtension-iOS
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.khan.ios.share
-        CODE_SIGN_ENTITLEMENTS: apps/khan-ios/KhanShareExtension-iOS/KhanShareExtension-iOS.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.doris.ios.share
+        CODE_SIGN_ENTITLEMENTS: apps/doris-ios/DorisShareExtension-iOS/DorisShareExtension-iOS.entitlements
     info:
-      path: apps/khan-ios/KhanShareExtension-iOS/Info.plist
+      path: apps/doris-ios/DorisShareExtension-iOS/Info.plist
       properties:
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
@@ -199,73 +199,73 @@ targets:
               NSExtensionActivationSupportsImageWithMaxCount: 5
               NSExtensionActivationSupportsFileWithMaxCount: 5
     dependencies:
-      - package: KhanCore
-        product: KhanCore
+      - package: DorisCore
+        product: DorisCore
 
-  KhanWidget-iOS:
+  DorisWidget-iOS:
     type: app-extension
     platform: iOS
     sources:
-      - apps/khan-ios/KhanWidget-iOS
+      - apps/doris-ios/DorisWidget-iOS
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.khan.ios.widget
-        CODE_SIGN_ENTITLEMENTS: apps/khan-ios/KhanWidget-iOS/KhanWidget-iOS.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.doris.ios.widget
+        CODE_SIGN_ENTITLEMENTS: apps/doris-ios/DorisWidget-iOS/DorisWidget-iOS.entitlements
     info:
-      path: apps/khan-ios/KhanWidget-iOS/Info.plist
+      path: apps/doris-ios/DorisWidget-iOS/Info.plist
       properties:
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     dependencies:
-      - package: KhanCore
-        product: KhanCore
-      - package: KhanUI
-        product: KhanUI
+      - package: DorisCore
+        product: DorisCore
+      - package: DorisUI
+        product: DorisUI
 
-  KhanIntents-macOS:
+  DorisIntents-macOS:
     type: app-extension
     platform: macOS
     sources:
-      - extensions/KhanIntents
+      - extensions/DorisIntents
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.khan.intents-mac
-        CODE_SIGN_ENTITLEMENTS: extensions/KhanIntents/KhanIntents.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.doris.intents-mac
+        CODE_SIGN_ENTITLEMENTS: extensions/DorisIntents/DorisIntents.entitlements
     info:
-      path: extensions/KhanIntents/Info-macOS.plist
+      path: extensions/DorisIntents/Info-macOS.plist
       properties:
         NSExtension:
           NSExtensionPointIdentifier: com.apple.appintents-extension
     dependencies:
-      - package: KhanCore
-        product: KhanIPC
+      - package: DorisCore
+        product: DorisIPC
 
-  KhanIntents-iOS:
+  DorisIntents-iOS:
     type: app-extension
     platform: iOS
     sources:
-      - extensions/KhanIntents
+      - extensions/DorisIntents
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.khan.intents-ios
-        CODE_SIGN_ENTITLEMENTS: extensions/KhanIntents/KhanIntents.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: com.gavin.doris.intents-ios
+        CODE_SIGN_ENTITLEMENTS: extensions/DorisIntents/DorisIntents.entitlements
     info:
-      path: extensions/KhanIntents/Info-iOS.plist
+      path: extensions/DorisIntents/Info-iOS.plist
       properties:
         NSExtension:
           NSExtensionPointIdentifier: com.apple.appintents-extension
     dependencies:
-      - package: KhanCore
-        product: KhanIPC
+      - package: DorisCore
+        product: DorisIPC
 
 schemes:
-  Khan-macOS:
+  Doris-macOS:
     build:
       targets:
-        Khan-macOS: all
-        KhanShareExtension-macOS: all
-        KhanWidget-macOS: all
-        KhanIntents-macOS: all
+        Doris-macOS: all
+        DorisShareExtension-macOS: all
+        DorisWidget-macOS: all
+        DorisIntents-macOS: all
     run:
       config: Debug
     test:
@@ -273,13 +273,13 @@ schemes:
     archive:
       config: Release
 
-  Khan-iOS:
+  Doris-iOS:
     build:
       targets:
-        Khan-iOS: all
-        KhanShareExtension-iOS: all
-        KhanWidget-iOS: all
-        KhanIntents-iOS: all
+        Doris-iOS: all
+        DorisShareExtension-iOS: all
+        DorisWidget-iOS: all
+        DorisIntents-iOS: all
     run:
       config: Debug
     test:
