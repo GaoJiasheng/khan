@@ -30,8 +30,6 @@ struct MainWindowView: View {
         }
         .frame(minWidth: 760, minHeight: 520)
         .toolbar {
-            // DORIS brand moved into the detail header next to the tab
-            // buttons; keep theme toggle + sync button on the toolbar.
             ToolbarItem(placement: .primaryAction) {
                 SyncNowToolbarButton()
             }
@@ -43,10 +41,6 @@ struct MainWindowView: View {
 
     // MARK: - Sidebar
 
-    /// Sidebar is now just the avatar — fills top to bottom, edge to
-    /// edge, on the same deep-space gradient that the avatar's starry
-    /// sky uses internally so there's no visible seam at the title bar.
-    /// Brand line + nav tabs were moved to the detail header.
     private var sidebar: some View {
         AvatarHero(compact: true, showWeather: true, selfChrome: false)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -110,8 +104,6 @@ struct MainWindowView: View {
     }
 
     /// Right-pane header: DORIS brand on the left, tab buttons next to it.
-    /// Replaces the old left-sidebar nav rows so the avatar can own the
-    /// entire left column.
     private var detailHeader: some View {
         HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: 0) {
@@ -140,9 +132,6 @@ struct MainWindowView: View {
         .padding(.vertical, 14)
     }
 
-    /// Capsule-style tab button. Selected = cyan-accented, unselected =
-    /// dim primary. Same vocabulary as the dropdown panel's tab row so
-    /// the two surfaces feel like one product.
     private func tabButton(_ value: Tab, label: String, system: String) -> some View {
         let isSelected = tab == value
         return Button {
@@ -253,13 +242,33 @@ private struct InboxRow: View {
 private struct MainNotesList: View {
     @ObservedObject private var lang = LanguageSettings.shared
     @Environment(\.modelContext) private var ctx
-    @Query(sort: [SortDescriptor(\Note.updatedAt, order: .reverse)])
+
+    @Query(
+        filter: #Predicate<Note> { note in !note.archived },
+        sort: [SortDescriptor(\Note.updatedAt, order: .reverse)]
+    )
     private var notes: [Note]
-    /// `nil` → list mode. Non-nil → in-place editor for that note. Doris
-    /// is a lightweight notes app — editing happens right here in the
-    /// detail pane, no sheets, no separate windows. Click a row to dive
-    /// in, click Back (or hit Esc) to return.
+
+    /// Pin-first ordering: SwiftData's @Query can't sort by Bool keyPaths,
+    /// so we sort client-side (pinned notes first, then by updatedAt desc).
+    private var sortedNotes: [Note] {
+        notes.sorted { a, b in
+            if a.pinned != b.pinned { return a.pinned }
+            return a.updatedAt > b.updatedAt
+        }
+    }
+
     @State private var editing: Note?
+    @State private var searchText: String = ""
+
+    private var filteredNotes: [Note] {
+        guard !searchText.isEmpty else { return sortedNotes }
+        let q = searchText.lowercased()
+        return sortedNotes.filter {
+            $0.title.lowercased().contains(q) ||
+            $0.bodyMarkdown.lowercased().contains(q)
+        }
+    }
 
     var body: some View {
         Group {
@@ -274,92 +283,170 @@ private struct MainNotesList: View {
     }
 
     private var listBody: some View {
-        ScrollView {
-            VStack(spacing: 8) {
-                HStack {
-                    Spacer()
+        VStack(spacing: 0) {
+            // Search bar
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.primary.opacity(0.4))
+                TextField(L("Search notes…", "搜索笔记…"), text: $searchText)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 13))
+                if !searchText.isEmpty {
                     Button {
-                        let n = Note(title: L("New note", "新笔记"))
-                        ctx.insert(n)
-                        try? ctx.save()
-                        // Open the editor immediately for the new note —
-                        // matches the "click + then start typing" muscle
-                        // memory from Notes / SideNotes.
-                        editing = n
+                        searchText = ""
                     } label: {
-                        Label(L("New", "新建"), systemImage: "plus.circle.fill")
-                            .foregroundStyle(CyberPalette.neonPink)
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.primary.opacity(0.4))
                     }
                     .buttonStyle(.plain)
                 }
-                if notes.isEmpty {
-                    emptyState.padding(.top, 80)
-                } else {
-                    ForEach(notes) { n in
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(.primary.opacity(0.06))
+            )
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+
+            ScrollView {
+                VStack(spacing: 8) {
+                    HStack {
+                        Spacer()
                         Button {
+                            let n = Note(title: L("New note", "新笔记"))
+                            ctx.insert(n)
+                            try? ctx.save()
                             editing = n
                         } label: {
-                            NoteRow(note: n)
+                            Label(L("New", "新建"), systemImage: "plus.circle.fill")
+                                .foregroundStyle(CyberPalette.neonPink)
                         }
                         .buttonStyle(.plain)
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                ctx.delete(n)
-                                try? ctx.save()
+                    }
+                    if filteredNotes.isEmpty {
+                        emptyState.padding(.top, 80)
+                    } else {
+                        ForEach(filteredNotes) { n in
+                            Button {
+                                editing = n
                             } label: {
-                                Label(L("Delete", "删除"), systemImage: "trash")
+                                MacNoteRow(note: n)
+                            }
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                Button {
+                                    n.pinned.toggle()
+                                    n.touch()
+                                    try? ctx.save()
+                                } label: {
+                                    Label(
+                                        n.pinned ? L("Unpin", "取消置顶") : L("Pin", "置顶"),
+                                        systemImage: n.pinned ? "pin.slash" : "pin.fill"
+                                    )
+                                }
+                                Divider()
+                                Button(role: .destructive) {
+                                    n.archive()
+                                    try? ctx.save()
+                                } label: {
+                                    Label(L("Archive", "归档"), systemImage: "archivebox")
+                                }
                             }
                         }
                     }
                 }
+                .padding(20)
             }
-            .padding(20)
         }
     }
 
     private var emptyState: some View {
         VStack(spacing: 6) {
-            Image(systemName: "note.text")
+            Image(systemName: searchText.isEmpty ? "note.text" : "magnifyingglass")
                 .font(.system(size: 36))
                 .foregroundStyle(.primary.opacity(0.4))
-            Text(L("No notes yet", "暂无笔记"))
+            Text(searchText.isEmpty
+                 ? L("No notes yet", "暂无笔记")
+                 : L("No results", "无搜索结果"))
                 .font(.headline)
                 .foregroundStyle(.primary.opacity(0.7))
-            Text(L("Click + to start one.", "点击 + 新建一条。"))
-                .font(.caption)
-                .foregroundStyle(.primary.opacity(0.5))
+            if searchText.isEmpty {
+                Text(L("Click + to start one.", "点击 + 新建一条。"))
+                    .font(.caption)
+                    .foregroundStyle(.primary.opacity(0.5))
+            }
         }
     }
 }
 
-private struct NoteRow: View {
+private struct MacNoteRow: View {
     let note: Note
 
     var body: some View {
         CyberCard {
             HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "note.text")
+                Image(systemName: note.isChecklist ? "checklist" : "note.text")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(CyberPalette.neonPink.opacity(0.85))
                     .frame(width: 22)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(note.title.isEmpty ? L("Untitled", "无标题") : note.title)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                    if !note.bodyMarkdown.isEmpty {
+                    HStack(spacing: 6) {
+                        if note.pinned {
+                            Image(systemName: "pin.fill")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(CyberPalette.neonCyan)
+                        }
+                        Text(note.title.isEmpty ? L("Untitled", "无标题") : note.title)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                    }
+                    if note.isChecklist {
+                        let items = note.checklistItems ?? []
+                        let done = items.filter(\.done).count
+                        if !items.isEmpty {
+                            Text("\(done) / \(items.count)")
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.primary.opacity(0.55))
+                        }
+                    } else if !note.bodyMarkdown.isEmpty {
                         Text(note.bodyMarkdown)
                             .font(.subheadline)
                             .foregroundStyle(.primary.opacity(0.65))
                             .lineLimit(3)
                     }
-                    Text(note.updatedAt, style: .relative)
-                        .font(.caption2)
-                        .foregroundStyle(.primary.opacity(0.45))
+                    HStack(spacing: 6) {
+                        Text(note.updatedAt, style: .relative)
+                            .font(.caption2)
+                            .foregroundStyle(.primary.opacity(0.45))
+                        if let due = note.dueDate {
+                            dueDateChip(due)
+                        }
+                    }
                 }
                 Spacer(minLength: 0)
             }
             .padding(14)
         }
+    }
+
+    private func dueDateChip(_ due: Date) -> some View {
+        let cal = Calendar.current
+        let color: Color = due < Date() ? .red : cal.isDateInToday(due) ? .yellow : CyberPalette.neonCyan
+        return HStack(spacing: 3) {
+            Image(systemName: "calendar")
+                .font(.system(size: 8))
+            Text(due, format: .dateTime.month(.abbreviated).day())
+                .font(.caption2.monospacedDigit())
+        }
+        .foregroundStyle(color)
+        .padding(.horizontal, 5)
+        .padding(.vertical, 2)
+        .background(Capsule().fill(color.opacity(0.12)))
     }
 }
