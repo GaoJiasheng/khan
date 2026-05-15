@@ -7,9 +7,19 @@ public enum ModelContainerFactory {
         case appGroupUnavailable
     }
 
+    /// Creates the shared Doris `ModelContainer`.
+    ///
+    /// Both iOS and macOS call this via `DorisRuntime.shared.container`
+    /// so they always use the **same** schema version, migration plan,
+    /// and CloudKit container — the single source of truth for cross-
+    /// device data consistency.
+    ///
+    /// Migration: `DorisMigrationPlan` is always registered. On first
+    /// launch after an app update that bumps the schema version, SwiftData
+    /// runs the appropriate lightweight stage before the container opens.
     public static func make(useCloudKit: Bool = true, inMemory: Bool = false) throws -> ModelContainer {
         let url = try storeURL(inMemory: inMemory)
-        let schema = SchemaV1.schema
+        let schema = SchemaV2.schema
 
         let config: ModelConfiguration
         if inMemory {
@@ -34,7 +44,11 @@ public enum ModelContainerFactory {
             )
         }
 
-        return try ModelContainer(for: schema, configurations: [config])
+        return try ModelContainer(
+            for: schema,
+            migrationPlan: DorisMigrationPlan.self,
+            configurations: [config]
+        )
     }
 
     public static func storeURL(inMemory: Bool) throws -> URL {
