@@ -23,4 +23,13 @@ public final class ChecklistItem {
         self.position = position
         self.note = note
     }
+
+    /// Bubbles a "something changed" signal to the parent note so
+    /// updatedAt stays in sync when checklist items are toggled or edited.
+    /// This is the cross-device sync safety hook: without it, toggling
+    /// `done` on one device doesn't bump the note's updatedAt, so the
+    /// CloudKit mirror may not propagate the change.
+    public func touch() {
+        note?.touch()
+    }
 }

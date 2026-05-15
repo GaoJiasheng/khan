@@ -7,12 +7,14 @@ import SwiftData
 /// deliberately conservative — saves are cheap when there's nothing dirty
 /// and SwiftData handles the actual CloudKit round-trip behind the scenes.
 ///
-/// Reads `SyncSettings.shared.autoSyncEnabled` at start; if the user has
-/// auto-sync turned off, `start()` is a no-op until they call `pokeNow()`
-/// manually (the toolbar button) or restart the app with auto-sync back on.
-///
 /// On every successful poke, updates `SyncSettings.shared.lastSyncedAt`
-/// so UI can render a "Last synced 30 s ago" label without polling.
+/// so UI can render a "Last synced 30 s ago" label. On failure, updates
+/// `SyncSettings.shared.lastSyncError` so both iOS and Mac can surface
+/// a red alert without the user digging into logs.
+///
+/// Also runs a 30-day tombstone purge on each poke: notes that have been
+/// soft-deleted (`archived = true`) for 30+ days are hard-deleted so they
+/// don't accumulate indefinitely in iCloud.
 public actor SyncTimer {
     private let container: ModelContainer
     private let interval: TimeInterval
@@ -57,10 +59,33 @@ public actor SyncTimer {
             do {
                 try context.save()
                 SyncSettings.shared.markSyncedNow()
+                SyncSettings.shared.lastSyncError = nil
                 DorisLog.sync.debug("sync poke fired")
             } catch {
-                DorisLog.sync.error("sync poke save failed: \(String(describing: error), privacy: .public)")
+                let msg = error.localizedDescription
+                SyncSettings.shared.lastSyncError = msg
+                DorisLog.sync.error("sync poke save failed: \(msg, privacy: .public)")
             }
+            // 30-day tombstone purge — runs on every poke so it's
+            // ambient and doesn't require a separate scheduled task.
+            Self.purgeTombstones(context: context)
         }
+    }
+
+    /// Hard-deletes notes that have been soft-deleted (`archived = true`)
+    /// for more than 30 days. Must be called on the main actor (since
+    /// `ModelContext` operations are main-actor bound).
+    @MainActor
+    private static func purgeTombstones(context: ModelContext) {
+        let cutoff = Date().addingTimeInterval(-30 * 24 * 60 * 60)
+        let descriptor = FetchDescriptor<Note>(
+            predicate: #Predicate<Note> { $0.archived && $0.updatedAt < cutoff }
+        )
+        guard let stale = try? context.fetch(descriptor), !stale.isEmpty else { return }
+        for note in stale {
+            context.delete(note)
+        }
+        try? context.save()
+        DorisLog.sync.debug("purged \(stale.count) tombstoned note(s)")
     }
 }

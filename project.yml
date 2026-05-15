@@ -3,7 +3,7 @@ options:
   bundleIdPrefix: com.gavin.doris
   deploymentTarget:
     macOS: "14.0"
-    iOS: "17.0"
+    iOS: "18.0"
   developmentLanguage: en
   createIntermediateGroups: true
   generateEmptyDirectories: true
@@ -175,15 +175,26 @@ targets:
       properties:
         CFBundleDisplayName: Doris
         LSApplicationCategoryType: public.app-category.productivity
-        UIBackgroundModes: [remote-notification, processing]
-        BGTaskSchedulerPermittedIdentifiers: [com.gavin.doris.refresh]
-        NSMicrophoneUsageDescription: "Doris listens through the microphone so you can dictate prompts to ChatGPT and other AI apps."
-        NSSpeechRecognitionUsageDescription: "Doris uses Apple Speech Recognition to convert your voice to text before sending it to your chosen AI app."
-        UIUserInterfaceStyle: Dark
-        LSApplicationQueriesSchemes: [chatgpt, claude]
-        CFBundleURLTypes:
-          - CFBundleURLName: com.gavin.doris.url
-            CFBundleURLSchemes: [doris]
+        # `UILaunchScreen` MUST be present (even as an empty dict) for iOS
+        # to render the app at the device's native screen size on modern
+        # iPhones. Without it, iOS treats the app as legacy and renders
+        # it letterboxed in an iPhone-SE-sized box centered in the upper
+        # portion of the display — which gave us the "small box, tab bar
+        # in the middle" layout. The empty dict says "use the system
+        # default plain background".
+        UILaunchScreen: {}
+        # Portrait only — Doris on iOS is a phone-form-factor productivity
+        # viewer; sideways layouts haven't been designed.
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+        # iOS Doris is a full read/write editor of the iCloud-mirrored
+        # store. Silent pushes, background refresh, and local notifications
+        # are still Mac-only (the Mac is the event hub); iOS relies on
+        # CloudKit's automatic mirror sync + the SyncTimer poke.
+        # See `DorisAppDelegate` for the rationale.
     settings:
       base:
         # See the macOS target above for why this is set explicitly:
@@ -302,7 +313,6 @@ schemes:
     build:
       targets:
         Doris-iOS: all
-        DorisShareExtension-iOS: all
         DorisWidget-iOS: all
         DorisIntents-iOS: all
     run:

@@ -23,15 +23,24 @@ public struct SyncNowToolbarButton: View {
         Button {
             tap()
         } label: {
-            ZStack {
+            ZStack(alignment: .topTrailing) {
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .font(.system(size: 13, weight: .semibold))
                     .rotationEffect(.degrees(spinning ? rotation : 0))
                     .foregroundStyle(
-                        sync.cloudKitEnabled
-                            ? AnyShapeStyle(CyberPalette.neonCyan)
-                            : AnyShapeStyle(Color.primary.opacity(0.55))
+                        sync.lastSyncError != nil
+                            ? AnyShapeStyle(Color.red)
+                            : sync.cloudKitEnabled
+                                ? AnyShapeStyle(CyberPalette.neonCyan)
+                                : AnyShapeStyle(Color.primary.opacity(0.55))
                     )
+                // Red dot badge when there's an active sync error
+                if sync.lastSyncError != nil {
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 6, height: 6)
+                        .offset(x: 3, y: -3)
+                }
             }
             .frame(width: 22, height: 22)
             .help(helpText)
@@ -42,6 +51,9 @@ public struct SyncNowToolbarButton: View {
     }
 
     private var helpText: String {
+        if let err = sync.lastSyncError {
+            return "Sync error: \(err)\nTap to retry."
+        }
         var label = "Sync Now"
         if !sync.cloudKitEnabled {
             label += " (iCloud disabled — local flush only)"

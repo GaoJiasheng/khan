@@ -49,7 +49,7 @@ public struct InlineNoteEditor: View {
             isPresented: $confirmingDelete
         ) {
             Button(L("Delete", "删除"), role: .destructive) {
-                ctx.delete(note)
+                note.archive()
                 try? ctx.save()
                 onClose()
             }
@@ -62,7 +62,7 @@ public struct InlineNoteEditor: View {
     private var header: some View {
         HStack(alignment: .center, spacing: 10) {
             Button {
-                note.updatedAt = Date()
+                note.touch()
                 try? ctx.save()
                 onClose()
             } label: {
@@ -121,6 +121,7 @@ public struct InlineNoteEditor: View {
                 .toggleStyle(.button)
                 .tint(CyberPalette.neonPink)
                 .controlSize(.small)
+                .onChange(of: note.pinned) { _, _ in note.touch() }
 
                 Toggle(isOn: $note.isChecklist) {
                     Label(L("Checklist", "清单"), systemImage: "checklist")
@@ -129,6 +130,10 @@ public struct InlineNoteEditor: View {
                 .toggleStyle(.button)
                 .tint(CyberPalette.neonCyan)
                 .controlSize(.small)
+                .onChange(of: note.isChecklist) { _, _ in note.touch() }
+
+                // Due date chip
+                DueDateChipButton(note: note)
 
                 Spacer()
 
@@ -160,7 +165,7 @@ public struct InlineNoteEditor: View {
         }
         // Stamp updatedAt as the user types so the list re-sorts in
         // real time. SwiftData persists the change automatically.
-        .onChange(of: note.bodyMarkdown) { _, _ in note.updatedAt = Date() }
-        .onChange(of: note.title)        { _, _ in note.updatedAt = Date() }
+        .onChange(of: note.bodyMarkdown) { _, _ in note.touch() }
+        .onChange(of: note.title)        { _, _ in note.touch() }
     }
 }

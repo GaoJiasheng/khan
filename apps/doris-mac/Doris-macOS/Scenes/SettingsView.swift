@@ -19,15 +19,6 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        // Wrap the whole thing in a ZStack with the adaptive cyber backdrop
-        // behind it. macOS gives Settings windows a vibrancy-blurred chrome
-        // by default — `.preferredColorScheme(...)` flips the foreground but
-        // not the vibrancy, which is why the user saw a half-transparent
-        // window regardless of theme. Painting an opaque adaptive backdrop
-        // on top of the vibrancy fixes that, and the
-        // `SettingsWindowOpacityFix` NSViewRepresentable below also tells
-        // the host NSWindow to render opaquely so light-mode pixels don't
-        // bleed in from the desktop wallpaper.
         ZStack {
             CyberPalette.backdrop
                 .ignoresSafeArea()
@@ -36,6 +27,8 @@ struct SettingsView: View {
                     .tabItem { Label("General", systemImage: "gear") }
                 syncTab
                     .tabItem { Label("Sync", systemImage: "icloud.fill") }
+                recentlyDeletedTab
+                    .tabItem { Label("Recently Deleted", systemImage: "trash") }
                 sidebarTab
                     .tabItem { Label("Sidebar", systemImage: "sidebar.right") }
                 shortcutTab
@@ -46,7 +39,7 @@ struct SettingsView: View {
             .scrollContentBackground(.hidden)
             .padding()
         }
-        .frame(width: 480, height: 420)
+        .frame(width: 480, height: 460)
         .preferredColorScheme(theme.mode.colorScheme)
         .background(SettingsWindowOpacityFix())
     }
@@ -68,6 +61,12 @@ struct SettingsView: View {
     /// at container init time.
     private var syncTab: some View {
         SyncSettingsTab()
+    }
+
+    /// Recently Deleted tab — shows archived notes so the user can
+    /// restore or permanently delete them.
+    private var recentlyDeletedTab: some View {
+        MacRecentlyDeletedTab()
     }
 
     private var sidebarTab: some View {
@@ -185,25 +184,39 @@ private struct SyncSettingsTab: View {
             }
 
             Section {
-                HStack {
-                    Button {
-                        runManualSync()
-                    } label: {
-                        HStack(spacing: 6) {
-                            if isSyncing {
-                                ProgressView().controlSize(.small)
-                            } else {
-                                Image(systemName: "arrow.triangle.2.circlepath")
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Button {
+                            runManualSync()
+                        } label: {
+                            HStack(spacing: 6) {
+                                if isSyncing {
+                                    ProgressView().controlSize(.small)
+                                } else {
+                                    Image(systemName: "arrow.triangle.2.circlepath")
+                                }
+                                Text(isSyncing ? "Syncing…" : "Sync Now")
                             }
-                            Text(isSyncing ? "Syncing…" : "Sync Now")
+                        }
+                        .disabled(isSyncing)
+                        Spacer()
+                        Text(lastSyncedLabel)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    // Error row — only when there's an active sync error
+                    if let err = sync.lastSyncError {
+                        HStack(spacing: 6) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                            Text(err)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                                .lineLimit(3)
                         }
                     }
-                    .disabled(isSyncing)
-                    Spacer()
-                    Text(lastSyncedLabel)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
                 }
             } header: {
                 Text("Manual sync")
@@ -240,6 +253,85 @@ private struct SyncSettingsTab: View {
         }
     }
 }
+
+// MARK: - Recently Deleted tab
+
+@MainActor
+private struct MacRecentlyDeletedTab: View {
+    @Environment(\.modelContext) private var ctx
+
+    @Query(
+        filter: #Predicate<Note> { note in note.archived },
+        sort: [SortDescriptor(\Note.updatedAt, order: .reverse)]
+    )
+    private var archived: [Note]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if archived.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 32))
+                        .foregroundStyle(.secondary)
+                    Text("No recently deleted notes.")
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                    Text("Notes archived on this device or synced from iOS appear here.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                HStack {
+                    Text("\(archived.count) archived note(s)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Delete All", role: .destructive) {
+                        for n in archived { ctx.delete(n) }
+                        try? ctx.save()
+                    }
+                    .foregroundStyle(.red)
+                }
+                List {
+                    ForEach(archived) { note in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(note.title.isEmpty ? "Untitled" : note.title)
+                                    .font(.body)
+                                    .lineLimit(1)
+                                Text(note.updatedAt, style: .relative)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button("Restore") {
+                                note.archived = false
+                                note.touch()
+                                try? ctx.save()
+                            }
+                            .controlSize(.small)
+                            .foregroundStyle(Color.accentColor)
+                            Button("Delete Forever") {
+                                ctx.delete(note)
+                                try? ctx.save()
+                            }
+                            .controlSize(.small)
+                            .foregroundStyle(.red)
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+            }
+        }
+        .padding(8)
+    }
+}
+
+// MARK: - SettingsWindowOpacityFix
 
 /// SwiftUI's `Settings` scene hosts content in an NSWindow with
 /// `NSVisualEffectView`-backed vibrancy. That's why the previous Settings

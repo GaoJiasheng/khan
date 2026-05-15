@@ -1,30 +1,33 @@
 import SwiftUI
+import SwiftData
 import DorisCore
 import DorisUI
 
-/// iOS settings sheet — same sections as the Mac settings panel:
-/// Theme, Language, Sync, Voice, About.
+/// iOS settings sheet — Theme, Language, Sync, About.
 struct SettingsScreen: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var lang = LanguageSettings.shared
-    @ObservedObject private var voice = IOSVoiceSettings.shared
     @ObservedObject private var theme = ThemeSettings.shared
     @ObservedObject private var sync = SyncSettings.shared
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                CyberBackground()
-                Form {
-                    themeSection
-                    languageSection
-                    syncSection
-                    voiceSection
-                    aboutSection
-                }
-                .scrollContentBackground(.hidden)
+            // CyberBackground sits BEHIND the Form via `.background` so the
+            // gradient extends edge-to-edge (`.ignoresSafeArea()` inside
+            // CyberBackground), but the Form itself respects the safe area
+            // so the first row ("主题") is no longer hidden behind the
+            // navigation bar.
+            Form {
+                themeSection
+                languageSection
+                syncSection
+                recentlyDeletedSection
+                aboutSection
             }
-            .ignoresSafeArea(edges: .top)
+            .scrollContentBackground(.hidden)
+            .background {
+                CyberBackground().ignoresSafeArea()
+            }
             .navigationTitle(L("Settings", "设置"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarColorScheme(.dark, for: .navigationBar)
@@ -111,40 +114,10 @@ struct SettingsScreen: View {
         .listRowBackground(Color.primary.opacity(0.05))
     }
 
-    private var voiceSection: some View {
-        Section {
-            Picker(selection: $voice.provider) {
-                ForEach(IOSVoiceSettings.Provider.allCases) { p in
-                    Text(p.displayName).tag(p)
-                }
-            } label: {
-                Text(L("Send to", "发送给"))
-                    .foregroundStyle(.primary)
-            }
-            Picker(selection: $voice.language) {
-                ForEach(IOSVoiceSettings.VoiceLanguage.allCases) { l in
-                    Text(l.displayName).tag(l)
-                }
-            } label: {
-                Text(L("Language", "识别语言"))
-                    .foregroundStyle(.primary)
-            }
-            Toggle(isOn: $voice.copyToClipboard) {
-                Text(L("Copy transcript to clipboard",
-                       "复制转写文字到剪贴板"))
-                    .foregroundStyle(.primary)
-            }
-        } header: {
-            Text(L("Voice", "语音"))
-                .foregroundStyle(.primary.opacity(0.7))
-        } footer: {
-            Text(L(
-                "On iOS, tap the dictate button on the Today tab. Doris transcribes locally with Apple Speech and (depending on the provider) opens the target app or its website with the text.",
-                "在 iOS 上,点击「今日」页的口述按钮。Doris 用 Apple Speech 本地转写后,根据所选的目标 App 直接打开或跳转到对应网页。"
-            ))
-            .foregroundStyle(.primary.opacity(0.5))
-        }
-        .listRowBackground(Color.primary.opacity(0.05))
+    /// Recently Deleted — shows archived notes so the user can restore or
+    /// permanently delete them. SyncTimer auto-purges after 30 days.
+    private var recentlyDeletedSection: some View {
+        IOSRecentlyDeletedSection()
     }
 
     private var aboutSection: some View {
@@ -165,9 +138,7 @@ struct SettingsScreen: View {
     }
 }
 
-/// "Sync Now" row — button + live last-synced timestamp. Mirrors the
-/// Mac Settings Sync tab. Wraps in a separate struct so the second-tick
-/// timer doesn't churn the parent's body.
+/// "Sync Now" row — button + live last-synced timestamp + error display.
 private struct IOSSyncNowRow: View {
     @ObservedObject private var sync = SyncSettings.shared
     @State private var isSyncing: Bool = false
@@ -175,30 +146,44 @@ private struct IOSSyncNowRow: View {
     private let tickTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        HStack {
-            Button {
-                tap()
-            } label: {
-                HStack(spacing: 8) {
-                    if isSyncing {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                            .foregroundStyle(CyberPalette.neonCyan)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Button {
+                    tap()
+                } label: {
+                    HStack(spacing: 8) {
+                        if isSyncing {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .foregroundStyle(CyberPalette.neonCyan)
+                        }
+                        Text(isSyncing
+                             ? L("Syncing…", "同步中…")
+                             : L("Sync Now", "立即同步"))
+                            .foregroundStyle(.primary)
                     }
-                    Text(isSyncing
-                         ? L("Syncing…", "同步中…")
-                         : L("Sync Now", "立即同步"))
-                        .foregroundStyle(.primary)
+                }
+                .buttonStyle(.plain)
+                .disabled(isSyncing)
+                Spacer()
+                Text(lastSyncedLabel)
+                    .font(.caption)
+                    .foregroundStyle(.primary.opacity(0.55))
+                    .monospacedDigit()
+            }
+            // Error row — only shown when there's an active sync error
+            if let err = sync.lastSyncError {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                    Text(err)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .lineLimit(2)
                 }
             }
-            .buttonStyle(.plain)
-            .disabled(isSyncing)
-            Spacer()
-            Text(lastSyncedLabel)
-                .font(.caption)
-                .foregroundStyle(.primary.opacity(0.55))
-                .monospacedDigit()
         }
         .onReceive(tickTimer) { nowTick = $0 }
     }
@@ -207,7 +192,7 @@ private struct IOSSyncNowRow: View {
         guard let last = sync.lastSyncedAt else {
             return L("Never synced", "尚未同步")
         }
-        _ = nowTick // dependency
+        _ = nowTick
         let f = RelativeDateTimeFormatter()
         f.unitsStyle = .short
         return f.localizedString(for: last, relativeTo: Date())
@@ -219,5 +204,76 @@ private struct IOSSyncNowRow: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
             isSyncing = false
         }
+    }
+}
+
+/// Recently Deleted section — lists archived notes with Restore + hard-delete.
+/// Isolated struct so its @Query doesn't churn the parent Settings body.
+private struct IOSRecentlyDeletedSection: View {
+    @Environment(\.modelContext) private var ctx
+
+    @Query(
+        filter: #Predicate<Note> { note in note.archived },
+        sort: [SortDescriptor(\Note.updatedAt, order: .reverse)]
+    )
+    private var archived: [Note]
+
+    var body: some View {
+        Section {
+            if archived.isEmpty {
+                Text(L("No recently deleted notes.", "没有最近删除的笔记。"))
+                    .font(.caption)
+                    .foregroundStyle(.primary.opacity(0.5))
+            } else {
+                ForEach(archived) { note in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(note.title.isEmpty
+                                 ? L("Untitled", "无标题")
+                                 : note.title)
+                                .font(.subheadline)
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                            Text(note.updatedAt, style: .relative)
+                                .font(.caption2)
+                                .foregroundStyle(.primary.opacity(0.5))
+                        }
+                        Spacer()
+                        Button(L("Restore", "恢复")) {
+                            note.archived = false
+                            note.touch()
+                            try? ctx.save()
+                        }
+                        .font(.caption)
+                        .foregroundStyle(CyberPalette.neonCyan)
+                        .buttonStyle(.plain)
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            ctx.delete(note)
+                            try? ctx.save()
+                        } label: {
+                            Label(L("Delete Forever", "永久删除"), systemImage: "trash")
+                        }
+                    }
+                }
+                Button(role: .destructive) {
+                    for note in archived { ctx.delete(note) }
+                    try? ctx.save()
+                } label: {
+                    Text(L("Delete All (\(archived.count))",
+                           "全部删除 (\(archived.count))"))
+                        .foregroundStyle(.red)
+                }
+            }
+        } header: {
+            Text(L("Recently Deleted", "最近删除"))
+                .foregroundStyle(.primary.opacity(0.7))
+        } footer: {
+            Text(L("Notes are permanently deleted after 30 days.",
+                   "笔记将在 30 天后自动永久删除。"))
+                .foregroundStyle(.primary.opacity(0.5))
+        }
+        .listRowBackground(Color.primary.opacity(0.05))
     }
 }

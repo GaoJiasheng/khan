@@ -25,11 +25,16 @@ public struct ChecklistEditorView: View {
                         .toggleStyle(.switch)
                         #endif
                         .labelsHidden()
+                        .onChange(of: item.done) { _, _ in item.touch() }
                     TextField("", text: Bindable(wrappedValue: item).text)
                         .textFieldStyle(.plain)
                         .strikethrough(item.done, color: .secondary)
+                        .onChange(of: item.text) { _, _ in item.touch() }
                     Spacer()
                     Button(role: .destructive) {
+                        // Bubble the delete to the parent note so updatedAt
+                        // reflects the structural change before we remove the item.
+                        note.touch()
                         modelContext.delete(item)
                     } label: {
                         Image(systemName: "minus.circle")
@@ -60,7 +65,7 @@ public struct ChecklistEditorView: View {
         var updated = existing
         updated.append(item)
         note.checklistItems = updated
-        note.updatedAt = Date()
+        note.touch()
         newItem = ""
     }
 }

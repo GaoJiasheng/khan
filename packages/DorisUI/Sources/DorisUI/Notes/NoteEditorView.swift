@@ -40,8 +40,7 @@ public struct NoteEditorView: View {
             .font(.caption)
         }
         .padding(16)
-        .onChange(of: note.bodyMarkdown) { _, _ in
-            note.updatedAt = Date()
-        }
+        .onChange(of: note.bodyMarkdown) { _, _ in note.touch() }
+        .onChange(of: note.title)        { _, _ in note.touch() }
     }
 }

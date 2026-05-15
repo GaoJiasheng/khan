@@ -2,10 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>BGTaskSchedulerPermittedIdentifiers</key>
-	<array>
-		<string>com.gavin.doris.refresh</string>
-	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -22,36 +18,20 @@
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>com.gavin.doris.url</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>doris</string>
-			</array>
-		</dict>
-	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
-	<key>LSApplicationQueriesSchemes</key>
+	<key>UILaunchScreen</key>
+	<dict/>
+	<key>UISupportedInterfaceOrientations</key>
 	<array>
-		<string>chatgpt</string>
-		<string>claude</string>
+		<string>UIInterfaceOrientationPortrait</string>
 	</array>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Doris listens through the microphone so you can dictate prompts to ChatGPT and other AI apps.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Doris uses Apple Speech Recognition to convert your voice to text before sending it to your chosen AI app.</string>
-	<key>UIBackgroundModes</key>
+	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
-		<string>remote-notification</string>
-		<string>processing</string>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 	</array>
-	<key>UIUserInterfaceStyle</key>
-	<string>Dark</string>
 </dict>
 </plist>
