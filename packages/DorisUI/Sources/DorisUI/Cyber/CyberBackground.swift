@@ -113,7 +113,9 @@ public struct ThemeToggleButton: View {
                 theme.toggle()
             }
         } label: {
-            Image(systemName: theme.mode.iconName)
+            // Show the icon of the mode you'd switch INTO when tapped:
+            // currently light → moon (tap to go dark), dark → sun (tap to go light).
+            Image(systemName: theme.mode.toggled.iconName)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.primary.opacity(0.75))
                 .padding(6)

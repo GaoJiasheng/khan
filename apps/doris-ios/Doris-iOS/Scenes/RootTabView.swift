@@ -2,14 +2,15 @@ import SwiftUI
 import DorisCore
 import DorisUI
 
-/// Top-level tab bar. Order: Today / Events / Notes — Today is the cyber-girl
-/// hero scene + weather + voice button (iOS counterpart of the Mac
-/// expanded panel), Events/Notes pull from the shared SwiftData store.
+/// Top-level tab bar. Order: Today / Notes / Events.
+/// Today is the agenda hero (weather + pinned + calendar). Notes is the
+/// primary writing surface, kept adjacent to Today since users move
+/// between them most often. Events is the inbox of cross-device pings.
 struct RootTabView: View {
     @ObservedObject private var lang = LanguageSettings.shared
     @State private var selection: Tab = .today
 
-    enum Tab: Hashable { case today, events, notes }
+    enum Tab: Hashable { case today, notes, events }
 
     var body: some View {
         TabView(selection: $selection) {
@@ -19,17 +20,17 @@ struct RootTabView: View {
                 }
                 .tag(Tab.today)
 
-            EventsScreen()
-                .tabItem {
-                    Label(L("Events", "事件"), systemImage: "tray.fill")
-                }
-                .tag(Tab.events)
-
             NotesScreen()
                 .tabItem {
                     Label(L("Notes", "笔记"), systemImage: "note.text")
                 }
                 .tag(Tab.notes)
+
+            EventsScreen()
+                .tabItem {
+                    Label(L("Events", "事件"), systemImage: "tray.fill")
+                }
+                .tag(Tab.events)
         }
         .tint(CyberPalette.neonCyan)
     }

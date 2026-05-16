@@ -106,28 +106,28 @@ struct TodayScreen: View {
     // MARK: - Nav title
 
     private var navTitle: some View {
-        VStack(spacing: 1) {
+        VStack(spacing: 2) {
             Text(Date().formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
             Text("TODAY")
-                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                .foregroundStyle(CyberPalette.neonCyan.opacity(0.8))
-                .kerning(2)
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundStyle(CyberPalette.neonCyan.opacity(0.85))
+                .kerning(2.5)
         }
     }
 
     // MARK: - Section header
 
     private func sectionHeader(icon: String, title: String, tint: Color) -> some View {
-        HStack(spacing: 7) {
+        HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 11, weight: .black))
+                .font(.system(size: 13, weight: .black))
                 .foregroundStyle(tint)
             Text(title.uppercased())
-                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                .font(.system(size: 14, weight: .bold, design: .monospaced))
                 .foregroundStyle(tint)
-                .kerning(1.8)
+                .kerning(2)
             Rectangle()
                 .fill(tint.opacity(0.18))
                 .frame(height: 0.6)
@@ -139,15 +139,15 @@ struct TodayScreen: View {
     private var emptyState: some View {
         VStack(spacing: 12) {
             Image(systemName: "sparkles")
-                .font(.system(size: 38))
+                .font(.system(size: 42))
                 .foregroundStyle(CyberPalette.neonCyan.opacity(0.45))
             Text(L("All clear", "今日清净"))
-                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .font(.system(size: 19, weight: .semibold, design: .rounded))
                 .foregroundStyle(.primary.opacity(0.65))
             Text(L("Pin a note or set a due date to see it here.",
                    "置顶笔记或设定截止日期即可出现在这里。"))
-                .font(.subheadline)
-                .foregroundStyle(.primary.opacity(0.4))
+                .font(.system(size: 14))
+                .foregroundStyle(.primary.opacity(0.45))
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
@@ -244,31 +244,31 @@ private struct TodayWeatherCard: View {
                         Image(systemName: s.symbolName)
                             .symbolRenderingMode(.palette)
                             .foregroundStyle(iconPrimary(s), isDark ? Color.white.opacity(0.85) : Color(red: 0.3, green: 0.35, blue: 0.5).opacity(0.9))
-                            .font(.system(size: 38, weight: .light))
+                            .font(.system(size: 42, weight: .light))
                         Text("\(Int(s.temperatureC.rounded()))°")
                             .font(.system(size: 64, weight: .thin, design: .rounded).monospacedDigit())
                             .foregroundStyle(tempColor)
                     }
                     Text(WeatherCode.text(for: s.weatherCode))
-                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                        .font(.system(size: 17, weight: .medium, design: .rounded))
                         .foregroundStyle(conditionColor)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 6) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 5) {
                         Image(systemName: "location.fill")
-                            .font(.system(size: 10))
+                            .font(.system(size: 11))
                             .foregroundStyle(CyberPalette.neonCyan.opacity(isDark ? 0.9 : 1.0))
                         Text(s.locationName)
-                            .font(.system(size: 12, weight: .medium, design: .monospaced))
+                            .font(.system(size: 13, weight: .medium, design: .monospaced))
                             .foregroundStyle(CyberPalette.neonCyan.opacity(isDark ? 0.9 : 1.0))
                             .lineLimit(1)
                     }
                     Text(Date(), format: .dateTime.hour().minute())
-                        .font(.system(size: 11, design: .monospaced).monospacedDigit())
+                        .font(.system(size: 13, design: .monospaced).monospacedDigit())
                         .foregroundStyle(metaColor)
                     Text(s.isDay ? L("Daytime", "白天") : L("Night", "夜晚"))
-                        .font(.system(size: 11, design: .monospaced))
+                        .font(.system(size: 12, design: .monospaced))
                         .foregroundStyle(metaColor)
                 }
             }
@@ -315,15 +315,15 @@ private struct TodayWeatherCard: View {
     }
 
     private func statCell(icon: String, value: String, label: String, tint: Color) -> some View {
-        VStack(spacing: 5) {
+        VStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 15, weight: .medium))
+                .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(tint)
             Text(value)
-                .font(.system(size: 13, weight: .bold, design: .rounded).monospacedDigit())
+                .font(.system(size: 15, weight: .bold, design: .rounded).monospacedDigit())
                 .foregroundStyle(statValueColor)
             Text(label)
-                .font(.system(size: 11, design: .monospaced))
+                .font(.system(size: 12, design: .monospaced))
                 .foregroundStyle(statLabelColor)
         }
         .frame(maxWidth: .infinity)
@@ -372,18 +372,18 @@ private struct PinnedNoteCard: View {
             // Header
             HStack {
                 Image(systemName: note.isChecklist ? "checklist" : "note.text")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(CyberPalette.neonCyan)
                 Spacer()
                 Image(systemName: "pin.fill")
-                    .font(.system(size: 10))
+                    .font(.system(size: 11))
                     .foregroundStyle(CyberPalette.neonCyan.opacity(0.5))
             }
             .padding(.bottom, 10)
 
             // Title
             Text(note.title.isEmpty ? L("Untitled", "无标题") : note.title)
-                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
                 .foregroundStyle(.primary)
                 .lineLimit(3)
                 .multilineTextAlignment(.leading)
@@ -415,14 +415,14 @@ private struct PinnedNoteCard: View {
                         }
                         .frame(height: 2.5)
                         Text("\(done) / \(items.count)")
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundStyle(.primary.opacity(0.4))
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundStyle(.primary.opacity(0.45))
                     }
                 }
             } else {
                 Text(note.updatedAt, style: .relative)
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.primary.opacity(0.3))
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(.primary.opacity(0.35))
             }
         }
         .padding(14)
@@ -474,13 +474,13 @@ private struct CalendarNoteRow: View {
             // Date column
             VStack(spacing: 2) {
                 Text(due.formatted(.dateTime.day()))
-                    .font(.system(size: 26, weight: .bold, design: .rounded).monospacedDigit())
+                    .font(.system(size: 30, weight: .bold, design: .rounded).monospacedDigit())
                     .foregroundStyle(chipColor)
                 Text(due.formatted(.dateTime.month(.abbreviated)).uppercased())
-                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(chipColor.opacity(0.65))
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(chipColor.opacity(0.7))
             }
-            .frame(width: 42)
+            .frame(width: 46)
 
             // Accent bar
             RoundedRectangle(cornerRadius: 2)
@@ -496,20 +496,20 @@ private struct CalendarNoteRow: View {
             // Content
             VStack(alignment: .leading, spacing: 4) {
                 Text(note.title.isEmpty ? L("Untitled", "无标题") : note.title)
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
                 HStack(spacing: 8) {
                     Text(dueLabel)
-                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
                         .foregroundStyle(chipColor)
                     if note.isChecklist {
                         let items = note.checklistItems ?? []
                         let done = items.filter(\.done).count
                         if !items.isEmpty {
                             Text("· \(done)/\(items.count)")
-                                .font(.system(size: 11, design: .monospaced))
-                                .foregroundStyle(.primary.opacity(0.35))
+                                .font(.system(size: 12, design: .monospaced))
+                                .foregroundStyle(.primary.opacity(0.4))
                         }
                     }
                 }
