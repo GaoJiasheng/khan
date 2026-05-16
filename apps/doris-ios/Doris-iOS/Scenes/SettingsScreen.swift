@@ -3,9 +3,10 @@ import SwiftData
 import DorisCore
 import DorisUI
 
-/// iOS settings sheet — Theme, Language, Sync, About.
+/// iOS Settings tab — Theme, Language, Sync, About.
+/// Now hosted as a top-level RootTabView tab (was previously a sheet
+/// triggered from the NotesScreen toolbar gear button).
 struct SettingsScreen: View {
-    @Environment(\.dismiss) private var dismiss
     @ObservedObject private var lang = LanguageSettings.shared
     @ObservedObject private var theme = ThemeSettings.shared
     @ObservedObject private var sync = SyncSettings.shared
@@ -26,14 +27,7 @@ struct SettingsScreen: View {
             .navigationTitle(L("Settings", "设置"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarColorScheme(.dark, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(L("Done", "完成")) { dismiss() }
-                        .foregroundStyle(CyberPalette.neonCyan)
-                }
-            }
         }
-        .preferredColorScheme(theme.mode.colorScheme)
     }
 
     private var themeSection: some View {

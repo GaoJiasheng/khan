@@ -36,7 +36,6 @@ struct NotesScreen: View {
     }
 
     @State private var path = NavigationPath()
-    @State private var showSettings = false
     @State private var showArchived = false
     @State private var nowTick: Date = Date()
     @State private var searchText: String = ""
@@ -146,13 +145,7 @@ struct NotesScreen: View {
                 }
                 ToolbarItemGroup(placement: .topBarLeading) {
                     ThemeToggleButton()
-                    Button {
-                        showSettings = true
-                    } label: {
-                        Image(systemName: "gearshape.fill")
-                            .foregroundStyle(.primary.opacity(0.75))
-                    }
-                    NavigationLink(value: "today") {
+                    NavigationLink(value: "calendar") {
                         Image(systemName: "calendar")
                             .foregroundStyle(CyberPalette.neonCyan.opacity(0.85))
                     }
@@ -183,14 +176,11 @@ struct NotesScreen: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            // Today screen destination
+            // Calendar timeline destination
             .navigationDestination(for: String.self) { dest in
-                if dest == "today" {
-                    TodayScreen()
+                if dest == "calendar" {
+                    CalendarTimelineScreen()
                 }
-            }
-            .sheet(isPresented: $showSettings) {
-                SettingsScreen()
             }
             .sheet(isPresented: $showArchived) {
                 ArchivedNotesSheet()
@@ -263,9 +253,11 @@ struct NotesScreen: View {
         let accentColor: Color = hasError ? .red : CyberPalette.neonCyan
 
         return HStack(spacing: 0) {
-            // Left: sync button + status text
+            // Left: sync button + status text. On error, retry the sync —
+            // the full error detail and iCloud toggles live in the Settings
+            // tab now, just a tap away on the tab bar.
             Button {
-                hasError ? showSettings = true : AppCommands.syncNow()
+                AppCommands.syncNow()
             } label: {
                 HStack(spacing: 5) {
                     Image(systemName: hasError
