@@ -33,7 +33,7 @@ struct TodayScreen: View {
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 28) {
+                VStack(alignment: .leading, spacing: 22) {
 
                     // ── Block 1: Weather ─────────────────────────────────
                     TodayWeatherCard(vm: weather)
@@ -84,8 +84,8 @@ struct TodayScreen: View {
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 14)
-                .padding(.bottom, 36)
+                .padding(.top, 10)
+                .padding(.bottom, 32)
             }
             .scrollContentBackground(.hidden)
             .navigationBarTitleDisplayMode(.inline)
@@ -256,7 +256,7 @@ private struct TodayWeatherCard: View {
                         .foregroundStyle(conditionColor)
                 }
                 Spacer()
-                VStack(alignment: .trailing, spacing: 6) {
+                VStack(alignment: .trailing, spacing: 4) {
                     HStack(spacing: 5) {
                         Image(systemName: "location.fill")
                             .font(.system(size: 11))
@@ -269,14 +269,11 @@ private struct TodayWeatherCard: View {
                     Text(Date(), format: .dateTime.hour().minute())
                         .font(.system(size: 13, design: .monospaced).monospacedDigit())
                         .foregroundStyle(metaColor)
-                    Text(s.isDay ? L("Daytime", "白天") : L("Night", "夜晚"))
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundStyle(metaColor)
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 20)
-            .padding(.bottom, 14)
+            .padding(.top, 14)
+            .padding(.bottom, 8)
 
             // Gradient divider
             LinearGradient(
@@ -311,13 +308,13 @@ private struct TodayWeatherCard: View {
                 )
             }
             .padding(.horizontal, 12)
-            .padding(.top, 12)
-            .padding(.bottom, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 12)
         }
     }
 
     private func statCell(icon: String, value: String, label: String, tint: Color) -> some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 4) {
             Image(systemName: icon)
                 .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(tint)
