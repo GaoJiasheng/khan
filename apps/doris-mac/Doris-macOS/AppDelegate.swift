@@ -17,6 +17,13 @@ final class DorisAppDelegate: NSObject, NSApplicationDelegate {
     private var outboxPublisher: OutboxPublisher?
     private var silentPushHandler: SilentPushHandler?
     private var voiceController: VoiceController?
+    /// App-wide local monitor for Cmd-+ / Cmd-− / Cmd-0. Lives here
+    /// instead of on a specific window controller so the shortcut
+    /// works in both the main window AND the dropdown popup — local
+    /// monitors only fire when our app is active anyway, so we don't
+    /// need a per-window gate (and the previous per-window gate is
+    /// exactly what kept the popup from honoring the shortcut).
+    private var zoomKeyMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // When launched directly (not via launchd / `open`) the process is a background
@@ -112,6 +119,8 @@ final class DorisAppDelegate: NSObject, NSApplicationDelegate {
             self.voiceController = VoiceController()
             self.voiceController?.start()
 
+            self.installZoomKeyMonitor()
+
             if cloudKitOn {
                 Task.detached {
                     do {
@@ -120,6 +129,45 @@ final class DorisAppDelegate: NSObject, NSApplicationDelegate {
                         DorisLog.sync.error("CloudKit bootstrap failed: \(String(describing: error), privacy: .public)")
                     }
                 }
+            }
+        }
+    }
+
+    /// Register a local NSEvent monitor for Cmd-+ / Cmd-− / Cmd-0.
+    /// Local monitors only fire while one of *our* windows is the
+    /// key window, which exactly matches "user wants to zoom Doris
+    /// content" — no per-window gating needed.
+    ///
+    /// Matched by physical `keyCode` (not characters) because the
+    /// latter goes through the active keyboard layout / input
+    /// source. Under a Chinese IME or a remapper (Karabiner,
+    /// Hammerspoon), the same physical key can return a swapped
+    /// or substituted character. Physical keyCodes ignore that
+    /// layer.
+    ///
+    /// Returning `nil` from the closure swallows the event so the
+    /// system doesn't beep; returning the event passes it through.
+    private func installZoomKeyMonitor() {
+        guard zoomKeyMonitor == nil else { return }
+        zoomKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            guard event.modifierFlags.contains(.command) else { return event }
+            // US ANSI Mac keyCodes:
+            //   24 = `=` / `+` (top row, right of `0`)
+            //   27 = `-` / `_`
+            //   29 = `0`
+            //   69 / 78 / 82 = numpad +/−/0
+            switch event.keyCode {
+            case 24, 69:
+                ZoomSettings.shared.zoomIn()
+                return nil
+            case 27, 78:
+                ZoomSettings.shared.zoomOut()
+                return nil
+            case 29, 82:
+                ZoomSettings.shared.reset()
+                return nil
+            default:
+                return event
             }
         }
     }
