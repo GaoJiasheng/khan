@@ -4,6 +4,6 @@ import SwiftUI
 @main
 struct DorisWidgetBundle: WidgetBundle {
     var body: some Widget {
-        InboxWidget()
+        EventsWidget()
     }
 }

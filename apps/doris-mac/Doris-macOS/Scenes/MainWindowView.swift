@@ -13,14 +13,29 @@ import DorisUI
 /// was retired since it never had functional content.
 struct MainWindowView: View {
     @ObservedObject private var lang = LanguageSettings.shared
-    @State private var tab: Tab = .inbox
+    /// Observed here (not just at the controller's view construction)
+    /// so flipping the theme via the toolbar / Settings triggers a
+    /// SwiftUI re-evaluation. Without this binding the window kept
+    /// whatever colorScheme was captured at first mount.
+    @ObservedObject private var theme = ThemeSettings.shared
+    @State private var tab: Tab = .events
+    /// Lifted up from `MainNotesList` so the detail header (DORIS
+    /// brand + tab buttons) can hide while editing — the editor gets
+    /// the entire detail pane.
+    @State private var editingNote: Note?
+    /// Two-way bound so we can react to "sidebar collapsed" — when the
+    /// avatar pane is hidden, the detail pane fills the window and
+    /// the system draws traffic lights + sidebar-toggle inline at the
+    /// detail's leading edge. The detail header needs to reserve room
+    /// for those, otherwise the DORIS / tabs strip slides under them.
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
-    enum Tab: Hashable { case inbox, notes }
+    enum Tab: Hashable { case events, notes }
 
     var body: some View {
         ZStack {
             CyberBackground(haloIntensity: 0.7)
-            NavigationSplitView {
+            NavigationSplitView(columnVisibility: $columnVisibility) {
                 sidebar
             } detail: {
                 detail
@@ -29,18 +44,32 @@ struct MainWindowView: View {
             .scrollContentBackground(.hidden)
         }
         .frame(minWidth: 760, minHeight: 520)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                SyncNowToolbarButton()
-            }
-            ToolbarItem(placement: .primaryAction) {
-                ThemeToggleButton()
-            }
-        }
+        .preferredColorScheme(theme.mode.colorScheme)
+        // Zoom is applied at the *window* level only — see
+        // `MainWindowController.applyZoomIfNeeded` — not via a SwiftUI
+        // `scaleEffect`. Earlier we used `.dorisZoom()` here, but the
+        // GeometryReader it relies on broke `NavigationSplitView`'s
+        // hit-test routing: every button at the top of the detail
+        // header (TODO / Events / sync / theme toggle) stopped
+        // registering clicks. Browser-style content scaling didn't
+        // fit the macOS native NavigationSplitView surface; we settle
+        // for window-grow zoom (text stays at native size, window
+        // gets bigger / smaller).
+        //
+        // Keyboard shortcuts (Cmd-+ / Cmd-− / Cmd-0) are registered
+        // by `MainWindowController` via `NSEvent.addLocalMonitorForEvents`,
+        // not by hidden SwiftUI Buttons — same hit-test reason.
     }
 
     // MARK: - Sidebar
 
+    /// Sidebar is the avatar hero on the deep-space gradient. The
+    /// background gradient still extends to the top edge of the window
+    /// (under the transparent title bar) so the traffic-light buttons
+    /// float over solid dark space — but the AvatarHero CONTENT itself
+    /// respects the title-bar safe area, so the character + weather
+    /// pill start a comfortable distance below the buttons instead of
+    /// colliding with them.
     private var sidebar: some View {
         AvatarHero(compact: true, showWeather: true, selfChrome: false)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -90,20 +119,32 @@ struct MainWindowView: View {
 
     private var detail: some View {
         VStack(spacing: 0) {
-            detailHeader
-            Divider()
-                .overlay(Color.primary.opacity(0.08))
+            // Hide the brand-and-tab strip while a note is being edited
+            // — the inline editor expands to fill the detail pane.
+            if editingNote == nil {
+                detailHeader
+                Divider()
+                    .overlay(Color.primary.opacity(0.08))
+            }
             Group {
                 switch tab {
-                case .inbox: MainInboxList()
-                case .notes: MainNotesList()
+                case .events: MainEventsList()
+                case .notes:  MainNotesList(editing: $editingNote)
                 }
             }
             .scrollContentBackground(.hidden)
         }
+        // Push content under the transparent title bar so the nav strip
+        // (DORIS / tabs / sync / theme) sits at the very top of the
+        // window. The traffic lights live over the dark sidebar on the
+        // left, not over this pane.
+        .ignoresSafeArea(edges: .top)
     }
 
-    /// Right-pane header: DORIS brand on the left, tab buttons next to it.
+    /// Right-pane header: DORIS brand on the left, tab buttons next to
+    /// it, and the sync + theme actions tucked on the trailing edge.
+    /// We pulled those two off the window toolbar so the title bar
+    /// stays minimal and the whole "navigation strip" reads as one row.
     private var detailHeader: some View {
         HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: 0) {
@@ -122,16 +163,41 @@ struct MainWindowView: View {
             }
 
             HStack(spacing: 6) {
-                tabButton(.inbox, label: L("Inbox", "收件箱"), system: "tray.fill")
-                tabButton(.notes, label: L("Notes", "笔记"), system: "note.text")
+                tabButton(.notes, label: L("TODO", "TODO"), system: "checklist")
+                tabButton(.events, label: L("Events", "事件"), system: "tray.fill")
             }
 
             Spacer()
+
+            HStack(spacing: 8) {
+                SyncNowToolbarButton()
+                ThemeToggleButton()
+            }
         }
-        .padding(.horizontal, 18)
+        // Leading padding reserves space for the traffic lights
+        // (~78pt) + the sidebar-toggle button (which sits inset
+        // further than expected — measured ~160pt total clearance
+        // before content starts) when the sidebar is collapsed;
+        // otherwise just the standard 18pt gutter (the avatar
+        // sidebar covers that strip on its own).
+        //
+        // Match NavigationSplitView's faster non-bouncy spring with a
+        // short `.smooth` so the padding finishes shrinking before
+        // the sidebar finishes sliding in. With a longer duration
+        // (0.3s) the header trailed the sidebar visibly on expand —
+        // a "sticky" feel where content seemed to drift in late.
+        // 0.18s lands just before NavigationSplitView's slide
+        // settles, so by the time you can read the header it's
+        // already at its final position.
+        .padding(.leading, columnVisibility == .detailOnly ? 160 : 18)
+        .padding(.trailing, 18)
         .padding(.vertical, 14)
+        .animation(.smooth(duration: 0.18), value: columnVisibility)
     }
 
+    /// Capsule-style tab button. Selected = cyan-accented, unselected =
+    /// dim primary. Same vocabulary as the dropdown panel's tab row so
+    /// the two surfaces feel like one product.
     private func tabButton(_ value: Tab, label: String, system: String) -> some View {
         let isSelected = tab == value
         return Button {
@@ -159,20 +225,26 @@ struct MainWindowView: View {
                 Capsule()
                     .stroke(isSelected ? CyberPalette.neonCyan.opacity(0.45) : Color.clear, lineWidth: 0.6)
             )
+            // Force the whole padded capsule to be hit-testable. Without
+            // this, the unselected tab's `Color.clear` background means
+            // SwiftUI only counts clicks that land on the text/icon
+            // glyphs themselves — users had to aim precisely at the
+            // letters and felt the tab "didn't respond" most of the time.
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
     }
 }
 
-// MARK: - Inbox
+// MARK: - Events
 
-private struct MainInboxList: View {
+private struct MainEventsList: View {
     @ObservedObject private var lang = LanguageSettings.shared
     @Query(sort: [SortDescriptor(\Message.receivedAt, order: .reverse)])
     private var messages: [Message]
 
     var body: some View {
-        let active = messages.filter { $0.state == .inbox }
+        let active = messages.filter { $0.state == .active }
         ScrollView {
             VStack(spacing: 8) {
                 if active.isEmpty {
@@ -180,7 +252,7 @@ private struct MainInboxList: View {
                         .padding(.top, 80)
                 } else {
                     ForEach(active) { m in
-                        InboxRow(message: m)
+                        EventRow(message: m)
                     }
                 }
             }
@@ -190,14 +262,14 @@ private struct MainInboxList: View {
 
     private var emptyState: some View {
         VStack(spacing: 6) {
-            Image(systemName: "tray")
+            Image(systemName: "bell.slash")
                 .font(.system(size: 36))
                 .foregroundStyle(.primary.opacity(0.4))
-            Text(L("No new messages", "暂无新消息"))
+            Text(L("No events yet", "暂无事件"))
                 .font(.headline)
                 .foregroundStyle(.primary.opacity(0.7))
-            Text(L("CLI pushes, share extension drops, and cross-device messages will land here.",
-                   "CLI 通知、Share 扩展、跨设备推送都会出现在这里。"))
+            Text(L("CLI pushes, share extension drops, and cross-device events will land here.",
+                   "CLI 通知、Share 扩展、跨设备事件都会出现在这里。"))
                 .font(.caption)
                 .foregroundStyle(.primary.opacity(0.5))
                 .multilineTextAlignment(.center)
@@ -205,35 +277,72 @@ private struct MainInboxList: View {
     }
 }
 
-private struct InboxRow: View {
+private struct EventRow: View {
     let message: Message
 
     var body: some View {
+        let levelTint = EventLevelStyle.color(for: message.level)
         CyberCard {
             HStack(alignment: .top, spacing: 12) {
+                // Severity stripe — full for critical/reminder, dimmed
+                // for info via the shared `intensity(for:)` helper so
+                // info events stay quietly in the background.
+                RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+                    .fill(levelTint)
+                    .frame(width: 3)
+                    .opacity(EventLevelStyle.intensity(for: message.level))
+
                 Image(systemName: message.iconName ?? message.source.sfSymbol)
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(CyberPalette.neonCyan)
+                    .foregroundStyle(levelTint.opacity(EventLevelStyle.intensity(for: message.level)))
                     .frame(width: 22)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(message.title)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                        .lineLimit(2)
+                    HStack(spacing: 6) {
+                        Text(message.title)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                            .lineLimit(2)
+                        if message.level != .info {
+                            levelBadge(for: message.level, tint: levelTint)
+                        }
+                    }
                     if let body = message.bodyMarkdown, !body.isEmpty {
                         Text(body)
                             .font(.subheadline)
                             .foregroundStyle(.primary.opacity(0.7))
                             .lineLimit(3)
                     }
-                    Text(message.receivedAt, style: .relative)
-                        .font(.caption2)
-                        .foregroundStyle(.primary.opacity(0.45))
+                    HStack(spacing: 6) {
+                        Text(message.source.displayName)
+                            .font(.caption2)
+                            .foregroundStyle(.primary.opacity(0.55))
+                        Text("·")
+                            .foregroundStyle(.primary.opacity(0.4))
+                        Text(message.receivedAt, style: .relative)
+                            .font(.caption2)
+                            .foregroundStyle(.primary.opacity(0.45))
+                    }
                 }
                 Spacer(minLength: 0)
             }
             .padding(14)
         }
+    }
+
+    @ViewBuilder
+    private func levelBadge(for level: EventLevel, tint: Color) -> some View {
+        HStack(spacing: 3) {
+            Image(systemName: level.sfSymbol)
+                .font(.system(size: 9, weight: .semibold))
+            Text(level.displayName.uppercased())
+                .font(.system(size: 9, weight: .heavy, design: .rounded))
+                .kerning(0.5)
+        }
+        .foregroundStyle(tint)
+        .padding(.horizontal, 5)
+        .padding(.vertical, 2)
+        .background(Capsule().fill(tint.opacity(0.15)))
+        .overlay(Capsule().stroke(tint.opacity(0.45), lineWidth: 0.5))
     }
 }
 
@@ -242,32 +351,63 @@ private struct InboxRow: View {
 private struct MainNotesList: View {
     @ObservedObject private var lang = LanguageSettings.shared
     @Environment(\.modelContext) private var ctx
-
-    @Query(
-        filter: #Predicate<Note> { note in !note.archived },
-        sort: [SortDescriptor(\Note.updatedAt, order: .reverse)]
-    )
+    @Query(sort: [SortDescriptor(\Note.updatedAt, order: .reverse)])
     private var notes: [Note]
 
-    /// Pin-first ordering: SwiftData's @Query can't sort by Bool keyPaths,
-    /// so we sort client-side (pinned notes first, then by updatedAt desc).
+    @Binding var editing: Note?
+    @FocusState private var focusedNoteID: UUID?
+    @State private var filter: TodoFilter = .active
+    @State private var confirmingEmptyTrash = false
+
+    /// Three-partition filter: trash > archived > active. Each row sits
+    /// in exactly one. Sort key flips by view: trash by deletedAt,
+    /// archived by archivedAt, active by pin/done/createdAt.
     private var sortedNotes: [Note] {
-        notes.sorted { a, b in
-            if a.pinned != b.pinned { return a.pinned }
-            return a.updatedAt > b.updatedAt
+        let filtered = notes.filter { n in
+            switch filter {
+            case .trash:    return n.deleted
+            case .archived: return !n.deleted && n.archived
+            case .active:   return !n.deleted && !n.archived
+            }
+        }
+        switch filter {
+        case .trash:
+            return filtered.sorted { ($0.deletedAt ?? .distantPast) > ($1.deletedAt ?? .distantPast) }
+        case .archived:
+            return filtered.sorted { ($0.archivedAt ?? .distantPast) > ($1.archivedAt ?? .distantPast) }
+        case .active:
+            return filtered.sorted { lhs, rhs in
+                if lhs.pinned != rhs.pinned { return lhs.pinned && !rhs.pinned }
+                if lhs.done != rhs.done     { return !lhs.done && rhs.done }
+                if lhs.order != rhs.order   { return lhs.order < rhs.order }
+                return lhs.createdAt < rhs.createdAt
+            }
         }
     }
 
-    @State private var editing: Note?
-    @State private var searchText: String = ""
-
-    private var filteredNotes: [Note] {
-        guard !searchText.isEmpty else { return sortedNotes }
-        let q = searchText.lowercased()
-        return sortedNotes.filter {
-            $0.title.lowercased().contains(q) ||
-            $0.bodyMarkdown.lowercased().contains(q)
+    /// Reorder: place `draggedID` right before `targetID`. Renumbers
+    /// every visible row's `order` field — bulletproof against the
+    /// "averaging two equal orders" collision when most rows still
+    /// have legacy order = 0.
+    private func moveDraggedBefore(_ targetID: UUID, dragged draggedID: UUID) {
+        let visible = sortedNotes
+        guard visible.contains(where: { $0.id == targetID }),
+              let dragged = visible.first(where: { $0.id == draggedID }) else { return }
+        var reordered = visible.filter { $0.id != draggedID }
+        let insertIdx = reordered.firstIndex(where: { $0.id == targetID }) ?? 0
+        reordered.insert(dragged, at: insertIdx)
+        for (i, n) in reordered.enumerated() {
+            n.order = Double(i)
         }
+        dragged.updatedAt = Date()
+        try? ctx.save()
+    }
+
+    private var doneActiveCount: Int {
+        notes.filter { !$0.deleted && !$0.archived && $0.done }.count
+    }
+    private var trashCount: Int {
+        notes.filter { $0.deleted }.count
     }
 
     var body: some View {
@@ -284,169 +424,241 @@ private struct MainNotesList: View {
 
     private var listBody: some View {
         VStack(spacing: 0) {
-            // Search bar
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.primary.opacity(0.4))
-                TextField(L("Search notes…", "搜索笔记…"), text: $searchText)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 13))
-                if !searchText.isEmpty {
-                    Button {
-                        searchText = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.primary.opacity(0.4))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(.primary.opacity(0.06))
-            )
-            .padding(.horizontal, 20)
-            .padding(.top, 12)
-            .padding(.bottom, 8)
-
+            filterBar
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 4)
             ScrollView {
-                VStack(spacing: 8) {
-                    HStack {
-                        Spacer()
-                        Button {
-                            let n = Note(title: L("New note", "新笔记"))
-                            ctx.insert(n)
-                            try? ctx.save()
-                            editing = n
-                        } label: {
-                            Label(L("New", "新建"), systemImage: "plus.circle.fill")
-                                .foregroundStyle(CyberPalette.neonPink)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    if filteredNotes.isEmpty {
-                        emptyState.padding(.top, 80)
+                // spacing: 0 — adjacent rows touch, no dead non-clickable
+                // strip between them. The row's own internal vertical
+                // padding (bumped slightly) gives a comfortable click
+                // target while keeping the list visually dense.
+                VStack(spacing: 0) {
+                    if sortedNotes.isEmpty {
+                        emptyState.padding(.top, 60)
                     } else {
-                        ForEach(filteredNotes) { n in
-                            Button {
-                                editing = n
-                            } label: {
-                                MacNoteRow(note: n)
-                            }
-                            .buttonStyle(.plain)
-                            .contextMenu {
-                                Button {
-                                    n.pinned.toggle()
-                                    n.touch()
-                                    try? ctx.save()
-                                } label: {
-                                    Label(
-                                        n.pinned ? L("Unpin", "取消置顶") : L("Pin", "置顶"),
-                                        systemImage: n.pinned ? "pin.slash" : "pin.fill"
-                                    )
+                        ForEach(sortedNotes) { n in
+                            TodoRow(
+                                note: n,
+                                focused: $focusedNoteID,
+                                onSubmit: { addNoteAfter(n) },
+                                onExpand: { editing = n },
+                                onDropBefore: { dragged in
+                                    moveDraggedBefore(n.id, dragged: dragged)
                                 }
-                                Divider()
-                                Button(role: .destructive) {
-                                    n.archive()
-                                    try? ctx.save()
-                                } label: {
-                                    Label(L("Archive", "归档"), systemImage: "archivebox")
-                                }
-                            }
+                            )
                         }
+                    }
+                    if filter == .active {
+                        addQuickButton.padding(.top, 12)
                     }
                 }
-                .padding(20)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
+        }
+    }
+
+    private var filterBar: some View {
+        HStack(spacing: 6) {
+            filterChip(.active,   label: L("Active",   "未归档"), icon: "checklist")
+            filterChip(.archived, label: L("Archived", "已归档"), icon: "archivebox")
+            filterChip(.trash,    label: L("Trash",    "回收站"), icon: "trash")
+            Spacer()
+            bulkAction
+        }
+        .alert(L("Empty trash?", "清空回收站?"),
+               isPresented: $confirmingEmptyTrash) {
+            Button(L("Empty (\(trashCount))", "清空 (\(trashCount))"), role: .destructive) {
+                emptyTrash()
+            }
+            Button(L("Cancel", "取消"), role: .cancel) {}
+        } message: {
+            Text(L("Items in the trash will be permanently deleted and can't be recovered.",
+                   "回收站中的任务将被彻底删除,无法恢复。"))
+        }
+    }
+
+    @ViewBuilder
+    private var bulkAction: some View {
+        if filter == .active && doneActiveCount > 0 {
+            bulkButton(
+                icon: "tray.full",
+                label: L("Archive done (\(doneActiveCount))",
+                         "归档已完成 (\(doneActiveCount))"),
+                tint: CyberPalette.neonCyan,
+                help: L("Move all completed tasks to archive",
+                        "把所有已完成任务移到归档")
+            ) { archiveAllDone() }
+        } else if filter == .trash && trashCount > 0 {
+            bulkButton(
+                icon: "trash.slash",
+                label: L("Empty (\(trashCount))", "清空 (\(trashCount))"),
+                tint: CyberPalette.neonPink,
+                help: L("Permanently delete every item in trash",
+                        "彻底删除回收站中所有任务")
+            ) { confirmingEmptyTrash = true }
+        }
+    }
+
+    private func bulkButton(icon: String, label: String, tint: Color, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 10, weight: .semibold))
+                Text(label)
+                    .font(.caption.weight(.medium))
+            }
+            .foregroundStyle(tint)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(Capsule().fill(tint.opacity(0.10)))
+            .overlay(Capsule().stroke(tint.opacity(0.4), lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+        .help(help)
+    }
+
+    private func filterChip(_ value: TodoFilter, label: String, icon: String) -> some View {
+        let selected = (filter == value)
+        return Button { filter = value } label: {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 10, weight: .semibold))
+                Text(label)
+                    .font(.caption.weight(selected ? .semibold : .regular))
+            }
+            .foregroundStyle(selected
+                             ? Color.primary
+                             : Color.primary.opacity(0.55))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(
+                Capsule().fill(selected
+                               ? Color.primary.opacity(0.10)
+                               : Color.clear)
+            )
+            .overlay(
+                Capsule().stroke(selected
+                                 ? Color.primary.opacity(0.20)
+                                 : Color.primary.opacity(0.10),
+                                 lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Bulk archive: stamps every active+done note as archived in one
+    /// pass. Morning routine: yesterday's done items disappear with one
+    /// click; undone ones stay rolled over to today.
+    private func archiveAllDone() {
+        let now = Date()
+        for n in notes where !n.deleted && !n.archived && n.done {
+            n.archived = true
+            n.archivedAt = now
+            n.updatedAt = now
+        }
+        try? ctx.save()
+    }
+
+    private func emptyTrash() {
+        for n in notes where n.deleted {
+            ctx.delete(n)
+        }
+        try? ctx.save()
+    }
+
+    private var addQuickButton: some View {
+        HStack {
+            Button {
+                addNoteAfter(nil)
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 10, weight: .bold))
+                    Text(L("Add task", "新增任务"))
+                        .font(.caption2.weight(.medium))
+                }
+                .foregroundStyle(CyberPalette.neonCyan)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule().fill(CyberPalette.neonCyan.opacity(0.10))
+                )
+                .overlay(
+                    Capsule().stroke(CyberPalette.neonCyan.opacity(0.35), lineWidth: 0.6)
+                )
+            }
+            .buttonStyle(.plain)
+            Spacer()
+        }
+    }
+
+    /// Insert an empty TODO at the right position:
+    ///   - `previous` non-nil → right AFTER `previous` (Enter on a row).
+    ///     `createdAt` is bumped 1ms past the previous row so the
+    ///     `createdAt ASC` sort lands the new row in the next slot.
+    ///   - `previous` nil → at the very BOTTOM of the list (button click).
+    ///     `createdAt` jumps past every existing row.
+    private func addNoteAfter(_ previous: Note?) {
+        let n = Note(title: "")
+        let stamp: Date
+        if let previous {
+            stamp = previous.createdAt.addingTimeInterval(0.001)
+        } else {
+            let maxCreated = notes.map(\.createdAt).max() ?? Date()
+            stamp = maxCreated.addingTimeInterval(1)
+        }
+        n.createdAt = stamp
+        n.updatedAt = stamp
+        ctx.insert(n)
+        try? ctx.save()
+        DispatchQueue.main.async {
+            focusedNoteID = n.id
         }
     }
 
     private var emptyState: some View {
         VStack(spacing: 6) {
-            Image(systemName: searchText.isEmpty ? "note.text" : "magnifyingglass")
+            Image(systemName: emptyIcon)
                 .font(.system(size: 36))
                 .foregroundStyle(.primary.opacity(0.4))
-            Text(searchText.isEmpty
-                 ? L("No notes yet", "暂无笔记")
-                 : L("No results", "无搜索结果"))
+            Text(emptyTitle)
                 .font(.headline)
                 .foregroundStyle(.primary.opacity(0.7))
-            if searchText.isEmpty {
-                Text(L("Click + to start one.", "点击 + 新建一条。"))
-                    .font(.caption)
-                    .foregroundStyle(.primary.opacity(0.5))
-            }
-        }
-    }
-}
-
-private struct MacNoteRow: View {
-    let note: Note
-
-    var body: some View {
-        CyberCard {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: note.isChecklist ? "checklist" : "note.text")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(CyberPalette.neonPink.opacity(0.85))
-                    .frame(width: 22)
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
-                        if note.pinned {
-                            Image(systemName: "pin.fill")
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(CyberPalette.neonCyan)
-                        }
-                        Text(note.title.isEmpty ? L("Untitled", "无标题") : note.title)
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
-                    }
-                    if note.isChecklist {
-                        let items = note.checklistItems ?? []
-                        let done = items.filter(\.done).count
-                        if !items.isEmpty {
-                            Text("\(done) / \(items.count)")
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(.primary.opacity(0.55))
-                        }
-                    } else if !note.bodyMarkdown.isEmpty {
-                        Text(note.bodyMarkdown)
-                            .font(.subheadline)
-                            .foregroundStyle(.primary.opacity(0.65))
-                            .lineLimit(3)
-                    }
-                    HStack(spacing: 6) {
-                        Text(note.updatedAt, style: .relative)
-                            .font(.caption2)
-                            .foregroundStyle(.primary.opacity(0.45))
-                        if let due = note.dueDate {
-                            dueDateChip(due)
-                        }
-                    }
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(14)
+            Text(emptyHint)
+                .font(.caption)
+                .foregroundStyle(.primary.opacity(0.5))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
         }
     }
 
-    private func dueDateChip(_ due: Date) -> some View {
-        let cal = Calendar.current
-        let color: Color = due < Date() ? .red : cal.isDateInToday(due) ? .yellow : CyberPalette.neonCyan
-        return HStack(spacing: 3) {
-            Image(systemName: "calendar")
-                .font(.system(size: 8))
-            Text(due, format: .dateTime.month(.abbreviated).day())
-                .font(.caption2.monospacedDigit())
+    private var emptyIcon: String {
+        switch filter {
+        case .active:   return "checklist"
+        case .archived: return "archivebox"
+        case .trash:    return "trash"
         }
-        .foregroundStyle(color)
-        .padding(.horizontal, 5)
-        .padding(.vertical, 2)
-        .background(Capsule().fill(color.opacity(0.12)))
+    }
+    private var emptyTitle: String {
+        switch filter {
+        case .active:   return L("No tasks yet",       "暂无任务")
+        case .archived: return L("No archived tasks",  "暂无归档任务")
+        case .trash:    return L("Trash is empty",     "回收站为空")
+        }
+    }
+    private var emptyHint: String {
+        switch filter {
+        case .active:
+            return L("Press \"+ Add task\" or just start typing.",
+                     "点击下方「+ 新增任务」开始。")
+        case .archived:
+            return L("Tasks you archive will show up here. Use the box icon on a row, or the bulk button on the active list.",
+                     "归档的任务会出现在这里。点行尾的箱子图标,或在「未归档」列表用批量按钮。")
+        case .trash:
+            return L("Deleted tasks land here, recoverable until you Empty trash.",
+                     "删除的任务会出现在这里,清空之前都可以还原。")
+        }
     }
 }

@@ -16,9 +16,6 @@ struct AnchorAvatarView: View {
     var size: CGFloat = 24
 
     @State private var clickTrigger: Int = 0
-    @State private var notifyTrigger: Int = 0
-    @State private var idlePhase: Double = 0
-    @State private var glowPulse: Double = 0
 
     var body: some View {
         ZStack {
@@ -37,7 +34,12 @@ struct AnchorAvatarView: View {
                     )
                 )
                 .frame(width: size * 1.6, height: size * 1.6)
-                .opacity(0.6 + glowPulse * 0.4)
+                // Static glow — previously oscillated 0.6 ↔ 1.0 on a
+                // 2.4s `.repeatForever`, which read as a constant
+                // "flicker" inside any surface that hosted the avatar
+                // (notification cards especially). One fixed alpha
+                // keeps the neon halo identity without the motion.
+                .opacity(0.7)
                 .blur(radius: 4)
 
             avatarArt
@@ -47,23 +49,20 @@ struct AnchorAvatarView: View {
         }
         .frame(width: size, height: size)
         .onChange(of: state) { _, newState in
-            switch newState {
-            case .click:
+            // Only the click reaction still drives a keyframe — it's
+            // direct feedback to the user's tap on the avatar and
+            // would feel broken if removed. The notify reaction has
+            // been retired (see note below) because card-level
+            // appearance is already enough of an arrival signal.
+            if newState == .click {
                 clickTrigger += 1
-            case .notify:
-                notifyTrigger += 1
-            case .idle, .expanded:
-                break
             }
         }
-        .onAppear {
-            withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
-                idlePhase = 1
-            }
-            withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
-                glowPulse = 1
-            }
-        }
+        // The idle scale/rotation breathing and the glow pulse were
+        // both `.repeatForever` animations that read as "always
+        // flickering" inside notification cards. They've been folded
+        // into static values (`reactionScale = 1.0`, glow alpha pinned
+        // to 0.7) so the avatar is calm until the user clicks it.
         // React to click trigger via keyframe animation
         .keyframeAnimator(
             initialValue: ReactionFrame(),
@@ -85,39 +84,18 @@ struct AnchorAvatarView: View {
                 SpringKeyframe(0, duration: 0.20)
             }
         }
-        // React to notify trigger
-        .keyframeAnimator(
-            initialValue: ReactionFrame(),
-            trigger: notifyTrigger
-        ) { content, value in
-            content
-                .scaleEffect(value.scale)
-                .offset(y: value.bounce)
-        } keyframes: { _ in
-            KeyframeTrack(\.scale) {
-                LinearKeyframe(1.0, duration: 0)
-                SpringKeyframe(1.4, duration: 0.18, spring: .snappy)
-                SpringKeyframe(0.95, duration: 0.20, spring: .bouncy)
-                SpringKeyframe(1.0, duration: 0.22, spring: .smooth)
-            }
-            KeyframeTrack(\.bounce) {
-                LinearKeyframe(0, duration: 0)
-                SpringKeyframe(-3, duration: 0.18)
-                SpringKeyframe(0, duration: 0.30)
-            }
-        }
+        // Notify keyframe disabled — the head used to bounce
+        // (scale 1.0 → 1.4 → 0.95 → 1.0) on each arriving message,
+        // which for short-lived banners (info: 1.5s) occupied ~40%
+        // of the card's lifetime and read as a flicker. The card
+        // appearing is already a strong "arrival" signal; no need
+        // to also animate the head.
     }
 
     // MARK: - Subtle idle motion
 
-    private var reactionScale: CGFloat {
-        // Tiny breathing
-        1.0 + 0.03 * idlePhase
-    }
-    private var reactionRotation: Double {
-        // Imperceptible head-tilt
-        idlePhase * 1.0 - 0.5
-    }
+    private var reactionScale: CGFloat { 1.0 }
+    private var reactionRotation: Double { 0 }
 
     // MARK: - Art (PNG asset → procedural fallback)
 

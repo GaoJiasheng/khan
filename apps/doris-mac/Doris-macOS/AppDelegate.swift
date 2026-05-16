@@ -10,7 +10,7 @@ import DorisUI
 final class DorisAppDelegate: NSObject, NSApplicationDelegate {
     private var anchorController: AnchorController?
     private var router: NotificationRouter?
-    private var drainer: IPCInboxDrainer?
+    private var drainer: IPCRequestDrainer?
     private var fsEventReader: IPCFSEventReader?
     private var darwinKickSubscription: DarwinNotify.Subscription?
     private var syncTimer: SyncTimer?
@@ -60,7 +60,7 @@ final class DorisAppDelegate: NSObject, NSApplicationDelegate {
             // Route banner/fix through the anchor (replaces DynamicNotchKit).
             router.setPresenter(anchor)
 
-            let drainer = IPCInboxDrainer(router: router, secret: secret)
+            let drainer = IPCRequestDrainer(router: router, secret: secret)
             self.drainer = drainer
             await drainer.drain()
 
@@ -89,6 +89,22 @@ final class DorisAppDelegate: NSObject, NSApplicationDelegate {
                     await self?.syncTimer?.pokeNow()
                     HeroEvents.shared.celebrate()
                 }
+            }
+            // Manual `Open Main Window` path. The main window is now
+            // built and shown by `MainWindowController` (no SwiftUI
+            // `Window` scene anymore — that one auto-created itself
+            // at launch / on activation despite all our suppressors).
+            //
+            // Two coupled behaviors: collapse the dropdown panel
+            // (we don't want both surfaces visible at once) and open
+            // the main window on the SAME display the dropdown was on
+            // (multi-monitor users expect "open" to land where they
+            // just clicked, not on whatever screen the window was last
+            // closed on).
+            AppCommands.openMainWindow = { [weak self] in
+                let screen = self?.anchorController?.currentScreen
+                self?.anchorController?.collapse()
+                MainWindowController.shared.show(preferredScreen: screen)
             }
 
             // Voice capture: long-press the configured modifier → mic →

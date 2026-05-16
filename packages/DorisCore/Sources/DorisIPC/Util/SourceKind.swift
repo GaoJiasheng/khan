@@ -2,6 +2,11 @@ import Foundation
 
 public enum SourceKind: String, Codable, CaseIterable, Sendable {
     case claudeCode
+    case codex
+    case chatgpt
+    case trae
+    case vscode
+    case feishu
     case cliGeneric
     case scheduledJob
     case userMemo
@@ -11,6 +16,11 @@ public enum SourceKind: String, Codable, CaseIterable, Sendable {
     public var displayName: String {
         switch self {
         case .claudeCode:   return "Claude Code"
+        case .codex:        return "Codex"
+        case .chatgpt:      return "ChatGPT"
+        case .trae:         return "Trae"
+        case .vscode:       return "VS Code"
+        case .feishu:       return "飞书"
         case .cliGeneric:   return "CLI"
         case .scheduledJob: return "Scheduled"
         case .userMemo:     return "Memo"
@@ -22,6 +32,11 @@ public enum SourceKind: String, Codable, CaseIterable, Sendable {
     public var sfSymbol: String {
         switch self {
         case .claudeCode:   return "sparkle"
+        case .codex:        return "chevron.left.forwardslash.chevron.right"
+        case .chatgpt:      return "bubble.left.and.bubble.right.fill"
+        case .trae:         return "wand.and.stars"
+        case .vscode:       return "curlybraces.square.fill"
+        case .feishu:       return "person.2.wave.2.fill"
         case .cliGeneric:   return "terminal"
         case .scheduledJob: return "clock"
         case .userMemo:     return "note.text"
@@ -31,13 +46,46 @@ public enum SourceKind: String, Codable, CaseIterable, Sendable {
     }
 }
 
+/// Severity / urgency of an event. Drives list styling (color stripe,
+/// icon tint) so `critical` items pop out, `reminder` looks like a soft
+/// nudge, `info` fades into the background. Wire-stable string raws so
+/// the level survives IPC + iCloud sync as plain JSON.
+public enum EventLevel: String, Codable, CaseIterable, Sendable {
+    case critical
+    case reminder
+    case info
+
+    public var displayName: String {
+        switch self {
+        case .critical: return "Critical"
+        case .reminder: return "Reminder"
+        case .info:     return "Info"
+        }
+    }
+
+    public var sfSymbol: String {
+        switch self {
+        case .critical: return "exclamationmark.octagon.fill"
+        case .reminder: return "bell.fill"
+        case .info:     return "info.circle.fill"
+        }
+    }
+}
+
 public enum DisplayMode: String, Codable, Sendable {
     case banner
     case fix
 }
 
+/// State of an event in the event list.
+///
+/// `active` keeps the wire/storage rawValue as `"inbox"` for backwards
+/// compatibility with rows already in the SwiftData store + CloudKit
+/// records (the term changed from "inbox" to "events" in the UI, but
+/// migrating the persisted enum value would invalidate every existing
+/// record). New code should reference `.active`.
 public enum MessageState: String, Codable, Sendable {
-    case inbox
+    case active = "inbox"
     case dismissed
     case actioned
     case snoozed

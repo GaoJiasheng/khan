@@ -74,6 +74,13 @@ final class HotkeyEngine {
 
     private func handleFlagsChanged(_ event: NSEvent) {
         let kc = event.keyCode
+        // Diagnostic: log every modifier event so we can see what keyCode
+        // each physical key actually reports on the user's hardware
+        // (some external/Bluetooth keyboards collapse left+right modifiers
+        // onto the same keyCode). The `modifierFlags` raw value carries
+        // device-specific bits that disambiguate sides even when keyCode
+        // doesn't.
+        DorisLog.voice.notice("flagsChanged keyCode=\(kc, privacy: .public) flags=0x\(String(event.modifierFlags.rawValue, radix: 16), privacy: .public) watched=\(self.states.keys.contains(kc) ? "yes" : "no", privacy: .public)")
         guard var state = states[kc] else { return }
 
         let nowDown = !state.isHeld

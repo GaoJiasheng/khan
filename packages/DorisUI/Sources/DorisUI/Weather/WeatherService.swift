@@ -17,24 +17,44 @@ public struct WeatherSnapshot: Equatable {
 }
 
 /// Pulls the user's location (IP-based, no permission prompt) and the current
-/// weather for that location from Open-Meteo. Refreshes hourly while alive.
+/// weather for that location from Open-Meteo. Refreshes every 10 minutes
+/// in the background.
+///
+/// **Singleton** — there's exactly one weather state for the whole app.
+/// Previously each `AvatarHero` instance owned its own `@StateObject`
+/// `WeatherViewModel`, and every dropdown open created a fresh one (the
+/// panel teardown on close releases the SwiftUI subtree, so reopening
+/// rebuilt AvatarHero from scratch). That caused a network round-trip
+/// per open. Now opens just observe the shared instance — the
+/// background timer is the only thing that fetches.
 @MainActor
 public final class WeatherViewModel: ObservableObject {
+    public static let shared = WeatherViewModel()
+
     @Published public private(set) var snapshot: WeatherSnapshot?
     @Published public private(set) var isLoading = false
     @Published public private(set) var lastError: String?
 
+    /// How often the background loop refetches. 10 min is plenty for an
+    /// ambient weather pill — current conditions don't move that fast,
+    /// and the IP-based location lookup + Open-Meteo API both have
+    /// rate-limit hygiene we should respect.
+    private static let refreshInterval: TimeInterval = 10 * 60
+
     private var refreshTask: Task<Void, Never>?
 
-    public init() {}
+    private init() {}
 
     public func start() {
+        // Idempotent — multiple `start()` calls (e.g. from each
+        // AvatarHero.onAppear) do nothing once the loop is already
+        // running. The first call kicks off the perpetual refresh task;
+        // subsequent calls are no-ops.
         guard refreshTask == nil else { return }
         refreshTask = Task { [weak self] in
             while !Task.isCancelled {
                 await self?.refresh()
-                // Sleep 1 hour between refreshes.
-                try? await Task.sleep(nanoseconds: 60 * 60 * 1_000_000_000)
+                try? await Task.sleep(nanoseconds: UInt64(Self.refreshInterval * 1_000_000_000))
             }
         }
     }

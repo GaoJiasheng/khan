@@ -9,6 +9,10 @@ struct AnchorView: View {
     @ObservedObject var model: AnchorModel
     @ObservedObject private var lang = LanguageSettings.shared
     @ObservedObject private var theme = ThemeSettings.shared
+    /// Lifted up from `AnchorNotesView` so the parent can hide the
+    /// brand row + tab bar when editing is active — the editor gets
+    /// the full right-pane height for itself.
+    @State private var editingNote: Note?
     let position: AnchorPosition
     /// True when the screen the anchor lives on has a real camera notch. Drives whether
     /// the idle visual is a small circle (next to the real notch) or a fake-notch pill.
@@ -28,30 +32,44 @@ struct AnchorView: View {
                 idleView
             case .banner(let m):
                 expandedMessageView(m)
-                    .transition(.asymmetric(
-                        insertion: .opacity.combined(with: .scale(scale: 0.85, anchor: .top)),
-                        removal: .opacity.combined(with: .scale(scale: 0.9, anchor: .top))
-                    ))
+                    .transition(Self.notchDropTransition)
             case .fix(let m):
                 expandedMessageView(m)
-                    .transition(.asymmetric(
-                        insertion: .opacity.combined(with: .scale(scale: 0.85, anchor: .top)),
-                        removal: .opacity.combined(with: .scale(scale: 0.9, anchor: .top))
-                    ))
+                    .transition(Self.notchDropTransition)
             case .expanded:
+                // Zoom is reflected at the panel-window level (see
+                // `AnchorController.computeRect` — it multiplies the
+                // saved logical size by the current zoom). No
+                // `.dorisZoom()` on the SwiftUI tree because the
+                // `GeometryReader + scaleEffect` it requires fights
+                // with this view's tab buttons + edit affordances.
+                // Content stays at native size; the panel grows /
+                // shrinks instead, so the user gets "more space at
+                // higher zoom" rather than "bigger text."
                 expandedSummaryView
-                    .transition(.asymmetric(
-                        insertion: .opacity.combined(with: .scale(scale: 0.85, anchor: .top)),
-                        removal: .opacity.combined(with: .scale(scale: 0.9, anchor: .top))
-                    ))
+                    .transition(Self.notchDropTransition)
             }
         }
-        .animation(.spring(response: 0.32, dampingFraction: 0.82), value: model.state)
+        // No state-change animation. Combined with the `.identity`
+        // notch-drop transition, cards snap on and snap off — no
+        // mixing fade where backdrop / text colors blend with the
+        // menu bar behind the card.
+        .animation(nil, value: model.state)
         .gesture(
             DragGesture(minimumDistance: 6)
                 .onChanged { v in onDragChanged(v.translation) }
                 .onEnded { v in onDragEnded(v.translation) }
         )
+        // Pin the SwiftUI color-scheme environment to Doris's in-app
+        // ThemeSettings for *every* anchor state — banner, fix, idle,
+        // expanded. Without this hoist the modifier only covered the
+        // expanded panel, so banner / fix cards rendered with whatever
+        // the *system* appearance was. If the user had set Doris to
+        // dark mode but their Mac was in light mode, the notification
+        // backdrop (`CyberPalette.backdrop`) picked the cream variant
+        // and the card came out looking light, even though everything
+        // else in the app was dark.
+        .preferredColorScheme(theme.mode.colorScheme)
     }
 
     /// Translate the dropdown's avatar state into a HeroMood for the
@@ -131,40 +149,177 @@ struct AnchorView: View {
 
     private func expandedMessageView(_ m: AnchorMessage) -> some View {
         let useFakeNotch = rendersAsFakeNotch
-        return HStack(alignment: .center, spacing: 12) {
-            AnchorAvatarView(state: model.avatarState, size: 28)
-                .frame(width: 32, height: 32)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(m.title)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
+        let levelTint = EventLevelStyle.color(for: m.level)
+        // Theme-adaptive accent strength. The same neonPink / neonCyan
+        // tint that pops nicely on the deep-purple dark backdrop gets
+        // washed out by the cream light backdrop, so light mode bumps
+        // both the radial wash opacity and the stroke opacity ~50%
+        // higher. Drop shadow is also light-only — dark mode doesn't
+        // need elevation cues because the card is already much darker
+        // than whatever sits behind it.
+        let isLight = theme.mode == .light
+        let washPeakAlpha: Double = isLight ? 0.30 : 0.20
+        let washMidAlpha: Double  = isLight ? 0.08 : 0.05
+        let strokeAlphaBase: Double = isLight ? 0.70 : 0.55
+        let levelIntensity = EventLevelStyle.intensity(for: m.level)
+        let cardWidth = m.displayMode == .fix ? AnchorPanelLayout.fixWidth : AnchorPanelLayout.bannerWidth
+        let cardHeight = m.displayMode == .fix ? AnchorPanelLayout.fixHeight : AnchorPanelLayout.bannerHeight
+
+        return HStack(alignment: .center, spacing: 14) {
+            AnchorAvatarView(state: model.avatarState, size: 32)
+                .frame(width: 36, height: 36)
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    // Tiny level glyph next to the title — only when
+                    // the level is louder than info, so routine peeks
+                    // don't get visually noisy.
+                    if m.level != .info {
+                        Image(systemName: m.level.sfSymbol)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(levelTint)
+                    }
+                    Text(m.title)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                }
                 if let body = m.body, !body.isEmpty {
                     Text(body)
-                        .font(.subheadline)
-                        .foregroundStyle(.primary.opacity(0.7))
+                        .font(.system(size: 13))
+                        .foregroundStyle(.primary.opacity(0.72))
                         .lineLimit(2)
                 }
             }
             Spacer(minLength: 0)
-            Button {
-                onDismissMessage(m)
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.caption)
-                    .foregroundStyle(.primary.opacity(0.6))
+            // X button only on critical / fix — banners auto-dismiss
+            // so the X is dead weight, and pulling it out gives the
+            // info pill a noticeably cleaner shape.
+            if m.displayMode == .fix {
+                Button {
+                    onDismissMessage(m)
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.caption)
+                        .foregroundStyle(.primary.opacity(0.6))
+                }
+                .buttonStyle(.borderless)
             }
-            .buttonStyle(.borderless)
         }
         .padding(.horizontal, 16)
         .padding(.top, useFakeNotch ? 10 : 14)
         .padding(.bottom, 14)
-        .frame(
-            width: m.displayMode == .fix ? AnchorPanelLayout.fixWidth : AnchorPanelLayout.bannerWidth,
-            height: m.displayMode == .fix ? AnchorPanelLayout.fixHeight : AnchorPanelLayout.bannerHeight,
-            alignment: .top
-        )
+        .frame(width: cardWidth, height: cardHeight, alignment: .top)
         .background(backgroundShape(useFakeNotch: useFakeNotch))
+        // Soft level-tinted outline so the severity is legible at a
+        // glance even with the title cropped. Info gets a barely-there
+        // line; reminder/critical pop a bit more. Opacity comes from
+        // the shared `intensity(for:)` helper so the dim-info / full-
+        // brightness split stays in sync with the countdown stripe and
+        // the event-list leading rule (one knob, three call sites).
+        // Per-level static radial-gradient wash from the top of the
+        // card — every level gets one, only the hue and intensity
+        // change. Without this overlay info / reminder showed the
+        // raw `CyberPalette.backdrop` linear gradient (deep purple →
+        // near-black in dark mode) which read as the card backdrop
+        // visibly changing color top-to-bottom, while critical's
+        // existing pink wash masked the same gradient and looked
+        // static. Painting a level-tinted wash everywhere gives all
+        // three levels the same "static colored panel" identity, with
+        // hierarchy encoded by hue (pink for critical, cyan for the
+        // others) and by `intensity` (info dimmed).
+        .overlay {
+            Self.notchDropShape()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            levelTint.opacity(washPeakAlpha * levelIntensity),
+                            levelTint.opacity(washMidAlpha * levelIntensity),
+                            Color.clear
+                        ],
+                        center: .top,
+                        startRadius: 0,
+                        endRadius: cardWidth * 0.7
+                    )
+                )
+                .allowsHitTesting(false)
+        }
+        .overlay(
+            Group {
+                if m.level == .critical {
+                    // Critical keeps its pink→cyan gradient stroke;
+                    // pink dominant in both themes, but light mode
+                    // shifts the stops up a touch so the stroke
+                    // doesn't get lost against the cream backdrop.
+                    Self.notchDropShape()
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    CyberPalette.neonPink.opacity(isLight ? 0.95 : 0.85),
+                                    CyberPalette.neonPink.opacity(isLight ? 0.70 : 0.55),
+                                    CyberPalette.neonCyan.opacity(isLight ? 0.50 : 0.35)
+                                ],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1.2
+                        )
+                        .padding(0.5)
+                } else {
+                    Self.notchDropShape()
+                        .stroke(
+                            levelTint.opacity(strokeAlphaBase * levelIntensity),
+                            lineWidth: 0.8
+                        )
+                        .padding(0.5)
+                }
+            }
+        )
+        // Light-mode elevation: a soft drop shadow lifts the card off
+        // the cream backdrop. Dark mode skips this because the card is
+        // already much darker than the desktop / menu bar behind it,
+        // so a shadow there just adds noise.
+        .shadow(
+            color: isLight ? Color.black.opacity(0.10) : Color.clear,
+            radius: 12, x: 0, y: 4
+        )
+        // Countdown stripe — only on auto-dismiss banners. Lives at
+        // the bottom edge, runs from full width to zero in linear
+        // time over `level.bannerDuration`. Anchored at the leading
+        // edge so the visual reads as "time remaining," depleting
+        // toward the right.
+        .overlay(alignment: .bottomLeading) {
+            if m.displayMode == .banner {
+                // Stripe contrast is set explicitly per level (rather
+                // than reusing `EventLevelStyle.intensity`) so the
+                // hierarchy reads loud:
+                //   - info (1.5s): visible-but-soft stripe so the user
+                //     still sees the countdown without it competing
+                //     with the message text.
+                //   - reminder (4s): high-contrast stripe — this is the
+                //     "I'll be here a while" cue, so the bar deserves
+                //     to be obvious.
+                // Light mode bumps both ranges because the cream
+                // backdrop swallows neon at the dark-mode opacity
+                // levels.
+                let (leadAlpha, peakAlpha): (Double, Double) = {
+                    switch m.level {
+                    case .info:
+                        return isLight ? (0.32, 0.55) : (0.20, 0.38)
+                    case .reminder:
+                        return isLight ? (0.60, 0.90) : (0.48, 0.80)
+                    case .critical:
+                        return (0, 0) // never shown — critical is .fix
+                    }
+                }()
+                CountdownStripe(
+                    width: cardWidth,
+                    duration: m.level.bannerDuration,
+                    color: levelTint,
+                    leadingAlpha: leadAlpha,
+                    trailingAlpha: peakAlpha,
+                    messageID: m.id
+                )
+            }
+        }
         .contentShape(Rectangle())
         .onTapGesture { onTapMessage(m) }
     }
@@ -208,34 +363,45 @@ struct AnchorView: View {
                 ))
                 .frame(width: 1)
 
-            // RIGHT: header + tabs + content
+            // RIGHT: header + tabs + content. When the user is editing
+            // a note, hide the brand row + tab bar + divider so the
+            // inline editor gets every pixel of vertical space — that's
+            // what they're focused on at that moment.
             VStack(spacing: 0) {
+                if editingNote == nil {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    // Brand gradient — adaptive endpoints. Dark mode uses
+                    // pale pink → pale cyan to pop against the deep
+                    // purple backdrop. Light mode uses saturated
+                    // neonPink → neonCyan so the letters still read on
+                    // the cream backdrop (the pale variants washed out
+                    // to near-invisible there).
                     Text("DORIS")
                         .font(.system(size: 16, weight: .heavy, design: .rounded))
                         .kerning(2)
                         .foregroundStyle(
                             LinearGradient(
-                                colors: [Color(red: 1.0, green: 0.85, blue: 1.0),
-                                         Color(red: 0.6, green: 1.0, blue: 1.0)],
+                                colors: [
+                                    Color(light: CyberPalette.neonPink,
+                                          dark: Color(red: 1.0, green: 0.85, blue: 1.0)),
+                                    Color(light: CyberPalette.neonCyan,
+                                          dark: Color(red: 0.6, green: 1.0, blue: 1.0))
+                                ],
                                 startPoint: .leading, endPoint: .trailing
                             )
                         )
                     Text(L("cyber helper", "赛博助手"))
                         .font(.caption2.monospaced())
-                        .foregroundStyle(Color(red: 0.0, green: 0.85, blue: 1.0).opacity(0.7))
+                        // Same adaptive trick — saturated cyan in light
+                        // mode (full opacity), pale-cyan-with-alpha in
+                        // dark mode for the subdued subtitle look.
+                        .foregroundStyle(
+                            Color(light: CyberPalette.neonCyan.opacity(0.95),
+                                  dark: CyberPalette.neonCyan.opacity(0.7))
+                        )
                     Spacer()
-                    ThemeToggleButton()
-                    Button {
-                        onCloseExpanded()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(.primary.opacity(0.55))
-                            .padding(4)
-                            .background(Circle().fill(.primary.opacity(0.06)))
-                    }
-                    .buttonStyle(.plain)
+                    // Theme toggle moved to Settings; the panel auto-
+                    // dismisses on outside clicks, so no X button either.
                 }
                 .padding(.horizontal, 14)
                 .padding(.top, useFakeNotch ? 12 : 16)
@@ -243,9 +409,8 @@ struct AnchorView: View {
 
                 // Tabs
                 HStack(spacing: 6) {
-                    tabButton(L("Inbox", "收件箱"), tag: .inbox)
-                    tabButton(L("Notes", "笔记"), tag: .notes)
-                    tabButton(L("Today", "今日"), tag: .today)
+                    tabButton(L("TODO", "TODO"), tag: .notes)
+                    tabButton(L("Events", "事件"), tag: .events)
                     Spacer()
                 }
                 .padding(.horizontal, 12)
@@ -254,26 +419,34 @@ struct AnchorView: View {
                 Rectangle()
                     .fill(.primary.opacity(0.08))
                     .frame(height: 1)
+                } // end `if editingNote == nil` — chrome only when not editing
 
                 // Body
                 Group {
                     switch model.expandedTab {
-                    case .inbox: AnchorInboxView()
-                    case .notes: AnchorNotesView()
-                    case .today: AnchorTodayView()
+                    case .events: AnchorEventsView()
+                    case .notes:  AnchorNotesView(editing: $editingNote)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .frame(width: AnchorController.expandedWidth, height: AnchorController.expandedHeight, alignment: .top)
+        // Fill whatever the NSPanel gives us — the panel's size is
+        // now user-resizable (drag the bottom-right corner) and the
+        // saved size is persisted in `AnchorScreenStore`, so the
+        // SwiftUI content shouldn't hard-code the baseline 560×380.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(panelBackground(useFakeNotch: useFakeNotch))
         .overlay(panelBorder)
+        // Resize is now handled at the NSPanel level via the
+        // `.resizable` styleMask + an `NSWindowDelegate` hook in
+        // `AnchorController` — drag any edge to resize, no custom
+        // SwiftUI handle needed.
         .preferredColorScheme(theme.mode.colorScheme)
     }
 
     private var panelBorder: some View {
-        RoundedRectangle(cornerRadius: 22, style: .continuous)
+        Self.notchDropShape()
             .strokeBorder(
                 LinearGradient(
                     colors: [
@@ -288,14 +461,46 @@ struct AnchorView: View {
 
     @ViewBuilder
     private func panelBackground(useFakeNotch: Bool) -> some View {
-        if useFakeNotch {
-            FakeNotchShape(cornerRadius: 22)
-                .fill(CyberPalette.backdrop)
-        } else {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(CyberPalette.backdrop)
-        }
+        // Same flat-top / rounded-bottom shape whether or not the
+        // display has a real notch — the panel always reads as
+        // "hanging from the menu bar," and with `gap = 0` in
+        // `computeRect` it sits flush against the notch / fake-notch
+        // pill / avatar window above.
+        Self.notchDropShape()
+            .fill(CyberPalette.backdrop)
     }
+
+    /// Fully-rounded shape used by the panel chrome (the banner card,
+    /// the fix card, the expanded summary). Earlier this was a flat-
+    /// top / rounded-bottom shape ("hanging from the notch"), but
+    /// because the panel is much wider than the actual notch, the
+    /// flat top read as a slab with sharp 90° corners poking out
+    /// either side. Rounded on all four corners feels softer and is
+    /// the original visual identity the user wanted preserved. The
+    /// `gap = 0` in `AnchorController.computeRect` keeps the panel
+    /// snug against the menu bar so the "from the notch" feel still
+    /// holds via proximity rather than geometric merging.
+    static func notchDropShape(cornerRadius: CGFloat = 22) -> UnevenRoundedRectangle {
+        UnevenRoundedRectangle(
+            topLeadingRadius: cornerRadius,
+            bottomLeadingRadius: cornerRadius,
+            bottomTrailingRadius: cornerRadius,
+            topTrailingRadius: cornerRadius,
+            style: .continuous
+        )
+    }
+
+    /// Card enter / exit transition. Set to `.identity` (instant
+    /// snap-on / snap-off) — no fade, no scale. Earlier this was a
+    /// pure opacity fade, but during the half-transparent frames the
+    /// card visibly mixed with whatever sat behind it (menu bar,
+    /// desktop) and the perceived backdrop / text colors shifted.
+    /// Critical (sticky) hid this from view because its entry fade
+    /// settled fast and there was no exit fade; short-lived info /
+    /// reminder banners chained appear-fade → stable → disappear-fade
+    /// in close enough succession that the color blend read as the
+    /// card "breathing colors." Instant transitions kill the blend.
+    static let notchDropTransition: AnyTransition = .identity
 
     private func tabButton(_ label: String, tag: AnchorModel.Tab) -> some View {
         let isSelected = model.expandedTab == tag
@@ -323,80 +528,237 @@ struct AnchorView: View {
                             lineWidth: 0.5
                         )
                 )
+                // Make the full padded capsule hit-testable; otherwise
+                // unselected tabs (Color.clear background) only register
+                // clicks on the text glyphs themselves.
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
     }
 
     @ViewBuilder
-    private func backgroundShape(useFakeNotch: Bool) -> some View {
-        if useFakeNotch {
-            FakeNotchShape(cornerRadius: 22).fill(CyberPalette.backdrop)
-        } else {
-            RoundedRectangle(cornerRadius: 22, style: .continuous).fill(CyberPalette.backdrop)
-        }
+    private func backgroundShape(useFakeNotch _: Bool) -> some View {
+        // Same flat-top / rounded-bottom shape as the expanded panel,
+        // regardless of whether there's a real notch on this display.
+        // See `notchDropShape` for why both paths share one shape.
+        Self.notchDropShape().fill(CyberPalette.backdrop)
+    }
+}
+
+// MARK: - Banner countdown stripe
+
+/// Thin horizontal stripe pinned to the bottom of an auto-dismiss
+/// banner card. Width animates linearly from full → zero over the
+/// banner's lifetime, giving the user a visual sense of how much time
+/// they have left before it disappears.
+///
+/// `messageID` is the trigger — when it changes (a new banner arrives
+/// while one is still on screen), the `@State` resets and the
+/// animation restarts. Without keying on the id, the stripe would
+/// inherit the previous animation and look broken.
+private struct CountdownStripe: View {
+    let width: CGFloat
+    let duration: TimeInterval
+    let color: Color
+    /// Alpha at the bar's leading edge (left tip). Pair with
+    /// `trailingAlpha` to control the gradient's contrast band — the
+    /// caller picks values that match each level's desired loudness
+    /// (info: soft, reminder: prominent) and the current theme.
+    let leadingAlpha: Double
+    let trailingAlpha: Double
+    let messageID: UUID
+
+    @State private var progress: CGFloat = 1.0
+
+    var body: some View {
+        // Solid gradient stripe with no glow shadow — the popup chrome
+        // never uses a halo, so layering one here read as foreign.
+        // Contrast is tuned by the caller through `leadingAlpha` /
+        // `trailingAlpha` rather than a single intensity multiplier,
+        // because info and reminder want *different* opacity bands,
+        // not the same band scaled.
+        Rectangle()
+            .fill(
+                LinearGradient(
+                    colors: [color.opacity(leadingAlpha), color.opacity(trailingAlpha)],
+                    startPoint: .leading, endPoint: .trailing
+                )
+            )
+            .frame(width: max(0, width * progress), height: 2)
+            .clipShape(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 0,
+                    bottomLeadingRadius: 22,
+                    bottomTrailingRadius: 22,
+                    topTrailingRadius: 0,
+                    style: .continuous
+                )
+            )
+            .onAppear {
+                // Reset to full, then animate down. Without the reset
+                // (and the messageID keying on `.id`), a second banner
+                // arriving back-to-back would start mid-depletion.
+                progress = 1.0
+                withAnimation(.linear(duration: duration)) {
+                    progress = 0
+                }
+            }
+            .id(messageID)
     }
 }
 
 // MARK: - Anchor body subviews
 
-private struct AnchorInboxView: View {
+private struct AnchorEventsView: View {
     @Query(sort: [SortDescriptor(\Message.receivedAt, order: .reverse)])
     private var messages: [Message]
     @ObservedObject private var lang = LanguageSettings.shared
 
     var body: some View {
-        let active = messages.filter { $0.state == .inbox }
+        let active = messages.filter { $0.state == .active }
         if active.isEmpty {
-            empty(L("No new messages", "暂无新消息"), systemImage: "tray")
+            empty(L("No events yet", "暂无事件"), systemImage: "bell.slash")
         } else {
             ScrollView {
                 VStack(spacing: 4) {
                     ForEach(active) { m in
-                        HStack(alignment: .top, spacing: 10) {
-                            Image(systemName: m.iconName ?? m.source.sfSymbol)
-                                .foregroundStyle(.primary)
-                                .frame(width: 18)
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(m.title)
-                                    .font(.subheadline.weight(.medium))
-                                    .foregroundStyle(.primary)
-                                    .lineLimit(1)
-                                if let body = m.bodyMarkdown, !body.isEmpty {
-                                    Text(body)
-                                        .font(.caption)
-                                        .foregroundStyle(.primary.opacity(0.6))
-                                        .lineLimit(2)
-                                }
-                            }
-                            Spacer(minLength: 0)
-                            Text(m.receivedAt, style: .relative)
-                                .font(.caption2)
-                                .foregroundStyle(.primary.opacity(0.4))
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(.primary.opacity(0.04))
-                        )
+                        anchorRow(for: m)
                     }
                 }
                 .padding(8)
             }
         }
     }
+
+    @ViewBuilder
+    private func anchorRow(for m: Message) -> some View {
+        let levelTint = EventLevelStyle.color(for: m.level)
+        HStack(alignment: .top, spacing: 8) {
+            // Severity stripe — full for critical/reminder, dimmed
+            // for info via `EventLevelStyle.intensity(for:)` so the
+            // popup's two-color palette stays consistent across every
+            // event surface.
+            RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+                .fill(levelTint)
+                .frame(width: 2.5)
+                .opacity(EventLevelStyle.intensity(for: m.level))
+
+            Image(systemName: m.iconName ?? m.source.sfSymbol)
+                .foregroundStyle(levelTint.opacity(EventLevelStyle.intensity(for: m.level)))
+                .frame(width: 18)
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 4) {
+                    Text(m.title)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    if m.level != .info {
+                        Image(systemName: m.level.sfSymbol)
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(levelTint)
+                    }
+                }
+                if let body = m.bodyMarkdown, !body.isEmpty {
+                    Text(body)
+                        .font(.caption)
+                        .foregroundStyle(.primary.opacity(0.6))
+                        .lineLimit(2)
+                }
+            }
+            Spacer(minLength: 0)
+            Text(m.receivedAt, style: .relative)
+                .font(.caption2)
+                .foregroundStyle(.primary.opacity(0.4))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(.primary.opacity(0.04))
+        )
+    }
 }
 
 private struct AnchorNotesView: View {
+    // SwiftData's `SortDescriptor` doesn't accept Bool directly — pull
+    // by `updatedAt` and re-sort in `sortedNotes` to put pinned first.
     @Query(sort: [SortDescriptor(\Note.updatedAt, order: .reverse)])
     private var notes: [Note]
     @Environment(\.modelContext) private var ctx
     @ObservedObject private var lang = LanguageSettings.shared
+    @Binding var editing: Note?
+    /// Active vs archived view. Default is `active` — the daily TODO
+    /// list. Switching to `archived` shows the squirreled-away rows so
+    /// the user can restore mis-archives.
+    @State private var filter: TodoFilter = .active
 
-    /// `nil` → notes list. Non-nil → in-place editor for that note.
-    /// Doris is meant to feel light: editing happens right here in the
-    /// dropdown panel rather than popping the main window or a sheet.
-    @State private var editing: Note?
+    /// Filter + sort. Three partitions never overlap: a row is in
+    /// exactly one of Active / Archived / Trash. Trash takes priority
+    /// over Archived (a deleted-then-archived row shows in Trash).
+    private var sortedNotes: [Note] {
+        let filtered = notes.filter { n in
+            switch filter {
+            case .trash:    return n.deleted
+            case .archived: return !n.deleted && n.archived
+            case .active:   return !n.deleted && !n.archived
+            }
+        }
+        switch filter {
+        case .trash:
+            return filtered.sorted { ($0.deletedAt ?? .distantPast) > ($1.deletedAt ?? .distantPast) }
+        case .archived:
+            return filtered.sorted { ($0.archivedAt ?? .distantPast) > ($1.archivedAt ?? .distantPast) }
+        case .active:
+            return filtered.sorted { lhs, rhs in
+                if lhs.pinned != rhs.pinned { return lhs.pinned && !rhs.pinned }
+                if lhs.done != rhs.done     { return !lhs.done && rhs.done }
+                if lhs.order != rhs.order   { return lhs.order < rhs.order }
+                return lhs.createdAt < rhs.createdAt
+            }
+        }
+    }
+
+    /// Reorder: place `draggedID` right before `targetID`. Renumbers
+    /// every visible row's `order` field with monotonically increasing
+    /// integers so we never hit the "averaging two equal orders gives
+    /// the same order" collision (which happens with legacy rows that
+    /// all have order 0). O(N) save per drag, fine for normal list
+    /// sizes.
+    private func moveDraggedBefore(_ targetID: UUID, dragged draggedID: UUID) {
+        let visible = sortedNotes
+        guard visible.contains(where: { $0.id == targetID }),
+              let dragged = visible.first(where: { $0.id == draggedID }) else { return }
+        var reordered = visible.filter { $0.id != draggedID }
+        let insertIdx = reordered.firstIndex(where: { $0.id == targetID }) ?? 0
+        reordered.insert(dragged, at: insertIdx)
+        for (i, n) in reordered.enumerated() {
+            n.order = Double(i)
+        }
+        dragged.updatedAt = Date()
+        try? ctx.save()
+    }
+    private var doneActiveCount: Int {
+        notes.filter { !$0.deleted && !$0.archived && $0.done }.count
+    }
+    private var trashCount: Int {
+        notes.filter { $0.deleted }.count
+    }
+    @State private var confirmingEmptyTrash = false
+
+    private var emptyTitle: String {
+        switch filter {
+        case .active:   return L("No tasks yet",       "暂无任务")
+        case .archived: return L("No archived tasks",  "暂无归档任务")
+        case .trash:    return L("Trash is empty",     "回收站为空")
+        }
+    }
+    private var emptyIcon: String {
+        switch filter {
+        case .active:   return "checklist"
+        case .archived: return "archivebox"
+        case .trash:    return "trash"
+        }
+    }
 
     var body: some View {
         Group {
@@ -410,57 +772,44 @@ private struct AnchorNotesView: View {
         }
     }
 
+    @FocusState private var focusedNoteID: UUID?
+
     private var listBody: some View {
-        VStack {
-            HStack {
-                Spacer()
-                Button {
-                    let n = Note(title: L("New note", "新笔记"))
-                    ctx.insert(n)
-                    try? ctx.save()
-                    editing = n
-                } label: {
-                    Label(L("New", "新建"), systemImage: "plus")
-                        .font(.caption)
-                        .foregroundStyle(.primary)
-                }
-                .buttonStyle(.plain)
-                .padding(.trailing, 12)
+        VStack(spacing: 0) {
+            // Filter chips — Active vs Archived. Always visible so the
+            // user has an obvious entry into the archive view (and out
+            // of it).
+            filterBar
+                .padding(.horizontal, 8)
                 .padding(.top, 6)
-            }
-            if notes.isEmpty {
-                empty(L("No notes yet", "暂无笔记"), systemImage: "note.text")
+            if sortedNotes.isEmpty {
+                empty(emptyTitle, systemImage: emptyIcon)
+                    .padding(.top, 30)
+                if filter == .active {
+                    addQuickButton
+                        .padding(.top, 8)
+                }
             } else {
                 ScrollView {
-                    VStack(spacing: 4) {
-                        ForEach(notes.prefix(20)) { n in
-                            Button {
-                                editing = n
-                            } label: {
-                                HStack {
-                                    Text(n.title.isEmpty ? L("Untitled", "无标题") : n.title)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.primary)
-                                        .lineLimit(1)
-                                    Spacer()
-                                    Text(n.updatedAt, style: .relative)
-                                        .font(.caption2)
-                                        .foregroundStyle(.primary.opacity(0.4))
+                    // spacing: 0 so adjacent TODO rows touch — no
+                    // dead non-clickable strip between them. The row's
+                    // own internal padding gives each one comfortable
+                    // height to click into.
+                    VStack(spacing: 0) {
+                        ForEach(sortedNotes.prefix(50)) { n in
+                            TodoRow(
+                                note: n,
+                                focused: $focusedNoteID,
+                                onSubmit: { addNoteAfter(n) },
+                                onExpand: { editing = n },
+                                onDropBefore: { dragged in
+                                    moveDraggedBefore(n.id, dragged: dragged)
                                 }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(RoundedRectangle(cornerRadius: 6).fill(.primary.opacity(0.04)))
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    ctx.delete(n)
-                                    try? ctx.save()
-                                } label: {
-                                    Label(L("Delete", "删除"), systemImage: "trash")
-                                }
-                            }
+                            )
+                        }
+                        if filter == .active {
+                            addQuickButton
+                                .padding(.top, 8)
                         }
                     }
                     .padding(8)
@@ -468,14 +817,190 @@ private struct AnchorNotesView: View {
             }
         }
     }
+
+    /// Three-chip filter switch (Active / Archived / Trash) with a
+    /// context-sensitive bulk action on the right:
+    ///   - Active view + done items → "归档已完成 (N)"
+    ///   - Trash view + items present → "清空 (N)" (with confirmation)
+    private var filterBar: some View {
+        HStack(spacing: 6) {
+            filterChip(.active,   label: L("Active",   "未归档"), icon: "checklist")
+            filterChip(.archived, label: L("Archived", "已归档"), icon: "archivebox")
+            filterChip(.trash,    label: L("Trash",    "回收站"), icon: "trash")
+            Spacer()
+            bulkAction
+        }
+        .alert(L("Empty trash?", "清空回收站?"), isPresented: $confirmingEmptyTrash) {
+            Button(L("Empty (\(trashCount))", "清空 (\(trashCount))"), role: .destructive) {
+                emptyTrash()
+            }
+            Button(L("Cancel", "取消"), role: .cancel) {}
+        } message: {
+            Text(L("Items in the trash will be permanently deleted and can't be recovered.",
+                   "回收站中的任务将被彻底删除,无法恢复。"))
+        }
+    }
+
+    @ViewBuilder
+    private var bulkAction: some View {
+        if filter == .active && doneActiveCount > 0 {
+            bulkButton(
+                icon: "tray.full",
+                label: L("Archive done (\(doneActiveCount))",
+                         "归档已完成 (\(doneActiveCount))"),
+                tint: CyberPalette.neonCyan,
+                help: L("Move all completed tasks to archive",
+                        "把所有已完成任务移到归档")
+            ) { archiveAllDone() }
+        } else if filter == .trash && trashCount > 0 {
+            bulkButton(
+                icon: "trash.slash",
+                label: L("Empty (\(trashCount))", "清空 (\(trashCount))"),
+                tint: CyberPalette.neonPink,
+                help: L("Permanently delete every item in trash",
+                        "彻底删除回收站中所有任务")
+            ) { confirmingEmptyTrash = true }
+        }
+    }
+
+    private func bulkButton(icon: String, label: String, tint: Color, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 3) {
+                Image(systemName: icon)
+                    .font(.system(size: 9, weight: .semibold))
+                Text(label)
+                    .font(.caption2.weight(.medium))
+            }
+            .foregroundStyle(tint)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(Capsule().fill(tint.opacity(0.1)))
+            .overlay(Capsule().stroke(tint.opacity(0.4), lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+        .help(help)
+    }
+
+    private func filterChip(_ value: TodoFilter, label: String, icon: String) -> some View {
+        let selected = (filter == value)
+        return Button { filter = value } label: {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 9, weight: .semibold))
+                Text(label)
+                    .font(.caption2.weight(selected ? .semibold : .regular))
+            }
+            .foregroundStyle(selected
+                             ? Color.primary
+                             : Color.primary.opacity(0.55))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(
+                Capsule().fill(selected
+                               ? Color.primary.opacity(0.10)
+                               : Color.clear)
+            )
+            .overlay(
+                Capsule().stroke(selected
+                                 ? Color.primary.opacity(0.20)
+                                 : Color.primary.opacity(0.10),
+                                 lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Bulk archive: stamps every active+done note as archived in one
+    /// pass. The morning-routine workflow: yesterday's done tasks all
+    /// disappear with one click; undone ones stay.
+    private func archiveAllDone() {
+        let now = Date()
+        for n in notes where !n.deleted && !n.archived && n.done {
+            n.archived = true
+            n.archivedAt = now
+            n.updatedAt = now
+        }
+        try? ctx.save()
+    }
+
+    /// Permanently delete every row currently in the trash. Confirmed
+    /// before reaching this — the alert lives in `filterBar`.
+    private func emptyTrash() {
+        for n in notes where n.deleted {
+            ctx.delete(n)
+        }
+        try? ctx.save()
+    }
+
+    /// Compact pill-button — used to be a full-width row that the user
+    /// said looked like an unnecessary "new task" entry. Now it reads
+    /// as just a button at the bottom of the list.
+    private var addQuickButton: some View {
+        HStack {
+            Button {
+                addNoteAfter(nil)
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 10, weight: .bold))
+                    Text(L("Add task", "新增任务"))
+                        .font(.caption2.weight(.medium))
+                }
+                .foregroundStyle(CyberPalette.neonCyan)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule().fill(CyberPalette.neonCyan.opacity(0.10))
+                )
+                .overlay(
+                    Capsule().stroke(CyberPalette.neonCyan.opacity(0.35), lineWidth: 0.6)
+                )
+            }
+            .buttonStyle(.plain)
+            Spacer()
+        }
+        .padding(.horizontal, 10)
+    }
+
+    /// Insert a new empty TODO and immediately focus its title field.
+    /// Position depends on the anchor:
+    ///   - `previous` non-nil → place right AFTER `previous` in the
+    ///     visible list. Done by setting `createdAt` to a hair past
+    ///     the previous row's `createdAt` (the sort uses createdAt
+    ///     ASC, so this lands the new row in the next slot).
+    ///   - `previous` nil → place at the very BOTTOM. Done by
+    ///     bumping past the largest existing `createdAt`.
+    private func addNoteAfter(_ previous: Note?) {
+        let n = Note(title: "")
+        let stamp: Date
+        if let previous {
+            stamp = previous.createdAt.addingTimeInterval(0.001)
+        } else {
+            let maxCreated = notes.map(\.createdAt).max() ?? Date()
+            stamp = maxCreated.addingTimeInterval(1)
+        }
+        n.createdAt = stamp
+        n.updatedAt = stamp
+        ctx.insert(n)
+        try? ctx.save()
+        // Focus the new row so the user can type immediately.
+        DispatchQueue.main.async {
+            focusedNoteID = n.id
+        }
+    }
 }
+
+// (TodoRow lives in DorisUI — the same row UI is used by both this
+// dropdown view and the main window's notes pane.)
+
+// MARK: - Today strip (due today + pinned + recent 24h)
 
 private struct AnchorTodayView: View {
     @ObservedObject private var lang = LanguageSettings.shared
     @Environment(\.modelContext) private var ctx
 
     @Query(
-        filter: #Predicate<Note> { !$0.archived },
+        filter: #Predicate<Note> { note in !note.archived },
         sort: [SortDescriptor(\Note.updatedAt, order: .reverse)]
     )
     private var allNotes: [Note]
@@ -600,10 +1125,10 @@ private func empty(_ title: String, systemImage: String, subtitle: String? = nil
 
 @MainActor
 final class AnchorModel: ObservableObject {
-    enum Tab { case inbox, notes, today }
+    enum Tab { case events, notes }
     @Published var state: AnchorState = .idle
     @Published var hovered: Bool = false
-    @Published var expandedTab: Tab = .inbox
+    @Published var expandedTab: Tab = .notes
     @Published var avatarState: AvatarState = .idle
 
     private var resetTask: Task<Void, Never>?

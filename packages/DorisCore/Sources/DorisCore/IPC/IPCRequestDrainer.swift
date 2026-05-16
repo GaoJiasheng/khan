@@ -1,8 +1,15 @@
 import Foundation
 import DorisIPC
 
+/// Drains pending IPC request files from the App Group "IPC/inbox" queue
+/// directory, hands each one to the `NotificationRouter`, and moves the
+/// file to "IPC/processed" with an outcome suffix. Despite the queue
+/// dir's filesystem name still being `inbox` (the IPC mailbox metaphor),
+/// what flows through is every IPC request kind (notify, noteAdd,
+/// eventsList, sync, ping…), so the type is named after what it does
+/// rather than the dir it watches.
 @MainActor
-public final class IPCInboxDrainer {
+public final class IPCRequestDrainer {
     private let router: NotificationRouter
     private let secret: Data?
 

@@ -16,13 +16,13 @@ final class ShareViewController: NSViewController {
         body.placeholderString = "Body"
         let saveAsNote = NSButton(title: "Save as Note", target: self, action: #selector(saveNote(_:)))
         saveAsNote.frame = NSRect(x: 16, y: 16, width: 140, height: 30)
-        let sendInbox = NSButton(title: "Send to Inbox", target: self, action: #selector(sendInbox(_:)))
-        sendInbox.frame = NSRect(x: 200, y: 16, width: 140, height: 30)
+        let sendEvent = NSButton(title: "Send as Event", target: self, action: #selector(sendEvent(_:)))
+        sendEvent.frame = NSRect(x: 200, y: 16, width: 140, height: 30)
 
         view.addSubview(titleField)
         view.addSubview(body)
         view.addSubview(saveAsNote)
-        view.addSubview(sendInbox)
+        view.addSubview(sendEvent)
         self.view = view
         self.titleField = titleField
     }
@@ -36,7 +36,7 @@ final class ShareViewController: NSViewController {
         complete()
     }
 
-    @objc func sendInbox(_ sender: Any) {
+    @objc func sendEvent(_ sender: Any) {
         let payload = IPCNotifyPayload(
             title: titleField.stringValue,
             body: bodyText(),

@@ -19,8 +19,8 @@ public final class ThemeSettings: ObservableObject {
         @MainActor
         public var displayName: String {
             switch self {
-            case .dark:  return L("Dark · 深色",  "深色 · Dark")
-            case .light: return L("Light · 浅色", "浅色 · Light")
+            case .dark:  return L("Dark",  "深色")
+            case .light: return L("Light", "浅色")
             }
         }
 

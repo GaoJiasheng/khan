@@ -24,6 +24,12 @@ final class VoiceController {
     private var recognizer: SpeechRecognizer?
     private var activeBinding: VoiceBinding?
     private var settingsCancellables = Set<AnyCancellable>()
+    /// Global ESC key monitor — only registered while a recording is in
+    /// flight, so Escape is a universal "abort" for users who can't
+    /// re-trigger the modifier release (e.g. their keyboard is sending
+    /// stuck modifier flags, or they want to bail on a long dictation
+    /// without sending). Cleared when recording ends.
+    private var escapeMonitor: Any?
 
     init() {
         wireHotkey()
@@ -103,6 +109,7 @@ final class VoiceController {
             activeBinding = binding
             HeroEvents.shared.isListening = true
             floater.show(initial: .listening(partial: ""))
+            armEscapeAbortMonitor()
             DorisLog.voice.info("recorder started for binding=\(binding.id.uuidString, privacy: .public) lang=\(binding.language.rawValue, privacy: .public) provider=\(binding.provider.rawValue, privacy: .public)")
         } catch {
             recognizer = nil
@@ -118,6 +125,7 @@ final class VoiceController {
         activeBinding = nil
         recognizer = nil
         HeroEvents.shared.isListening = false
+        disarmEscapeAbortMonitor()
 
         let result = await r.stop()
         DorisLog.voice.info("transcript len=\(result.text.count, privacy: .public): \(result.text, privacy: .public)")
@@ -136,6 +144,53 @@ final class VoiceController {
             DorisLog.voice.error("router send failed: \(error.localizedDescription, privacy: .public)")
             showError(message: error.localizedDescription, autoDismiss: 3.0)
         }
+    }
+
+    // MARK: - Cancel
+
+    /// Universal abort path. Called from the Esc key while a recording is
+    /// in flight, or programmatically (UI cancel button, IPC). Tears
+    /// down the recognizer, hides the floater, and discards whatever was
+    /// captured — nothing gets sent to the provider.
+    func cancelRecording() {
+        guard let r = recognizer else { return }
+        DorisLog.voice.notice("recording cancelled by user")
+        activeBinding = nil
+        recognizer = nil
+        HeroEvents.shared.isListening = false
+        disarmEscapeAbortMonitor()
+        Task { @MainActor in
+            _ = await r.stop()  // discard transcript
+            floater.hide(after: 0)
+        }
+    }
+
+    /// Watch for the Esc key while recording. Both global (other app
+    /// focused) and local (Doris focused) so Esc works no matter where
+    /// the user is when they realize they want to bail.
+    private func armEscapeAbortMonitor() {
+        guard escapeMonitor == nil else { return }
+        let global = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            // 53 = kVK_Escape
+            guard event.keyCode == 53 else { return }
+            Task { @MainActor in self?.cancelRecording() }
+        }
+        let local = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            if event.keyCode == 53 {
+                Task { @MainActor in self?.cancelRecording() }
+                return nil  // swallow ESC so it doesn't propagate
+            }
+            return event
+        }
+        escapeMonitor = (global, local)
+    }
+
+    private func disarmEscapeAbortMonitor() {
+        if let pair = escapeMonitor as? (Any?, Any?) {
+            if let g = pair.0 { NSEvent.removeMonitor(g) }
+            if let l = pair.1 { NSEvent.removeMonitor(l) }
+        }
+        escapeMonitor = nil
     }
 
     private func showError(message: String, autoDismiss: TimeInterval) {

@@ -1,0 +1,365 @@
+import SwiftUI
+import SwiftData
+import DorisCore
+
+/// View mode for the TODO list. Three filters partition every note:
+///   - `.active`   →  not archived, not deleted
+///   - `.archived` →  archived but not deleted
+///   - `.trash`    →  soft-deleted (recoverable from this view)
+public enum TodoFilter {
+    case active
+    case archived
+    case trash
+}
+
+/// One row in the TODO-style notes list. Each note IS a top-level task
+/// — checkbox to toggle done, inline-editable title, expand button to
+/// open the full editor (body / sub-checklist).
+///
+/// Press Enter on the title field → the host's `onSubmit` fires, which
+/// should create a fresh empty task below and route focus to it.
+public struct TodoRow: View {
+    @Bindable public var note: Note
+    /// Host-managed focus state — pass a `@FocusState` projected
+    /// binding from the parent so the parent can move focus to a newly
+    /// inserted row after `onSubmit`.
+    public var focused: FocusState<UUID?>.Binding
+    /// Called when the user presses Enter while editing the title.
+    public var onSubmit: () -> Void
+    /// Called when the user clicks the expand icon — the host opens
+    /// the full inline editor for body / sub-checklist editing.
+    public var onExpand: () -> Void
+    /// Called when another row is dropped onto THIS row — the host
+    /// re-orders so the dragged note lands right before this one.
+    /// Argument is the dragged note's UUID (encoded as String for
+    /// transferable simplicity).
+    public var onDropBefore: (UUID) -> Void
+
+    @Environment(\.modelContext) private var ctx
+    @ObservedObject private var lang = LanguageSettings.shared
+    @State private var hovering = false
+    @State private var confirmingDelete = false
+    @State private var isDropTarget = false
+
+    public init(
+        note: Note,
+        focused: FocusState<UUID?>.Binding,
+        onSubmit: @escaping () -> Void,
+        onExpand: @escaping () -> Void,
+        onDropBefore: @escaping (UUID) -> Void = { _ in }
+    ) {
+        self.note = note
+        self.focused = focused
+        self.onSubmit = onSubmit
+        self.onExpand = onExpand
+        self.onDropBefore = onDropBefore
+    }
+
+    public var body: some View {
+        HStack(spacing: 6) {
+            // Pin + checkbox sit in a tight inner cluster (spacing 2)
+            // so the leading edge of the row doesn't feel like wasted
+            // gutter. Each control still has a comfortable hit area —
+            // we just stripped the surrounding air, not the target.
+            HStack(spacing: 2) {
+                // Pin toggle — leftmost, in the slot the drag handle
+                // used to occupy. Pinned rows always show the saturated
+                // pink pin; unpinned rows show only on hover. Whole-row
+                // drag-to-reorder lives on the row body below — there
+                // is no separate drag handle.
+                Button {
+                    note.pinned.toggle()
+                    note.updatedAt = Date()
+                } label: {
+                    Image(systemName: note.pinned ? "pin.fill" : "pin")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(note.pinned
+                                         ? CyberPalette.neonPink
+                                         : Color.primary.opacity(hovering ? 0.45 : 0.0))
+                        .frame(width: 16, height: 22)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(note.pinned
+                      ? L("Unpin", "取消置顶")
+                      : L("Pin to top", "置顶"))
+
+                // Done checkbox. Toggling done also stamps / clears
+                // `completedAt` — that timestamp is what the upcoming
+                // "archive yesterday's done tasks" feature reads.
+                Button {
+                    note.done.toggle()
+                    let now = Date()
+                    note.updatedAt = now
+                    note.completedAt = note.done ? now : nil
+                } label: {
+                    Image(systemName: note.done ? "checkmark.square.fill" : "square")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(note.done
+                                         ? CyberPalette.neonCyan
+                                         : Color.primary.opacity(0.55))
+                        .frame(width: 16, height: 18)
+                }
+                .buttonStyle(.plain)
+                .help(note.done
+                      ? L("Mark not done", "取消完成")
+                      : L("Mark done", "标记完成"))
+            }
+
+            // Inline-editable title
+            TextField(
+                L("New task", "新任务"),
+                text: $note.title
+            )
+            .textFieldStyle(.plain)
+            .font(.subheadline)
+            .strikethrough(note.done, color: .secondary)
+            .foregroundStyle(note.done
+                             ? Color.primary.opacity(0.45)
+                             : Color.primary)
+            .focused(focused, equals: note.id)
+            .onSubmit(onSubmit)
+            .onChange(of: note.title) { _, _ in note.updatedAt = Date() }
+
+            Spacer(minLength: 0)
+
+            // Action cluster — hover-only so resting rows stay clean.
+            // Sits LEFT of the expand-icon and time so the always-on
+            // info (whether the note has body content + when it was
+            // last touched) anchors the right edge of the row, while
+            // the action buttons live just inside that.
+            HStack(spacing: 4) {
+                primaryActionButton   // archive / unarchive / restore
+                deleteActionButton    // soft-delete / permanent-delete
+            }
+            .opacity(hovering ? 1 : 0)
+            .animation(.easeInOut(duration: 0.12), value: hovering)
+
+            // Expand → open full editor for body / sub-checklist.
+            // Icon swaps to a "doc" if the note has body content.
+            Button(action: onExpand) {
+                Image(systemName: hasBody ? "doc.text.fill" : "arrow.up.left.and.arrow.down.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(hasBody
+                                     ? CyberPalette.neonPink.opacity(hovering ? 0.9 : 0.55)
+                                     : Color.primary.opacity(hovering ? 0.7 : 0.3))
+                    .frame(width: 16, height: 16)
+            }
+            .buttonStyle(.plain)
+            .help(L("Open editor", "打开编辑器"))
+
+            // Time — rightmost, always visible.
+            Text(RelativeTime.short(note.updatedAt))
+                .font(.caption2)
+                .foregroundStyle(.primary.opacity(0.4))
+        }
+        .padding(.horizontal, 8)
+        // Bumped vertical padding now that rows touch (parent VStack
+        // spacing is 0). Comfortable click target without a dead gap
+        // between rows where clicks would land on neither.
+        .padding(.vertical, 7)
+        .background(
+            // Hover highlight covers the entire row extent (hit-tested
+            // by `contentShape` below). Resting state is fully clear so
+            // adjacent rows don't visually merge into a fat blob.
+            Rectangle()
+                .fill(hovering
+                      ? Color.primary.opacity(0.06)
+                      : Color.clear)
+        )
+        .overlay(alignment: .top) {
+            // Drop indicator — a 2pt cyan bar at the top of this row
+            // when another row is being dragged onto it. Tells the user
+            // "your dragged item will land HERE (above this row)".
+            if isDropTarget {
+                Rectangle()
+                    .fill(CyberPalette.neonCyan)
+                    .frame(height: 2)
+            }
+        }
+        .overlay(alignment: .bottom) {
+            // Hairline separator between rows — barely visible, just
+            // enough to give the eye a row boundary without looking
+            // like a heavy table grid.
+            Rectangle()
+                .fill(Color.primary.opacity(0.06))
+                .frame(height: 0.5)
+        }
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
+        // Whole-row drag to reorder. SwiftUI requires a deliberate
+        // press-and-drag to start a drag, so quick taps on the title
+        // TextField, checkbox, pin, action buttons etc. still hit
+        // their intended targets — only an actual drag picks up the
+        // row. Replaces the old dedicated 3-line drag handle.
+        .draggable(note.id.uuidString)
+        .dropDestination(for: String.self) { items, _ in
+            // Only accept the first item — we encode UUIDs as String
+            // for simplicity. Reject self-drops (dropping a row on
+            // itself is a no-op).
+            guard let raw = items.first,
+                  let dragged = UUID(uuidString: raw),
+                  dragged != note.id else { return false }
+            onDropBefore(dragged)
+            return true
+        } isTargeted: { hovering in
+            isDropTarget = hovering
+        }
+        // Click anywhere on the row → focus its title for editing.
+        // Inner controls (checkbox button, expand button, delete /
+        // archive buttons, the TextField itself) absorb their own
+        // clicks first via SwiftUI's gesture priority, so this only
+        // fires when the user actually clicked on a "blank" part of
+        // the row (margins around the title, gap between title and
+        // time, etc). Without this you had to land precisely on the
+        // text glyphs to start editing.
+        .onTapGesture {
+            focused.wrappedValue = note.id
+        }
+        // Confirmation alert — only used for PERMANENT delete (from
+        // the Trash view). Soft-delete (Active/Archived → Trash) goes
+        // through silently because Trash is recoverable.
+        .alert(L("Permanently delete?", "彻底删除?"),
+               isPresented: $confirmingDelete) {
+            Button(L("Delete forever", "彻底删除"), role: .destructive) {
+                ctx.delete(note)
+                try? ctx.save()
+            }
+            Button(L("Cancel", "取消"), role: .cancel) {}
+        } message: {
+            Text(L("This task can't be recovered after a permanent delete.",
+                   "彻底删除后此任务无法恢复。"))
+        }
+    }
+
+    // MARK: - Action buttons
+
+    /// Left action: archive / unarchive (in active/archived view) or
+    /// restore (in trash view). Icon + tooltip flip based on state.
+    @ViewBuilder
+    private var primaryActionButton: some View {
+        if note.deleted {
+            // Trash row → restore button
+            Button {
+                let now = Date()
+                note.deleted = false
+                note.deletedAt = nil
+                note.updatedAt = now
+            } label: {
+                actionIcon("arrow.uturn.backward", tint: CyberPalette.neonCyan)
+            }
+            .buttonStyle(.plain)
+            .help(L("Restore (back to active)", "还原(回到活动)"))
+        } else {
+            // Active or archived row → archive toggle
+            Button {
+                let now = Date()
+                note.archived.toggle()
+                note.archivedAt = note.archived ? now : nil
+                note.updatedAt = now
+            } label: {
+                actionIcon(note.archived ? "tray.and.arrow.up" : "archivebox",
+                           tint: CyberPalette.neonCyan)
+            }
+            .buttonStyle(.plain)
+            .help(note.archived
+                  ? L("Unarchive (back to active)", "解归档(回到活动)")
+                  : L("Archive", "归档"))
+        }
+    }
+
+    /// Right action: trash / permanent-delete. In active/archived
+    /// view, soft-delete goes through with no confirmation (the row
+    /// is recoverable from Trash). In trash view, this is the
+    /// destructive permanent-delete path with a confirmation alert.
+    @ViewBuilder
+    private var deleteActionButton: some View {
+        Button {
+            if note.deleted {
+                confirmingDelete = true   // permanent — needs confirmation
+            } else {
+                let now = Date()
+                note.deleted = true
+                note.deletedAt = now
+                note.updatedAt = now
+            }
+        } label: {
+            actionIcon(note.deleted ? "trash.slash" : "trash",
+                       tint: CyberPalette.neonPink)
+        }
+        .buttonStyle(.plain)
+        .help(note.deleted
+              ? L("Delete forever", "彻底删除")
+              : L("Move to trash", "移到回收站"))
+    }
+
+    /// Shared visual style for the two action icons — same size / shape /
+    /// hover treatment so the cluster reads as a unit.
+    private func actionIcon(_ symbol: String, tint: Color) -> some View {
+        Image(systemName: symbol)
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(tint.opacity(0.85))
+            .frame(width: 18, height: 18)
+            .background(
+                Circle().fill(tint.opacity(0.10))
+            )
+            .overlay(
+                Circle().stroke(tint.opacity(0.3), lineWidth: 0.5)
+            )
+        .contextMenu {
+            if !note.deleted {
+                Button {
+                    note.pinned.toggle()
+                    note.updatedAt = Date()
+                } label: {
+                    Label(note.pinned
+                          ? L("Unpin", "取消置顶")
+                          : L("Pin to top", "置顶"),
+                          systemImage: note.pinned ? "pin.slash" : "pin")
+                }
+                Button(action: onExpand) {
+                    Label(L("Open editor", "打开编辑器"), systemImage: "doc.text")
+                }
+                Divider()
+                Button {
+                    let now = Date()
+                    note.archived.toggle()
+                    note.archivedAt = note.archived ? now : nil
+                    note.updatedAt = now
+                } label: {
+                    Label(note.archived
+                          ? L("Unarchive", "解归档")
+                          : L("Archive", "归档"),
+                          systemImage: note.archived ? "tray.and.arrow.up" : "archivebox")
+                }
+                Button {
+                    let now = Date()
+                    note.deleted = true
+                    note.deletedAt = now
+                    note.updatedAt = now
+                } label: {
+                    Label(L("Move to trash", "移到回收站"), systemImage: "trash")
+                }
+            } else {
+                // Trash row context menu
+                Button {
+                    let now = Date()
+                    note.deleted = false
+                    note.deletedAt = nil
+                    note.updatedAt = now
+                } label: {
+                    Label(L("Restore", "还原"), systemImage: "arrow.uturn.backward")
+                }
+                Button(role: .destructive) {
+                    confirmingDelete = true
+                } label: {
+                    Label(L("Delete forever", "彻底删除"), systemImage: "trash.slash")
+                }
+            }
+        }
+    }
+
+    private var hasBody: Bool {
+        !note.bodyMarkdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+}

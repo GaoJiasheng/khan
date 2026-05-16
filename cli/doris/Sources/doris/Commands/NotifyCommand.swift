@@ -20,8 +20,11 @@ struct NotifyCommand: AsyncParsableCommand {
     @Option(help: "Display mode: banner (auto-dismiss) or fix (persistent).")
     var mode: String = DisplayMode.banner.rawValue
 
-    @Option(help: "Source kind: claudeCode, cliGeneric, scheduledJob, userMemo, share, manual.")
+    @Option(help: "Source kind: claudeCode, codex, chatgpt, trae, vscode, feishu, cliGeneric, scheduledJob, userMemo, share, manual.")
     var source: String = SourceKind.cliGeneric.rawValue
+
+    @Option(help: "Severity: critical (red, urgent), reminder (amber, soft nudge), info (gray, background log). Default: info.")
+    var level: String = EventLevel.info.rawValue
 
     @Option(name: .customLong("app-id"), help: "Free-form source app id, e.g. 'claude-code'.")
     var sourceAppId: String?
@@ -87,6 +90,9 @@ struct NotifyCommand: AsyncParsableCommand {
         guard let kind = SourceKind(rawValue: source) else {
             dieUsage("doris: invalid --source '\(source)'.")
         }
+        guard let eventLevel = EventLevel(rawValue: level) else {
+            dieUsage("doris: invalid --level '\(level)'. Use 'critical', 'reminder', or 'info'.")
+        }
         var clickAction: ClickAction?
         if let urlStr = clickURL, let url = URL(string: urlStr) {
             clickAction = .openURL(url)
@@ -118,6 +124,7 @@ struct NotifyCommand: AsyncParsableCommand {
             displayMode: displayMode,
             source: kind,
             sourceAppId: sourceAppId,
+            level: eventLevel,
             clickAction: clickAction,
             broadcast: broadcast
         )

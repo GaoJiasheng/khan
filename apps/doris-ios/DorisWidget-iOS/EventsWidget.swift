@@ -4,48 +4,48 @@ import SwiftData
 import DorisCore
 import DorisUI
 
-struct InboxWidget: Widget {
-    let kind: String = "com.gavin.doris.widget.inbox"
+struct EventsWidget: Widget {
+    let kind: String = "com.gavin.doris.widget.events"
 
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: InboxProvider()) { entry in
-            InboxWidgetView(entry: entry)
+        StaticConfiguration(kind: kind, provider: EventsProvider()) { entry in
+            EventsWidgetView(entry: entry)
         }
-        .configurationDisplayName("Doris Inbox")
-        .description("Recent unread messages.")
+        .configurationDisplayName("Doris Events")
+        .description("Recent events.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular])
     }
 }
 
-struct InboxEntry: TimelineEntry {
+struct EventsEntry: TimelineEntry {
     let date: Date
-    let messages: [InboxSnapshot]
+    let messages: [EventsSnapshot]
 }
 
-struct InboxSnapshot: Identifiable {
+struct EventsSnapshot: Identifiable {
     let id: UUID
     let title: String
     let source: String
     let receivedAt: Date
 }
 
-struct InboxProvider: TimelineProvider {
-    func placeholder(in context: Context) -> InboxEntry {
-        InboxEntry(date: .now, messages: [])
+struct EventsProvider: TimelineProvider {
+    func placeholder(in context: Context) -> EventsEntry {
+        EventsEntry(date: .now, messages: [])
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (InboxEntry) -> Void) {
+    func getSnapshot(in context: Context, completion: @escaping (EventsEntry) -> Void) {
         completion(load())
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<InboxEntry>) -> Void) {
+    func getTimeline(in context: Context, completion: @escaping (Timeline<EventsEntry>) -> Void) {
         let next = Date().addingTimeInterval(15 * 60)
         completion(Timeline(entries: [load()], policy: .after(next)))
     }
 
-    private func load() -> InboxEntry {
+    private func load() -> EventsEntry {
         guard let container = try? ModelContainerFactory.make(useCloudKit: true) else {
-            return InboxEntry(date: .now, messages: [])
+            return EventsEntry(date: .now, messages: [])
         }
         let context = ModelContext(container)
         var descriptor = FetchDescriptor<Message>(
@@ -53,23 +53,23 @@ struct InboxProvider: TimelineProvider {
         )
         descriptor.fetchLimit = 5
         let messages = (try? context.fetch(descriptor)) ?? []
-        return InboxEntry(
+        return EventsEntry(
             date: .now,
             messages: messages.map {
-                InboxSnapshot(id: $0.id, title: $0.title, source: $0.source.displayName, receivedAt: $0.receivedAt)
+                EventsSnapshot(id: $0.id, title: $0.title, source: $0.source.displayName, receivedAt: $0.receivedAt)
             }
         )
     }
 }
 
-struct InboxWidgetView: View {
-    let entry: InboxEntry
+struct EventsWidgetView: View {
+    let entry: EventsEntry
 
     var body: some View {
         if entry.messages.isEmpty {
             VStack {
-                Image(systemName: "tray")
-                Text("Inbox empty")
+                Image(systemName: "bell.slash")
+                Text("No events")
                     .font(.caption)
             }
         } else {

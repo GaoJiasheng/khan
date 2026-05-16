@@ -1,0 +1,1522 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0138CA7ECECF75D81A221C26 /* DorisUI in Frameworks */ = {isa = PBXBuildFile; productRef = 0971CEB283C981E06A5B6137 /* DorisUI */; };
+		0573E0604AA69758A8931230 /* DorisIntentsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AC3F2A4FFB36D66A3B4097B /* DorisIntentsBundle.swift */; };
+		063391B1AD51BEFF94090ED9 /* DorisWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 235E4E6BF62F710B10B2A744 /* DorisWidgetBundle.swift */; };
+		0E47D461AC54CAD4B526B172 /* DynamicNotchKit in Frameworks */ = {isa = PBXBuildFile; productRef = 338965571C4ABCBED67F1739 /* DynamicNotchKit */; };
+		126B80D5F495F7A606F0F7CA /* EventsWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB34BF47B2278B68E9DAE577 /* EventsWidget.swift */; };
+		14161D6853103C65305E90E2 /* doris-avatar-trimmed.png in Resources */ = {isa = PBXBuildFile; fileRef = F13C5714B3654AB630384690 /* doris-avatar-trimmed.png */; };
+		187793297F238EBEDE789CF3 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57AA392218328D9FF434AF27 /* ShareViewController.swift */; };
+		18DCA92C843F79A3D19BC210 /* AnchorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA324399D378502240BA8470 /* AnchorView.swift */; };
+		1F8E3BD8666AD8CB82B7E527 /* DorisIPC in Frameworks */ = {isa = PBXBuildFile; productRef = 1953B57B2CEBDCC26D01F406 /* DorisIPC */; };
+		219B4A18A9E56D3980082AFB /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B489FE10D147F23B18789AFF /* AppDelegate.swift */; };
+		25036E4CBA4693D9116F0370 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9FD36425E135CC9E362FCB4 /* AppRouter.swift */; };
+		273AE726A4DC3809870A60FB /* OpenSidebarIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1DCF61C45573AFCC4F934A3 /* OpenSidebarIntent.swift */; };
+		2940649DA54FBE297BAA1B5A /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4739E02B1BDFA6BEFF3F866E /* ShareViewController.swift */; };
+		294983F21EEEC7DFB7A5E538 /* AppearanceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A8D4FCB090245F62C745832 /* AppearanceSettings.swift */; };
+		35112A479B47FFB163F1F9E9 /* DorisMacChrome in Frameworks */ = {isa = PBXBuildFile; productRef = D0FDF7CCD62DD6C044AF0CA7 /* DorisMacChrome */; };
+		3D8EAB7F8B417ED258C0765B /* AnchorController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F917FF55F7AE753CE04C0714 /* AnchorController.swift */; };
+		434DB57A49A8B0D99FDC2FC4 /* SidebarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 165BF99C90BB28EB26A5D3D1 /* SidebarController.swift */; };
+		466612C4F9BF3A250E8F0963 /* SidebarRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76B0F44E3C2D25836321C501 /* SidebarRootView.swift */; };
+		47ED5B5F98BD3CE3BB6745D4 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0CC25ABC1FEFF7EB8E7F34 /* AppDelegate.swift */; };
+		48CC44A9136AA529B293628C /* MarkMessageDoneIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEB137662D3DAC600C955D36 /* MarkMessageDoneIntent.swift */; };
+		4C1CEAF18F24677CAA6C453A /* DorisApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBB8053A703823FBC40C2D8 /* DorisApp.swift */; };
+		4D1DACEE3B5F8E6A874A90A7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0ECD70CD58C18BA0CEC81EB /* SettingsView.swift */; };
+		51389334F27B6EF35EB52DEC /* Doris.sdef in Resources */ = {isa = PBXBuildFile; fileRef = 64155F5EDC6DD796F45AED03 /* Doris.sdef */; };
+		54F5154519AC049C9E0EB47D /* AddNoteIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 158FE15ABF0D2A4C3DC8BAC3 /* AddNoteIntent.swift */; };
+		585D3E3760BE6A4849A2A6D3 /* NotesScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EBAD6C975AC7AE7F032E9F4 /* NotesScreen.swift */; };
+		5C3EF76E0DD7FB08F51AC55C /* AnchorAvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68DA5B4E4262C02B2CEA72DF /* AnchorAvatarView.swift */; };
+		6058073F1675ED142AFD6CB8 /* FixNotchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5943A6757B5692B643221E /* FixNotchView.swift */; };
+		60F8A5E4F93A9559EE50D3E0 /* VoiceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 731C0A7D3A8391C199356BFB /* VoiceSettings.swift */; };
+		620E63122116A1C8819CDD3E /* doris-avatar-fullbody.png in Resources */ = {isa = PBXBuildFile; fileRef = 9A35E4AD7194BBDC008223FF /* doris-avatar-fullbody.png */; };
+		645E991454C157F057473B40 /* DorisUI in Frameworks */ = {isa = PBXBuildFile; productRef = 0E95D8F9B607EF8D53CFAD9C /* DorisUI */; };
+		67321342134C8C94E59F7225 /* VoiceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 977DBCC8D26ABB074DFF788B /* VoiceController.swift */; };
+		6785932C8C20FE6106D45907 /* DorisCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7441423CEB7BB2DEB9E04F7F /* DorisCommands.swift */; };
+		6938EF7A119C77219E20BB45 /* AddNoteIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 158FE15ABF0D2A4C3DC8BAC3 /* AddNoteIntent.swift */; };
+		7040B677FFD658642BA65190 /* DorisCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2C48574E347B4EE76D140986 /* DorisCore */; };
+		70E79B824FCB7230A27D4D1B /* PushNotificationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5860F89D0929C6440DEA0036 /* PushNotificationIntent.swift */; };
+		75A567DCBBD5A17176094D43 /* DorisScriptCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B6A23241EBA8A24694833B /* DorisScriptCommands.swift */; };
+		762208DDC9AAE1996EF6F987 /* ClickActionRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10C3EAA2191386EDE59801BF /* ClickActionRouter.swift */; };
+		7650F868B576783BBDB02F79 /* IPCFSEventReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FFE8BFB4CAA1D8CE956C57D /* IPCFSEventReader.swift */; };
+		78CA3520A42A3E3A386F56C4 /* DorisIPC in Frameworks */ = {isa = PBXBuildFile; productRef = A94341D713EC4ECB57B278E8 /* DorisIPC */; };
+		7955A88D3B0E011532D4A845 /* SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD66496AECE70963437B750C /* SettingsWindow.swift */; };
+		7AB729215471A36A3D7DD39B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7EF4AEE04447F0F367068947 /* Assets.xcassets */; };
+		7CAA2583EEF2F330507A408C /* DorisUI in Frameworks */ = {isa = PBXBuildFile; productRef = 60993E93C5706A24F9A3A2F8 /* DorisUI */; };
+		7FD008279B8E6C17E1FF1A8E /* MenuBarAvatarWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0239401BE0698A4354F48B33 /* MenuBarAvatarWindow.swift */; };
+		7FDF4AF55B5C0F11CA0F3A5F /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = E2C43AC1A96796BEB25788BA /* README.md */; };
+		80D2E4BE6C0981FAD23590B1 /* DorisApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D711C527DD44237BA4A5C40D /* DorisApp.swift */; };
+		8601DED9834F5B859A2A9584 /* DorisCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5EB3447F0CBA9ECEA229AFC0 /* DorisCore */; };
+		873D22480630A82BE85D85FA /* Info-macOS.plist in Resources */ = {isa = PBXBuildFile; fileRef = 203F13FBCEF346A85F87A07F /* Info-macOS.plist */; };
+		876FD52E07C7DC2ED1B0F03C /* InstallCLIWizardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96C701D79642DC9F6DFC725C /* InstallCLIWizardView.swift */; };
+		89C061EF7EC3EE97B38441FA /* Info-iOS.plist in Resources */ = {isa = PBXBuildFile; fileRef = 33E29E09A7E0346CA78ADE04 /* Info-iOS.plist */; };
+		8ED5DFED5A53891D5722EA26 /* DorisCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4124A40499C64EAE53B1128A /* DorisCore */; };
+		982C365E820E9632BE11F092 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 4B931B0521591438F422CD68 /* KeyboardShortcuts */; };
+		99A039F0737F80C5295506D0 /* StatusBarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9124431BB7A8127A5AE105A1 /* StatusBarItem.swift */; };
+		A0F7FF72AF4875483A24DF83 /* DorisUI in Frameworks */ = {isa = PBXBuildFile; productRef = 9431A062C82DE62CD42CD56E /* DorisUI */; };
+		A6855D156B8AB8040C74AFD6 /* HotkeyEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A957823B6968DE8D6D1C19A9 /* HotkeyEngine.swift */; };
+		AC5618F120AE8AEA3954A591 /* doris-avatar.png in Resources */ = {isa = PBXBuildFile; fileRef = CE1DB98BBE156A6C003C5363 /* doris-avatar.png */; };
+		C0E36B64A06FE09BF55B87AA /* MarkMessageDoneIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEB137662D3DAC600C955D36 /* MarkMessageDoneIntent.swift */; };
+		C8A90F820AABDC6FE94E2417 /* DorisCore in Frameworks */ = {isa = PBXBuildFile; productRef = 807EB227D46D06301C8887E2 /* DorisCore */; };
+		C925620D6935B31ED0C947F8 /* OpenSidebarIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1DCF61C45573AFCC4F934A3 /* OpenSidebarIntent.swift */; };
+		CEB4D62898B42D02C13B7429 /* DorisIntentsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AC3F2A4FFB36D66A3B4097B /* DorisIntentsBundle.swift */; };
+		D01C3F8225DA23A3FCD01FD6 /* VoiceFloater.swift in Sources */ = {isa = PBXBuildFile; fileRef = F95CBB9E79FDA43E0755BF23 /* VoiceFloater.swift */; };
+		D401050CDE48DE017E2AC2F9 /* DorisWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ACC181989765CFA4AACB513 /* DorisWidgetBundle.swift */; };
+		D9A5A2014C165680B7BD0DA4 /* DorisCore in Frameworks */ = {isa = PBXBuildFile; productRef = 730F2C1AAAC114AFFE964277 /* DorisCore */; };
+		DC3062E4DFBF622D3BAD70ED /* DorisCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2DBDD4CD5705CFC775419428 /* DorisCore */; };
+		DEDAD6EE1603ABB0F65DE5FA /* TodayScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D8B8DA6961CB3BF53478514 /* TodayScreen.swift */; };
+		15CA868ED8D246FEAF5A6BF8 /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54F12F74DFF14C6CB24B4E38 /* RootTabView.swift */; };
+		A78F6EE3AFBD49A68134B053 /* EventsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7343327D3A4F41348742B7DA /* EventsScreen.swift */; };
+		E04B3E365C9DB9EDDA3F16B9 /* OpenBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1447CB53626E37F1DD855B25 /* OpenBarController.swift */; };
+		E9874DBDAB1A27FE48686FCB /* SpeechRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB8853F1317B2486DAB7E291 /* SpeechRecognizer.swift */; };
+		EDF671F1202F7239EC0D7109 /* PushNotificationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5860F89D0929C6440DEA0036 /* PushNotificationIntent.swift */; };
+		EF69E97D44844A37B41713D4 /* NotchExpandedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9316D6DBC3000797FECDD49A /* NotchExpandedView.swift */; };
+		F351A5EDD34E87DEF0EFC0A1 /* AnchorState.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED774E489BE2AD3814737812 /* AnchorState.swift */; };
+		F44F0262B381BA936FD37F16 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0457AEB878C7FB706DFC7635 /* SettingsScreen.swift */; };
+		F548C0123D3DCE76BD293315 /* NoteDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7263649E21CCBD2C930F4317 /* NoteDetailScreen.swift */; };
+		FCE5B30D06A345D7F7F149AD /* MainWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC6D9364F0DDD9193D0C20C8 /* MainWindowView.swift */; };
+		3A15A5D415A4416D89930248 /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6491F8FDACC4A73AA24FD92 /* MainWindowController.swift */; };
+		FCF68FD5D0FF4E8842C08219 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E06A5801ADADFF5C8CC26B70 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0239401BE0698A4354F48B33 /* MenuBarAvatarWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAvatarWindow.swift; sourceTree = "<group>"; };
+		0457AEB878C7FB706DFC7635 /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
+		0C7BCF47ED89E667C0D0787C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		10C3EAA2191386EDE59801BF /* ClickActionRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickActionRouter.swift; sourceTree = "<group>"; };
+		1447CB53626E37F1DD855B25 /* OpenBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenBarController.swift; sourceTree = "<group>"; };
+		158FE15ABF0D2A4C3DC8BAC3 /* AddNoteIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddNoteIntent.swift; sourceTree = "<group>"; };
+		165BF99C90BB28EB26A5D3D1 /* SidebarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarController.swift; sourceTree = "<group>"; };
+		1B5D66FCD33BC71B429C4C8F /* DorisShareExtension-macOS.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "DorisShareExtension-macOS.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		203CFD2E1C735CEEA3435589 /* Doris-macOS-dev.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Doris-macOS-dev.entitlements"; sourceTree = "<group>"; };
+		203F13FBCEF346A85F87A07F /* Info-macOS.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Info-macOS.plist"; sourceTree = "<group>"; };
+		235E4E6BF62F710B10B2A744 /* DorisWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DorisWidgetBundle.swift; sourceTree = "<group>"; };
+		25C8267A2810EE34195F1355 /* DorisWidget-iOS.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = "DorisWidget-iOS.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		30F27EC68D68BB6CEE411278 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		32F5496B0D68C1324165BE25 /* DorisShareExtension-iOS.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = "DorisShareExtension-iOS.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		33E29E09A7E0346CA78ADE04 /* Info-iOS.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Info-iOS.plist"; sourceTree = "<group>"; };
+		34B6A23241EBA8A24694833B /* DorisScriptCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DorisScriptCommands.swift; sourceTree = "<group>"; };
+		3ACC181989765CFA4AACB513 /* DorisWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DorisWidgetBundle.swift; sourceTree = "<group>"; };
+		3EBAD6C975AC7AE7F032E9F4 /* NotesScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesScreen.swift; sourceTree = "<group>"; };
+		4739E02B1BDFA6BEFF3F866E /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		50476AECFF2B8FC223258807 /* DorisMacChrome */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DorisMacChrome; path = packages/DorisMacChrome; sourceTree = SOURCE_ROOT; };
+		57AA392218328D9FF434AF27 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		5860F89D0929C6440DEA0036 /* PushNotificationIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotificationIntent.swift; sourceTree = "<group>"; };
+		5AC3F2A4FFB36D66A3B4097B /* DorisIntentsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DorisIntentsBundle.swift; sourceTree = "<group>"; };
+		5FFE8BFB4CAA1D8CE956C57D /* IPCFSEventReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPCFSEventReader.swift; sourceTree = "<group>"; };
+		64155F5EDC6DD796F45AED03 /* Doris.sdef */ = {isa = PBXFileReference; path = Doris.sdef; sourceTree = "<group>"; };
+		650013FBBD000D878E29B94F /* DorisCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DorisCore; path = packages/DorisCore; sourceTree = SOURCE_ROOT; };
+		68DA5B4E4262C02B2CEA72DF /* AnchorAvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnchorAvatarView.swift; sourceTree = "<group>"; };
+		69D39344FFE8CEDB3EBCAF47 /* Doris-iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "Doris-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6A8D4FCB090245F62C745832 /* AppearanceSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceSettings.swift; sourceTree = "<group>"; };
+		7263649E21CCBD2C930F4317 /* NoteDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteDetailScreen.swift; sourceTree = "<group>"; };
+		731C0A7D3A8391C199356BFB /* VoiceSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceSettings.swift; sourceTree = "<group>"; };
+		7441423CEB7BB2DEB9E04F7F /* DorisCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DorisCommands.swift; sourceTree = "<group>"; };
+		76B0F44E3C2D25836321C501 /* SidebarRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarRootView.swift; sourceTree = "<group>"; };
+		7A5943A6757B5692B643221E /* FixNotchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixNotchView.swift; sourceTree = "<group>"; };
+		7D8B8DA6961CB3BF53478514 /* TodayScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayScreen.swift; sourceTree = "<group>"; };
+		54F12F74DFF14C6CB24B4E38 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
+		7343327D3A4F41348742B7DA /* EventsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsScreen.swift; sourceTree = "<group>"; };
+		7EF4AEE04447F0F367068947 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		84456DD8EB1EDDEC13EC70AE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		8551C8092D18325AF6DBB4E7 /* DorisWidget-macOS.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "DorisWidget-macOS.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		90FB0EBD7C42E77F8ABC3C6D /* DorisIntents-iOS.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = "DorisIntents-iOS.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9124431BB7A8127A5AE105A1 /* StatusBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarItem.swift; sourceTree = "<group>"; };
+		9316D6DBC3000797FECDD49A /* NotchExpandedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchExpandedView.swift; sourceTree = "<group>"; };
+		96C701D79642DC9F6DFC725C /* InstallCLIWizardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallCLIWizardView.swift; sourceTree = "<group>"; };
+		977DBCC8D26ABB074DFF788B /* VoiceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceController.swift; sourceTree = "<group>"; };
+		98A3FC079DDFBF06BE116BE0 /* DorisShareExtension-macOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "DorisShareExtension-macOS.entitlements"; sourceTree = "<group>"; };
+		9A35E4AD7194BBDC008223FF /* doris-avatar-fullbody.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "doris-avatar-fullbody.png"; sourceTree = "<group>"; };
+		9BC4E4D9520090DC1F0AAF0A /* DorisIntents-macOS.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "DorisIntents-macOS.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9FBB8053A703823FBC40C2D8 /* DorisApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DorisApp.swift; sourceTree = "<group>"; };
+		A584C5F63CBA4D5E8A7D7E6E /* DorisWidget-iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "DorisWidget-iOS.entitlements"; sourceTree = "<group>"; };
+		A61E213B461498BA248EB494 /* DorisWidget-macOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "DorisWidget-macOS.entitlements"; sourceTree = "<group>"; };
+		A957823B6968DE8D6D1C19A9 /* HotkeyEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyEngine.swift; sourceTree = "<group>"; };
+		AD66496AECE70963437B750C /* SettingsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindow.swift; sourceTree = "<group>"; };
+		AEB137662D3DAC600C955D36 /* MarkMessageDoneIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkMessageDoneIntent.swift; sourceTree = "<group>"; };
+		B1DCF61C45573AFCC4F934A3 /* OpenSidebarIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenSidebarIntent.swift; sourceTree = "<group>"; };
+		B489FE10D147F23B18789AFF /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		BB34BF47B2278B68E9DAE577 /* EventsWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsWidget.swift; sourceTree = "<group>"; };
+		BB71668C471E5FF4D4AF7C06 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		BC455D587B89C7FF473794D7 /* Doris-macOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Doris-macOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CC6D9364F0DDD9193D0C20C8 /* MainWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowView.swift; sourceTree = "<group>"; };
+		B6491F8FDACC4A73AA24FD92 /* MainWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowController.swift; sourceTree = "<group>"; };
+		CE1DB98BBE156A6C003C5363 /* doris-avatar.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "doris-avatar.png"; sourceTree = "<group>"; };
+		D0ECD70CD58C18BA0CEC81EB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		D711C527DD44237BA4A5C40D /* DorisApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DorisApp.swift; sourceTree = "<group>"; };
+		D9FAEC524DB6AA1CA56A6024 /* DorisShareExtension-iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "DorisShareExtension-iOS.entitlements"; sourceTree = "<group>"; };
+		D9FD36425E135CC9E362FCB4 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
+		DB8853F1317B2486DAB7E291 /* SpeechRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognizer.swift; sourceTree = "<group>"; };
+		E06A5801ADADFF5C8CC26B70 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		E2C43AC1A96796BEB25788BA /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		EB0CC25ABC1FEFF7EB8E7F34 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		EB5AC31A5A3E443FAE68C56F /* DorisIntents.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DorisIntents.entitlements; sourceTree = "<group>"; };
+		ED774E489BE2AD3814737812 /* AnchorState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnchorState.swift; sourceTree = "<group>"; };
+		F13C5714B3654AB630384690 /* doris-avatar-trimmed.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "doris-avatar-trimmed.png"; sourceTree = "<group>"; };
+		F2A0CEF0A5026DBA42892F9F /* DorisUI */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DorisUI; path = packages/DorisUI; sourceTree = SOURCE_ROOT; };
+		F917FF55F7AE753CE04C0714 /* AnchorController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnchorController.swift; sourceTree = "<group>"; };
+		F95CBB9E79FDA43E0755BF23 /* VoiceFloater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceFloater.swift; sourceTree = "<group>"; };
+		FA324399D378502240BA8470 /* AnchorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnchorView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		0D1A84A73038530643D76088 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8ED5DFED5A53891D5722EA26 /* DorisCore in Frameworks */,
+				645E991454C157F057473B40 /* DorisUI in Frameworks */,
+				35112A479B47FFB163F1F9E9 /* DorisMacChrome in Frameworks */,
+				0E47D461AC54CAD4B526B172 /* DynamicNotchKit in Frameworks */,
+				982C365E820E9632BE11F092 /* KeyboardShortcuts in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		24D15AAD7148D43EE25DE953 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DC3062E4DFBF622D3BAD70ED /* DorisCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		59001B5829DE7C1D53758DBD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7040B677FFD658642BA65190 /* DorisCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		829E34DD5D2215201F867D4E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C8A90F820AABDC6FE94E2417 /* DorisCore in Frameworks */,
+				7CAA2583EEF2F330507A408C /* DorisUI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1E00AB24475EE1A830730FB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1F8E3BD8666AD8CB82B7E527 /* DorisIPC in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A726262E68D6AED55E936894 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D9A5A2014C165680B7BD0DA4 /* DorisCore in Frameworks */,
+				0138CA7ECECF75D81A221C26 /* DorisUI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DF9FDB9C854EAC2CD6D64686 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				78CA3520A42A3E3A386F56C4 /* DorisIPC in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F0C21E71255A3E8228B2ED9A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8601DED9834F5B859A2A9584 /* DorisCore in Frameworks */,
+				A0F7FF72AF4875483A24DF83 /* DorisUI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0CE106F7AD9579029B3D8857 /* Scenes */ = {
+			isa = PBXGroup;
+			children = (
+				7263649E21CCBD2C930F4317 /* NoteDetailScreen.swift */,
+				3EBAD6C975AC7AE7F032E9F4 /* NotesScreen.swift */,
+				0457AEB878C7FB706DFC7635 /* SettingsScreen.swift */,
+				7D8B8DA6961CB3BF53478514 /* TodayScreen.swift */,
+				54F12F74DFF14C6CB24B4E38 /* RootTabView.swift */,
+				7343327D3A4F41348742B7DA /* EventsScreen.swift */,
+			);
+			path = Scenes;
+			sourceTree = "<group>";
+		};
+		13DC2F52379C471A7679C1AF /* DorisIntents */ = {
+			isa = PBXGroup;
+			children = (
+				158FE15ABF0D2A4C3DC8BAC3 /* AddNoteIntent.swift */,
+				EB5AC31A5A3E443FAE68C56F /* DorisIntents.entitlements */,
+				5AC3F2A4FFB36D66A3B4097B /* DorisIntentsBundle.swift */,
+				33E29E09A7E0346CA78ADE04 /* Info-iOS.plist */,
+				203F13FBCEF346A85F87A07F /* Info-macOS.plist */,
+				AEB137662D3DAC600C955D36 /* MarkMessageDoneIntent.swift */,
+				B1DCF61C45573AFCC4F934A3 /* OpenSidebarIntent.swift */,
+				5860F89D0929C6440DEA0036 /* PushNotificationIntent.swift */,
+			);
+			path = DorisIntents;
+			sourceTree = "<group>";
+		};
+		1A4C05A874AD4097CDBF0954 /* Doris-iOS */ = {
+			isa = PBXGroup;
+			children = (
+				7CC6E89BD5CDB8E87038F398 /* Resources */,
+				0CE106F7AD9579029B3D8857 /* Scenes */,
+				B489FE10D147F23B18789AFF /* AppDelegate.swift */,
+				9FBB8053A703823FBC40C2D8 /* DorisApp.swift */,
+			);
+			path = "Doris-iOS";
+			sourceTree = "<group>";
+		};
+		20E53C999CEB05428C13BC95 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				5197F4584204BB872E79F5E5 /* Avatar */,
+				7EF4AEE04447F0F367068947 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		27949FE873C0E086881C25C4 /* doris-ios */ = {
+			isa = PBXGroup;
+			children = (
+				1A4C05A874AD4097CDBF0954 /* Doris-iOS */,
+				795778FAFFF5FDB82EB47A23 /* DorisShareExtension-iOS */,
+				6C2FC1272B5E19481DC34923 /* DorisWidget-iOS */,
+			);
+			path = "doris-ios";
+			sourceTree = "<group>";
+		};
+		38EEE50D8FE5EDFBE6346142 /* FirstRun */ = {
+			isa = PBXGroup;
+			children = (
+				96C701D79642DC9F6DFC725C /* InstallCLIWizardView.swift */,
+			);
+			path = FirstRun;
+			sourceTree = "<group>";
+		};
+		48C192608B937D89AE0E0B04 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				650013FBBD000D878E29B94F /* DorisCore */,
+				50476AECFF2B8FC223258807 /* DorisMacChrome */,
+				F2A0CEF0A5026DBA42892F9F /* DorisUI */,
+			);
+			path = Packages;
+			sourceTree = "<group>";
+		};
+		4DC01FC60F6CF7BCE4996810 = {
+			isa = PBXGroup;
+			children = (
+				E14EFE8824A5C4A12088ADE3 /* apps */,
+				DDB5F500B343221EF0FD6E43 /* extensions */,
+				48C192608B937D89AE0E0B04 /* Packages */,
+				D40C6A9ECD4DAED8465F264B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		5197F4584204BB872E79F5E5 /* Avatar */ = {
+			isa = PBXGroup;
+			children = (
+				9A35E4AD7194BBDC008223FF /* doris-avatar-fullbody.png */,
+				F13C5714B3654AB630384690 /* doris-avatar-trimmed.png */,
+				CE1DB98BBE156A6C003C5363 /* doris-avatar.png */,
+				E2C43AC1A96796BEB25788BA /* README.md */,
+			);
+			path = Avatar;
+			sourceTree = "<group>";
+		};
+		520906B3A5B29574F94B0A7C /* Notch */ = {
+			isa = PBXGroup;
+			children = (
+				10C3EAA2191386EDE59801BF /* ClickActionRouter.swift */,
+				7A5943A6757B5692B643221E /* FixNotchView.swift */,
+				9316D6DBC3000797FECDD49A /* NotchExpandedView.swift */,
+			);
+			path = Notch;
+			sourceTree = "<group>";
+		};
+		558FA949130E3E3007A7074B /* Sidebar */ = {
+			isa = PBXGroup;
+			children = (
+				1447CB53626E37F1DD855B25 /* OpenBarController.swift */,
+				165BF99C90BB28EB26A5D3D1 /* SidebarController.swift */,
+				76B0F44E3C2D25836321C501 /* SidebarRootView.swift */,
+			);
+			path = Sidebar;
+			sourceTree = "<group>";
+		};
+		603CF3A3052C809FC46BBF73 /* doris-mac */ = {
+			isa = PBXGroup;
+			children = (
+				C3EEA4A884C63865DB5B375D /* Doris-macOS */,
+				A896903B37A13E650B483520 /* DorisShareExtension-macOS */,
+				FB6B83C9E611F91B37D4CCB6 /* DorisWidget-macOS */,
+			);
+			path = "doris-mac";
+			sourceTree = "<group>";
+		};
+		6C2FC1272B5E19481DC34923 /* DorisWidget-iOS */ = {
+			isa = PBXGroup;
+			children = (
+				A584C5F63CBA4D5E8A7D7E6E /* DorisWidget-iOS.entitlements */,
+				235E4E6BF62F710B10B2A744 /* DorisWidgetBundle.swift */,
+				BB34BF47B2278B68E9DAE577 /* EventsWidget.swift */,
+				BB71668C471E5FF4D4AF7C06 /* Info.plist */,
+			);
+			path = "DorisWidget-iOS";
+			sourceTree = "<group>";
+		};
+		6CDCCB245A7BF7C0F83EA9DD /* Scenes */ = {
+			isa = PBXGroup;
+			children = (
+				7441423CEB7BB2DEB9E04F7F /* DorisCommands.swift */,
+				CC6D9364F0DDD9193D0C20C8 /* MainWindowView.swift */,
+				B6491F8FDACC4A73AA24FD92 /* MainWindowController.swift */,
+				D0ECD70CD58C18BA0CEC81EB /* SettingsView.swift */,
+			);
+			path = Scenes;
+			sourceTree = "<group>";
+		};
+		6F04757BBA688D3295A98AE8 /* Voice */ = {
+			isa = PBXGroup;
+			children = (
+				D9FD36425E135CC9E362FCB4 /* AppRouter.swift */,
+				A957823B6968DE8D6D1C19A9 /* HotkeyEngine.swift */,
+				DB8853F1317B2486DAB7E291 /* SpeechRecognizer.swift */,
+				977DBCC8D26ABB074DFF788B /* VoiceController.swift */,
+				F95CBB9E79FDA43E0755BF23 /* VoiceFloater.swift */,
+				731C0A7D3A8391C199356BFB /* VoiceSettings.swift */,
+			);
+			path = Voice;
+			sourceTree = "<group>";
+		};
+		795778FAFFF5FDB82EB47A23 /* DorisShareExtension-iOS */ = {
+			isa = PBXGroup;
+			children = (
+				D9FAEC524DB6AA1CA56A6024 /* DorisShareExtension-iOS.entitlements */,
+				0C7BCF47ED89E667C0D0787C /* Info.plist */,
+				57AA392218328D9FF434AF27 /* ShareViewController.swift */,
+			);
+			path = "DorisShareExtension-iOS";
+			sourceTree = "<group>";
+		};
+		7CC6E89BD5CDB8E87038F398 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				E06A5801ADADFF5C8CC26B70 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		8AAB2A0AACADF45F7D714C17 /* AppleScript */ = {
+			isa = PBXGroup;
+			children = (
+				64155F5EDC6DD796F45AED03 /* Doris.sdef */,
+				34B6A23241EBA8A24694833B /* DorisScriptCommands.swift */,
+			);
+			path = AppleScript;
+			sourceTree = "<group>";
+		};
+		8AF4A70239BF05E3D95512E8 /* Anchor */ = {
+			isa = PBXGroup;
+			children = (
+				68DA5B4E4262C02B2CEA72DF /* AnchorAvatarView.swift */,
+				F917FF55F7AE753CE04C0714 /* AnchorController.swift */,
+				ED774E489BE2AD3814737812 /* AnchorState.swift */,
+				FA324399D378502240BA8470 /* AnchorView.swift */,
+				6A8D4FCB090245F62C745832 /* AppearanceSettings.swift */,
+				0239401BE0698A4354F48B33 /* MenuBarAvatarWindow.swift */,
+				AD66496AECE70963437B750C /* SettingsWindow.swift */,
+				9124431BB7A8127A5AE105A1 /* StatusBarItem.swift */,
+			);
+			path = Anchor;
+			sourceTree = "<group>";
+		};
+		A896903B37A13E650B483520 /* DorisShareExtension-macOS */ = {
+			isa = PBXGroup;
+			children = (
+				98A3FC079DDFBF06BE116BE0 /* DorisShareExtension-macOS.entitlements */,
+				84456DD8EB1EDDEC13EC70AE /* Info.plist */,
+				4739E02B1BDFA6BEFF3F866E /* ShareViewController.swift */,
+			);
+			path = "DorisShareExtension-macOS";
+			sourceTree = "<group>";
+		};
+		C3EEA4A884C63865DB5B375D /* Doris-macOS */ = {
+			isa = PBXGroup;
+			children = (
+				8AF4A70239BF05E3D95512E8 /* Anchor */,
+				8AAB2A0AACADF45F7D714C17 /* AppleScript */,
+				38EEE50D8FE5EDFBE6346142 /* FirstRun */,
+				D009A337CB1205E4BA516AF2 /* IPC */,
+				520906B3A5B29574F94B0A7C /* Notch */,
+				20E53C999CEB05428C13BC95 /* Resources */,
+				6CDCCB245A7BF7C0F83EA9DD /* Scenes */,
+				558FA949130E3E3007A7074B /* Sidebar */,
+				6F04757BBA688D3295A98AE8 /* Voice */,
+				EB0CC25ABC1FEFF7EB8E7F34 /* AppDelegate.swift */,
+				203CFD2E1C735CEEA3435589 /* Doris-macOS-dev.entitlements */,
+				D711C527DD44237BA4A5C40D /* DorisApp.swift */,
+			);
+			path = "Doris-macOS";
+			sourceTree = "<group>";
+		};
+		D009A337CB1205E4BA516AF2 /* IPC */ = {
+			isa = PBXGroup;
+			children = (
+				5FFE8BFB4CAA1D8CE956C57D /* IPCFSEventReader.swift */,
+			);
+			path = IPC;
+			sourceTree = "<group>";
+		};
+		D40C6A9ECD4DAED8465F264B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				69D39344FFE8CEDB3EBCAF47 /* Doris-iOS.app */,
+				BC455D587B89C7FF473794D7 /* Doris-macOS.app */,
+				90FB0EBD7C42E77F8ABC3C6D /* DorisIntents-iOS.appex */,
+				9BC4E4D9520090DC1F0AAF0A /* DorisIntents-macOS.appex */,
+				32F5496B0D68C1324165BE25 /* DorisShareExtension-iOS.appex */,
+				1B5D66FCD33BC71B429C4C8F /* DorisShareExtension-macOS.appex */,
+				25C8267A2810EE34195F1355 /* DorisWidget-iOS.appex */,
+				8551C8092D18325AF6DBB4E7 /* DorisWidget-macOS.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		DDB5F500B343221EF0FD6E43 /* extensions */ = {
+			isa = PBXGroup;
+			children = (
+				13DC2F52379C471A7679C1AF /* DorisIntents */,
+			);
+			path = extensions;
+			sourceTree = "<group>";
+		};
+		E14EFE8824A5C4A12088ADE3 /* apps */ = {
+			isa = PBXGroup;
+			children = (
+				27949FE873C0E086881C25C4 /* doris-ios */,
+				603CF3A3052C809FC46BBF73 /* doris-mac */,
+			);
+			path = apps;
+			sourceTree = "<group>";
+		};
+		FB6B83C9E611F91B37D4CCB6 /* DorisWidget-macOS */ = {
+			isa = PBXGroup;
+			children = (
+				A61E213B461498BA248EB494 /* DorisWidget-macOS.entitlements */,
+				3ACC181989765CFA4AACB513 /* DorisWidgetBundle.swift */,
+				30F27EC68D68BB6CEE411278 /* Info.plist */,
+			);
+			path = "DorisWidget-macOS";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		256698BC6302E70D89149B94 /* DorisIntents-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 966F61744AFA5838441FEC6B /* Build configuration list for PBXNativeTarget "DorisIntents-iOS" */;
+			buildPhases = (
+				51CD3BA8953A54ACDA629D91 /* Sources */,
+				CB8AF033A4F566CC5A15B312 /* Resources */,
+				A1E00AB24475EE1A830730FB /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "DorisIntents-iOS";
+			packageProductDependencies = (
+				1953B57B2CEBDCC26D01F406 /* DorisIPC */,
+			);
+			productName = "DorisIntents-iOS";
+			productReference = 90FB0EBD7C42E77F8ABC3C6D /* DorisIntents-iOS.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		2833071FF23F0D8A790A7124 /* Doris-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0D3709749F5157401FD7B9F3 /* Build configuration list for PBXNativeTarget "Doris-iOS" */;
+			buildPhases = (
+				07BCB0D33BC576A33CED326A /* Sources */,
+				01E873DA253C1918A0532E56 /* Resources */,
+				829E34DD5D2215201F867D4E /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Doris-iOS";
+			packageProductDependencies = (
+				807EB227D46D06301C8887E2 /* DorisCore */,
+				60993E93C5706A24F9A3A2F8 /* DorisUI */,
+			);
+			productName = "Doris-iOS";
+			productReference = 69D39344FFE8CEDB3EBCAF47 /* Doris-iOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+		6D98964E81A5DE833DBB77C4 /* DorisWidget-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 677F0736F3C3DA43143DD4EF /* Build configuration list for PBXNativeTarget "DorisWidget-iOS" */;
+			buildPhases = (
+				AD61C2C8F48F9F75EA1BCDF5 /* Sources */,
+				F0C21E71255A3E8228B2ED9A /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "DorisWidget-iOS";
+			packageProductDependencies = (
+				5EB3447F0CBA9ECEA229AFC0 /* DorisCore */,
+				9431A062C82DE62CD42CD56E /* DorisUI */,
+			);
+			productName = "DorisWidget-iOS";
+			productReference = 25C8267A2810EE34195F1355 /* DorisWidget-iOS.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		74ABD42FEAF5584BB3F42D38 /* DorisShareExtension-macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9F39B72ACD17B106BFA3189B /* Build configuration list for PBXNativeTarget "DorisShareExtension-macOS" */;
+			buildPhases = (
+				77E105CFF45EA4F36BA64531 /* Sources */,
+				24D15AAD7148D43EE25DE953 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "DorisShareExtension-macOS";
+			packageProductDependencies = (
+				2DBDD4CD5705CFC775419428 /* DorisCore */,
+			);
+			productName = "DorisShareExtension-macOS";
+			productReference = 1B5D66FCD33BC71B429C4C8F /* DorisShareExtension-macOS.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		AA6D72693A4DAD7B11E48153 /* DorisIntents-macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DC1835A202F85F8C71374C65 /* Build configuration list for PBXNativeTarget "DorisIntents-macOS" */;
+			buildPhases = (
+				9B7DF02832F15F6F152C2DEA /* Sources */,
+				61F86C4CB3B4CA1416FAB6CA /* Resources */,
+				DF9FDB9C854EAC2CD6D64686 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "DorisIntents-macOS";
+			packageProductDependencies = (
+				A94341D713EC4ECB57B278E8 /* DorisIPC */,
+			);
+			productName = "DorisIntents-macOS";
+			productReference = 9BC4E4D9520090DC1F0AAF0A /* DorisIntents-macOS.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		DB1AA232CACA6C3AAD0B0E00 /* DorisWidget-macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2F40C5AEBBCD0211538D6EB4 /* Build configuration list for PBXNativeTarget "DorisWidget-macOS" */;
+			buildPhases = (
+				6E596332850AD9C6D2DCD043 /* Sources */,
+				A726262E68D6AED55E936894 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "DorisWidget-macOS";
+			packageProductDependencies = (
+				730F2C1AAAC114AFFE964277 /* DorisCore */,
+				0971CEB283C981E06A5B6137 /* DorisUI */,
+			);
+			productName = "DorisWidget-macOS";
+			productReference = 8551C8092D18325AF6DBB4E7 /* DorisWidget-macOS.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		F2F26C4C1CA013E8917B1BBB /* DorisShareExtension-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1B373D275CBBF5F6B4419352 /* Build configuration list for PBXNativeTarget "DorisShareExtension-iOS" */;
+			buildPhases = (
+				442C7EFA607D6CB0D6B9D407 /* Sources */,
+				59001B5829DE7C1D53758DBD /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "DorisShareExtension-iOS";
+			packageProductDependencies = (
+				2C48574E347B4EE76D140986 /* DorisCore */,
+			);
+			productName = "DorisShareExtension-iOS";
+			productReference = 32F5496B0D68C1324165BE25 /* DorisShareExtension-iOS.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		FE50EF4F963E1C62DA468C38 /* Doris-macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 90E98D8D2478D9438AE992F0 /* Build configuration list for PBXNativeTarget "Doris-macOS" */;
+			buildPhases = (
+				DCA319314F21805D277529AA /* Sources */,
+				E37CFE7FCA00AAB5CFBEF77C /* Resources */,
+				0D1A84A73038530643D76088 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Doris-macOS";
+			packageProductDependencies = (
+				4124A40499C64EAE53B1128A /* DorisCore */,
+				0E95D8F9B607EF8D53CFAD9C /* DorisUI */,
+				D0FDF7CCD62DD6C044AF0CA7 /* DorisMacChrome */,
+				338965571C4ABCBED67F1739 /* DynamicNotchKit */,
+				4B931B0521591438F422CD68 /* KeyboardShortcuts */,
+			);
+			productName = "Doris-macOS";
+			productReference = BC455D587B89C7FF473794D7 /* Doris-macOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		710F6DDF3A3AC8E25C1AAB9C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					256698BC6302E70D89149B94 = {
+						DevelopmentTeam = "$(DORIS_TEAM_ID)";
+						ProvisioningStyle = Automatic;
+					};
+					2833071FF23F0D8A790A7124 = {
+						DevelopmentTeam = "$(DORIS_TEAM_ID)";
+						ProvisioningStyle = Automatic;
+					};
+					6D98964E81A5DE833DBB77C4 = {
+						DevelopmentTeam = "$(DORIS_TEAM_ID)";
+						ProvisioningStyle = Automatic;
+					};
+					74ABD42FEAF5584BB3F42D38 = {
+						DevelopmentTeam = "$(DORIS_TEAM_ID)";
+						ProvisioningStyle = Automatic;
+					};
+					AA6D72693A4DAD7B11E48153 = {
+						DevelopmentTeam = "$(DORIS_TEAM_ID)";
+						ProvisioningStyle = Automatic;
+					};
+					DB1AA232CACA6C3AAD0B0E00 = {
+						DevelopmentTeam = "$(DORIS_TEAM_ID)";
+						ProvisioningStyle = Automatic;
+					};
+					F2F26C4C1CA013E8917B1BBB = {
+						DevelopmentTeam = "$(DORIS_TEAM_ID)";
+						ProvisioningStyle = Automatic;
+					};
+					FE50EF4F963E1C62DA468C38 = {
+						DevelopmentTeam = "$(DORIS_TEAM_ID)";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = DE8203B48CBB08D766B1E60E /* Build configuration list for PBXProject "Doris" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 4DC01FC60F6CF7BCE4996810;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A8D913A2152C9330117F99E4 /* XCRemoteSwiftPackageReference "swift-argument-parser" */,
+				2DE7CFA386BA707F8200EA29 /* XCRemoteSwiftPackageReference "DynamicNotchKit" */,
+				CB22926AD40A23085406CF4F /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
+				5C211FABB7935F251E1004CC /* XCLocalSwiftPackageReference "packages/DorisCore" */,
+				B48A0305027258A562D9377D /* XCLocalSwiftPackageReference "packages/DorisMacChrome" */,
+				CC674AD44A373A58A2BAF91F /* XCLocalSwiftPackageReference "packages/DorisUI" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = D40C6A9ECD4DAED8465F264B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				2833071FF23F0D8A790A7124 /* Doris-iOS */,
+				FE50EF4F963E1C62DA468C38 /* Doris-macOS */,
+				256698BC6302E70D89149B94 /* DorisIntents-iOS */,
+				AA6D72693A4DAD7B11E48153 /* DorisIntents-macOS */,
+				F2F26C4C1CA013E8917B1BBB /* DorisShareExtension-iOS */,
+				74ABD42FEAF5584BB3F42D38 /* DorisShareExtension-macOS */,
+				6D98964E81A5DE833DBB77C4 /* DorisWidget-iOS */,
+				DB1AA232CACA6C3AAD0B0E00 /* DorisWidget-macOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		01E873DA253C1918A0532E56 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FCF68FD5D0FF4E8842C08219 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		61F86C4CB3B4CA1416FAB6CA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				89C061EF7EC3EE97B38441FA /* Info-iOS.plist in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CB8AF033A4F566CC5A15B312 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				873D22480630A82BE85D85FA /* Info-macOS.plist in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E37CFE7FCA00AAB5CFBEF77C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7AB729215471A36A3D7DD39B /* Assets.xcassets in Resources */,
+				51389334F27B6EF35EB52DEC /* Doris.sdef in Resources */,
+				7FDF4AF55B5C0F11CA0F3A5F /* README.md in Resources */,
+				620E63122116A1C8819CDD3E /* doris-avatar-fullbody.png in Resources */,
+				14161D6853103C65305E90E2 /* doris-avatar-trimmed.png in Resources */,
+				AC5618F120AE8AEA3954A591 /* doris-avatar.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		07BCB0D33BC576A33CED326A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				219B4A18A9E56D3980082AFB /* AppDelegate.swift in Sources */,
+				4C1CEAF18F24677CAA6C453A /* DorisApp.swift in Sources */,
+				F548C0123D3DCE76BD293315 /* NoteDetailScreen.swift in Sources */,
+				585D3E3760BE6A4849A2A6D3 /* NotesScreen.swift in Sources */,
+				F44F0262B381BA936FD37F16 /* SettingsScreen.swift in Sources */,
+				DEDAD6EE1603ABB0F65DE5FA /* TodayScreen.swift in Sources */,
+				15CA868ED8D246FEAF5A6BF8 /* RootTabView.swift in Sources */,
+				A78F6EE3AFBD49A68134B053 /* EventsScreen.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		442C7EFA607D6CB0D6B9D407 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				187793297F238EBEDE789CF3 /* ShareViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		51CD3BA8953A54ACDA629D91 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				54F5154519AC049C9E0EB47D /* AddNoteIntent.swift in Sources */,
+				CEB4D62898B42D02C13B7429 /* DorisIntentsBundle.swift in Sources */,
+				48CC44A9136AA529B293628C /* MarkMessageDoneIntent.swift in Sources */,
+				273AE726A4DC3809870A60FB /* OpenSidebarIntent.swift in Sources */,
+				70E79B824FCB7230A27D4D1B /* PushNotificationIntent.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6E596332850AD9C6D2DCD043 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D401050CDE48DE017E2AC2F9 /* DorisWidgetBundle.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		77E105CFF45EA4F36BA64531 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2940649DA54FBE297BAA1B5A /* ShareViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9B7DF02832F15F6F152C2DEA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6938EF7A119C77219E20BB45 /* AddNoteIntent.swift in Sources */,
+				0573E0604AA69758A8931230 /* DorisIntentsBundle.swift in Sources */,
+				C0E36B64A06FE09BF55B87AA /* MarkMessageDoneIntent.swift in Sources */,
+				C925620D6935B31ED0C947F8 /* OpenSidebarIntent.swift in Sources */,
+				EDF671F1202F7239EC0D7109 /* PushNotificationIntent.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AD61C2C8F48F9F75EA1BCDF5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				063391B1AD51BEFF94090ED9 /* DorisWidgetBundle.swift in Sources */,
+				126B80D5F495F7A606F0F7CA /* EventsWidget.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DCA319314F21805D277529AA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5C3EF76E0DD7FB08F51AC55C /* AnchorAvatarView.swift in Sources */,
+				3D8EAB7F8B417ED258C0765B /* AnchorController.swift in Sources */,
+				F351A5EDD34E87DEF0EFC0A1 /* AnchorState.swift in Sources */,
+				18DCA92C843F79A3D19BC210 /* AnchorView.swift in Sources */,
+				47ED5B5F98BD3CE3BB6745D4 /* AppDelegate.swift in Sources */,
+				25036E4CBA4693D9116F0370 /* AppRouter.swift in Sources */,
+				294983F21EEEC7DFB7A5E538 /* AppearanceSettings.swift in Sources */,
+				762208DDC9AAE1996EF6F987 /* ClickActionRouter.swift in Sources */,
+				80D2E4BE6C0981FAD23590B1 /* DorisApp.swift in Sources */,
+				6785932C8C20FE6106D45907 /* DorisCommands.swift in Sources */,
+				75A567DCBBD5A17176094D43 /* DorisScriptCommands.swift in Sources */,
+				6058073F1675ED142AFD6CB8 /* FixNotchView.swift in Sources */,
+				A6855D156B8AB8040C74AFD6 /* HotkeyEngine.swift in Sources */,
+				7650F868B576783BBDB02F79 /* IPCFSEventReader.swift in Sources */,
+				876FD52E07C7DC2ED1B0F03C /* InstallCLIWizardView.swift in Sources */,
+				FCE5B30D06A345D7F7F149AD /* MainWindowView.swift in Sources */,
+				3A15A5D415A4416D89930248 /* MainWindowController.swift in Sources */,
+				7FD008279B8E6C17E1FF1A8E /* MenuBarAvatarWindow.swift in Sources */,
+				EF69E97D44844A37B41713D4 /* NotchExpandedView.swift in Sources */,
+				E04B3E365C9DB9EDDA3F16B9 /* OpenBarController.swift in Sources */,
+				4D1DACEE3B5F8E6A874A90A7 /* SettingsView.swift in Sources */,
+				7955A88D3B0E011532D4A845 /* SettingsWindow.swift in Sources */,
+				434DB57A49A8B0D99FDC2FC4 /* SidebarController.swift in Sources */,
+				466612C4F9BF3A250E8F0963 /* SidebarRootView.swift in Sources */,
+				E9874DBDAB1A27FE48686FCB /* SpeechRecognizer.swift in Sources */,
+				99A039F0737F80C5295506D0 /* StatusBarItem.swift in Sources */,
+				67321342134C8C94E59F7225 /* VoiceController.swift in Sources */,
+				D01C3F8225DA23A3FCD01FD6 /* VoiceFloater.swift in Sources */,
+				60F8A5E4F93A9559EE50D3E0 /* VoiceSettings.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		22B6AEA84EDBA435430FD71A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "apps/doris-ios/DorisWidget-iOS/DorisWidget-iOS.entitlements";
+				INFOPLIST_FILE = "apps/doris-ios/DorisWidget-iOS/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.gavin.doris.ios.widget;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		36C45A6B927E761147E5C96E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "apps/doris-mac/DorisWidget-macOS/DorisWidget-macOS.entitlements";
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "apps/doris-mac/DorisWidget-macOS/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.gavin.doris.widget-mac";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		4215E26A2D7C7D1D86EB599D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "apps/doris-ios/DorisShareExtension-iOS/DorisShareExtension-iOS.entitlements";
+				INFOPLIST_FILE = "apps/doris-ios/DorisShareExtension-iOS/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.gavin.doris.ios.share;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		457DFA130939CB2EA65BB7CD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = extensions/DorisIntents/DorisIntents.entitlements;
+				INFOPLIST_FILE = "extensions/DorisIntents/Info-iOS.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.gavin.doris.intents-ios";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		49B22AE72C4783988E488E94 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = extensions/DorisIntents/DorisIntents.entitlements;
+				INFOPLIST_FILE = "extensions/DorisIntents/Info-iOS.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.gavin.doris.intents-ios";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		664AC37960E9A15AA9D56570 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "apps/doris-mac/DorisShareExtension-macOS/DorisShareExtension-macOS.entitlements";
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "apps/doris-mac/DorisShareExtension-macOS/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.gavin.doris.share-mac";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		72FC461776841447B1281249 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "apps/doris-ios/DorisShareExtension-iOS/DorisShareExtension-iOS.entitlements";
+				INFOPLIST_FILE = "apps/doris-ios/DorisShareExtension-iOS/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.gavin.doris.ios.share;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		7D89BE69FE4FFE9230F47200 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = extensions/DorisIntents/DorisIntents.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "extensions/DorisIntents/Info-macOS.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.gavin.doris.intents-mac";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		887219659EB9CDD571E0BD40 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = extensions/DorisIntents/DorisIntents.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "extensions/DorisIntents/Info-macOS.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.gavin.doris.intents-mac";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		88CBDFF065ED1A387D4BD17F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "apps/doris-ios/DorisWidget-iOS/DorisWidget-iOS.entitlements";
+				INFOPLIST_FILE = "apps/doris-ios/DorisWidget-iOS/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.gavin.doris.ios.widget;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		AD9E0CCA979A57E7488F1800 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "apps/doris-mac/Doris-macOS/Doris-macOS.entitlements";
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = "apps/doris-mac/Doris-macOS/Resources/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gavin.doris;
+				PRODUCT_NAME = Doris;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		B693ABDB68E9351AF88B49B9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "apps/doris-mac/DorisWidget-macOS/DorisWidget-macOS.entitlements";
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "apps/doris-mac/DorisWidget-macOS/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.gavin.doris.widget-mac";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		BA37C7F6D19ECA26BA22893F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "apps/doris-mac/DorisShareExtension-macOS/DorisShareExtension-macOS.entitlements";
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "apps/doris-mac/DorisShareExtension-macOS/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.gavin.doris.share-mac";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		C135CCAA48B3A980C75C577B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "apps/doris-ios/Doris-iOS/Doris-iOS.entitlements";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = "apps/doris-ios/Doris-iOS/Resources/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.3.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gavin.doris.ios;
+				PRODUCT_NAME = Doris;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C5F96D45ABB393D4211DCCF4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "apps/doris-ios/Doris-iOS/Doris-iOS.entitlements";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = "apps/doris-ios/Doris-iOS/Resources/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.3.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gavin.doris.ios;
+				PRODUCT_NAME = Doris;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		C95BAB1379CE1C9E4F683A84 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "$(DORIS_TEAM_ID)";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_CFLAGS = "$(inherited) -fdebug-prefix-map=$(SRCROOT)=/doris -ffile-prefix-map=$(SRCROOT)=/doris";
+				OTHER_SWIFT_FLAGS = "$(inherited) -Xfrontend -debug-prefix-map -Xfrontend $(SRCROOT)=/doris -Xfrontend -file-prefix-map -Xfrontend $(SRCROOT)=/doris -Xfrontend -coverage-prefix-map -Xfrontend $(SRCROOT)=/doris";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = NO;
+				SWIFT_VERSION = 5.10;
+			};
+			name = Debug;
+		};
+		EA6F9426525C0419B40EC1F5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "apps/doris-mac/Doris-macOS/Doris-macOS.entitlements";
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = "apps/doris-mac/Doris-macOS/Resources/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gavin.doris;
+				PRODUCT_NAME = Doris;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		FFF7ED8C12EF067744AA7D56 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "$(DORIS_TEAM_ID)";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				OTHER_CFLAGS = "$(inherited) -fdebug-prefix-map=$(SRCROOT)=/doris -ffile-prefix-map=$(SRCROOT)=/doris";
+				OTHER_SWIFT_FLAGS = "$(inherited) -Xfrontend -debug-prefix-map -Xfrontend $(SRCROOT)=/doris -Xfrontend -file-prefix-map -Xfrontend $(SRCROOT)=/doris -Xfrontend -coverage-prefix-map -Xfrontend $(SRCROOT)=/doris";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = NO;
+				SWIFT_VERSION = 5.10;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0D3709749F5157401FD7B9F3 /* Build configuration list for PBXNativeTarget "Doris-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C135CCAA48B3A980C75C577B /* Debug */,
+				C5F96D45ABB393D4211DCCF4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		1B373D275CBBF5F6B4419352 /* Build configuration list for PBXNativeTarget "DorisShareExtension-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4215E26A2D7C7D1D86EB599D /* Debug */,
+				72FC461776841447B1281249 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		2F40C5AEBBCD0211538D6EB4 /* Build configuration list for PBXNativeTarget "DorisWidget-macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B693ABDB68E9351AF88B49B9 /* Debug */,
+				36C45A6B927E761147E5C96E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		677F0736F3C3DA43143DD4EF /* Build configuration list for PBXNativeTarget "DorisWidget-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				22B6AEA84EDBA435430FD71A /* Debug */,
+				88CBDFF065ED1A387D4BD17F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		90E98D8D2478D9438AE992F0 /* Build configuration list for PBXNativeTarget "Doris-macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AD9E0CCA979A57E7488F1800 /* Debug */,
+				EA6F9426525C0419B40EC1F5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		966F61744AFA5838441FEC6B /* Build configuration list for PBXNativeTarget "DorisIntents-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				457DFA130939CB2EA65BB7CD /* Debug */,
+				49B22AE72C4783988E488E94 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		9F39B72ACD17B106BFA3189B /* Build configuration list for PBXNativeTarget "DorisShareExtension-macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BA37C7F6D19ECA26BA22893F /* Debug */,
+				664AC37960E9A15AA9D56570 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		DC1835A202F85F8C71374C65 /* Build configuration list for PBXNativeTarget "DorisIntents-macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				887219659EB9CDD571E0BD40 /* Debug */,
+				7D89BE69FE4FFE9230F47200 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		DE8203B48CBB08D766B1E60E /* Build configuration list for PBXProject "Doris" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C95BAB1379CE1C9E4F683A84 /* Debug */,
+				FFF7ED8C12EF067744AA7D56 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		5C211FABB7935F251E1004CC /* XCLocalSwiftPackageReference "packages/DorisCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = packages/DorisCore;
+		};
+		B48A0305027258A562D9377D /* XCLocalSwiftPackageReference "packages/DorisMacChrome" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = packages/DorisMacChrome;
+		};
+		CC674AD44A373A58A2BAF91F /* XCLocalSwiftPackageReference "packages/DorisUI" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = packages/DorisUI;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		2DE7CFA386BA707F8200EA29 /* XCRemoteSwiftPackageReference "DynamicNotchKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/MrKai77/DynamicNotchKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.0;
+			};
+		};
+		A8D913A2152C9330117F99E4 /* XCRemoteSwiftPackageReference "swift-argument-parser" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-argument-parser";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.4.0;
+			};
+		};
+		CB22926AD40A23085406CF4F /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0971CEB283C981E06A5B6137 /* DorisUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DorisUI;
+		};
+		0E95D8F9B607EF8D53CFAD9C /* DorisUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DorisUI;
+		};
+		1953B57B2CEBDCC26D01F406 /* DorisIPC */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DorisIPC;
+		};
+		2C48574E347B4EE76D140986 /* DorisCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DorisCore;
+		};
+		2DBDD4CD5705CFC775419428 /* DorisCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DorisCore;
+		};
+		338965571C4ABCBED67F1739 /* DynamicNotchKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2DE7CFA386BA707F8200EA29 /* XCRemoteSwiftPackageReference "DynamicNotchKit" */;
+			productName = DynamicNotchKit;
+		};
+		4124A40499C64EAE53B1128A /* DorisCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DorisCore;
+		};
+		4B931B0521591438F422CD68 /* KeyboardShortcuts */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CB22926AD40A23085406CF4F /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
+			productName = KeyboardShortcuts;
+		};
+		5EB3447F0CBA9ECEA229AFC0 /* DorisCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DorisCore;
+		};
+		60993E93C5706A24F9A3A2F8 /* DorisUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DorisUI;
+		};
+		730F2C1AAAC114AFFE964277 /* DorisCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DorisCore;
+		};
+		807EB227D46D06301C8887E2 /* DorisCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DorisCore;
+		};
+		9431A062C82DE62CD42CD56E /* DorisUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DorisUI;
+		};
+		A94341D713EC4ECB57B278E8 /* DorisIPC */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DorisIPC;
+		};
+		D0FDF7CCD62DD6C044AF0CA7 /* DorisMacChrome */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DorisMacChrome;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 710F6DDF3A3AC8E25C1AAB9C /* Project object */;
+}

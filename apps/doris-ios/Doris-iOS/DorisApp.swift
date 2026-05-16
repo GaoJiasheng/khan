@@ -16,14 +16,11 @@ struct DorisApp: App {
 
     var body: some Scene {
         WindowGroup {
-            // iOS Doris is a single-screen Notes viewer mirroring macOS's
-            // MainNotesList — the Inbox / Today / Voice surfaces from Mac
-            // don't ship to iOS. Settings reachable via the toolbar gear.
-            NotesScreen()
+            // iOS Doris: Today / Events / Notes tab bar.
+            // RootTabView hosts the three main tabs; Settings reachable
+            // via the Notes tab toolbar gear.
+            RootTabView()
                 .modelContainer(modelContainer)
-                .background {
-                    CyberBackground().ignoresSafeArea()
-                }
                 .preferredColorScheme(theme.mode.colorScheme)
         }
     }

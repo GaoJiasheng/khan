@@ -3,9 +3,9 @@ import DorisCore
 import DorisUI
 
 struct NotchExpandedView: View {
-    @State private var tab: Tab = .inbox
+    @State private var tab: Tab = .events
 
-    enum Tab { case inbox, notes, today }
+    enum Tab { case events, notes, today }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -21,7 +21,7 @@ struct NotchExpandedView: View {
             .padding(8)
             Divider()
             switch tab {
-            case .inbox: InboxListView()
+            case .events: EventsListView()
             case .notes: NoteListView()
             case .today: DorisEmptyStateView(title: "Today", systemImage: "sun.max", subtitle: nil)
             }

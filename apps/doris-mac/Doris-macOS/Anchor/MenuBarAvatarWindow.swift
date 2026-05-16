@@ -69,6 +69,14 @@ final class MenuBarAvatarWindow {
     func hide() { window.orderOut(nil) }
 
     /// Recompute frame + visual style from the saved screen + edge.
+    ///
+    /// Also persists the chosen screen back to `AnchorScreenStore` —
+    /// after a display hot-plug the previously-saved display ID may
+    /// no longer be attached, and `bestScreen()` falls back to the
+    /// primary. Writing the fallback back keeps the saved ID in sync
+    /// with where the avatar actually is, so the next launch lands
+    /// the avatar on the right display instead of going through the
+    /// fallback chain again.
     func relayout() {
         guard let s = bestScreen() else { return }
         let edge = AnchorScreenStore.savedEdge()
@@ -76,6 +84,7 @@ final class MenuBarAvatarWindow {
         let layout = layoutFor(edge: edge, screen: s)
         model.shape = layout.shape
         window.setFrame(layout.frame, display: true)
+        AnchorScreenStore.save(screen: s)
     }
 
     // MARK: - Drag
@@ -185,6 +194,36 @@ final class MenuBarAvatarWindow {
                 let xLeft = notchLeftEdge - visibleWidth
                 let yTop = f.maxY
 
+                // Sanity-check the geometry. Right after a hot-plug
+                // the window server can deliver a partially-zeroed
+                // `auxiliaryTopLeftArea` (height present, maxX small
+                // or zero) — without this gate we'd compute a hugely
+                // negative `xLeft` and the avatar would land at the
+                // top-left corner of the screen. Require both that
+                // the avatar is wholly inside the screen and that the
+                // notch sits roughly where we expect (right of midX
+                // minus a generous margin).
+                let avatarFitsOnScreen = xLeft >= f.minX
+                    && xLeft + width <= f.maxX + overshoot
+                let notchLooksReal = notchLeftEdge >= f.midX - 200
+                guard avatarFitsOnScreen && notchLooksReal else {
+                    DorisLog.app.notice(
+                        """
+                        notch-extension geometry suspicious — falling back \
+                        to fakeNotch. screen=\(NSStringFromRect(f), privacy: .public) \
+                        leftArea=\(NSStringFromRect(leftArea), privacy: .public) \
+                        rightArea=\(NSStringFromRect(rightArea), privacy: .public) \
+                        computedXLeft=\(xLeft, privacy: .public)
+                        """
+                    )
+                    let fbWidth: CGFloat = 96
+                    let fbHeight: CGFloat = 26
+                    return Layout(
+                        frame: NSRect(x: f.midX - fbWidth / 2, y: f.maxY - fbHeight, width: fbWidth, height: fbHeight),
+                        shape: .fakeNotch
+                    )
+                }
+
                 let frame = NSRect(x: xLeft, y: yTop - height, width: width, height: height)
                 DorisLog.app.notice(
                     """
@@ -264,14 +303,6 @@ private struct MenuBarAvatarContent: View {
     @ObservedObject var model: MenuBarModel
     @ObservedObject var settings = AppearanceSettings.shared
     @ObservedObject private var lang = LanguageSettings.shared
-    /// Captured into `AppCommands.openMainWindow` on first appear. With
-    /// `LSUIElement: true` the main window doesn't auto-create at launch,
-    /// so the previous `WindowOpenerCapture` inside `MainWindowView` would
-    /// never run. This avatar view is always created at launch (AppDelegate
-    /// builds the avatar window unconditionally) so it's the right place
-    /// to grab `openWindow` and stash the closure where the right-click
-    /// menu can reach it.
-    @Environment(\.openWindow) private var openWindow
     let onClick: () -> Void
     let onDragChanged: (CGSize) -> Void
     let onDragEnded: (CGSize) -> Void
@@ -322,16 +353,6 @@ private struct MenuBarAvatarContent: View {
                 .onChanged { v in onDragChanged(v.translation) }
                 .onEnded   { v in onDragEnded(v.translation) }
         )
-        .onAppear {
-            // Grab the SwiftUI `openWindow` action while we're inside a
-            // SwiftUI scene's environment, and store it as the global
-            // hook the avatar's right-click menu (and any other AppKit
-            // entry point) can call.
-            AppCommands.openMainWindow = {
-                openWindow(id: "main")
-                NSApp.activate(ignoringOtherApps: true)
-            }
-        }
     }
 
     /// Notch-extension always solid black (so it fuses with the real notch).

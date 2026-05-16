@@ -53,7 +53,7 @@ final class DorisDismissMessageCommand: NSScriptCommand {
         guard let args = evaluatedArguments,
               let idStr = args["id"] as? String,
               let uuid = UUID(uuidString: idStr) else { return false }
-        let request = IPCRequest(kind: .inboxDismiss, payload: .inboxDismiss(messageID: uuid))
+        let request = IPCRequest(kind: .eventsDismiss, payload: .eventsDismiss(messageID: uuid))
         try? IPCDirectory.ensureDirectories()
         try? IPCWriter.enqueue(request)
         IPCWriter.kick()

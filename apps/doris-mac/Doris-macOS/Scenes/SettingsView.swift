@@ -94,7 +94,7 @@ struct SettingsView: View {
         Form {
             KeyboardShortcuts.Recorder("Toggle sidebar", name: .toggleSidebar)
             KeyboardShortcuts.Recorder("Toggle notch", name: .toggleNotch)
-            KeyboardShortcuts.Recorder("Open inbox", name: .openInbox)
+            KeyboardShortcuts.Recorder("Open events", name: .openEvents)
         }
         .scrollContentBackground(.hidden)
     }
@@ -162,7 +162,7 @@ private struct SyncSettingsTab: View {
         Form {
             Section {
                 Toggle("Use iCloud (CloudKit) sync", isOn: $sync.cloudKitEnabled)
-                    .help("Mirrors notes and inbox messages through your iCloud account so other devices stay in sync.")
+                    .help("Mirrors notes and events through your iCloud account so other devices stay in sync.")
                 if sync.cloudKitEnabled {
                     Text("Restart Doris after toggling iCloud for the change to take effect.")
                         .font(.caption)
