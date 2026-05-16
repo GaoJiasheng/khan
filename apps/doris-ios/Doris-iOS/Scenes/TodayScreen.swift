@@ -20,8 +20,22 @@ struct TodayScreen: View {
 
     @State private var path = NavigationPath()
 
+    /// Pinned notes sorted by urgency:
+    ///   1. Notes with a `dueDate` come first, sorted ascending (most
+    ///      overdue → today → soonest future).
+    ///   2. Notes without a `dueDate` come after, sorted by `updatedAt`
+    ///      descending (most recently touched first).
     private var pinnedNotes: [Note] {
-        allNotes.filter { $0.pinned }
+        allNotes
+            .filter { $0.pinned }
+            .sorted { a, b in
+                switch (a.dueDate, b.dueDate) {
+                case let (l?, r?): return l < r
+                case (_?, nil):    return true
+                case (nil, _?):    return false
+                case (nil, nil):   return a.updatedAt > b.updatedAt
+                }
+            }
     }
 
     private var calendarNotes: [Note] {
@@ -430,49 +444,62 @@ private struct PinnedNoteCard: View {
         )
     }
 
+    private var checklistProgress: (done: Int, total: Int)? {
+        guard note.isChecklist, let items = note.checklistItems, !items.isEmpty else {
+            return nil
+        }
+        return (items.filter(\.done).count, items.count)
+    }
+
     @ViewBuilder
     private var bottomMeta: some View {
-        if note.isChecklist, let items = note.checklistItems, !items.isEmpty {
-            let done = items.filter(\.done).count
-            HStack(spacing: 8) {
-                GeometryReader { g in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(Color.primary.opacity(0.08)).frame(height: 3)
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [CyberPalette.neonPink, CyberPalette.neonCyan],
-                                    startPoint: .leading, endPoint: .trailing
-                                )
-                            )
-                            .frame(
-                                width: g.size.width * (Double(done) / Double(items.count)),
-                                height: 3
-                            )
-                    }
+        let progress = checklistProgress
+        let due = dueLabel
+
+        // Three permitted pieces of info: title (above) · progress · due.
+        // Both present → progress row over due chip row.
+        if progress != nil || due != nil {
+            VStack(alignment: .leading, spacing: 5) {
+                if let p = progress {
+                    progressRow(done: p.done, total: p.total)
                 }
-                .frame(height: 3)
-                Text("\(done)/\(items.count)")
-                    .font(.system(size: 11, weight: .semibold, design: .monospaced).monospacedDigit())
-                    .foregroundStyle(.primary.opacity(0.55))
+                if let label = due {
+                    dueRow(label: label)
+                }
             }
-        } else if let label = dueLabel {
-            HStack(spacing: 4) {
-                Image(systemName: "calendar")
-                    .font(.system(size: 9, weight: .semibold))
-                Text(label)
-                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
-            }
-            .foregroundStyle(dueChipColor)
-        } else {
-            HStack(spacing: 4) {
-                Image(systemName: "clock")
-                    .font(.system(size: 9))
-                Text(note.updatedAt, style: .relative)
-                    .font(.system(size: 11, design: .monospaced))
-            }
-            .foregroundStyle(.primary.opacity(0.4))
         }
+    }
+
+    private func progressRow(done: Int, total: Int) -> some View {
+        HStack(spacing: 8) {
+            GeometryReader { g in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.primary.opacity(0.08)).frame(height: 3)
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [CyberPalette.neonPink, CyberPalette.neonCyan],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                        )
+                        .frame(width: g.size.width * (Double(done) / Double(total)), height: 3)
+                }
+            }
+            .frame(height: 3)
+            Text("\(done)/\(total)")
+                .font(.system(size: 11, weight: .semibold, design: .monospaced).monospacedDigit())
+                .foregroundStyle(.primary.opacity(0.55))
+        }
+    }
+
+    private func dueRow(label: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: "calendar")
+                .font(.system(size: 9, weight: .semibold))
+            Text(label)
+                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+        }
+        .foregroundStyle(dueChipColor)
     }
 }
 
