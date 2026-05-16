@@ -45,18 +45,20 @@ struct TodayScreen: View {
                             title: L("Pinned", "置顶"),
                             tint: CyberPalette.neonCyan
                         )
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
-                                ForEach(pinnedNotes) { n in
-                                    Button { path.append(n.id) } label: {
-                                        PinnedNoteCard(note: n)
-                                    }
-                                    .buttonStyle(.plain)
+                        LazyVGrid(
+                            columns: [
+                                GridItem(.flexible(), spacing: 10),
+                                GridItem(.flexible(), spacing: 10)
+                            ],
+                            spacing: 10
+                        ) {
+                            ForEach(pinnedNotes) { n in
+                                Button { path.append(n.id) } label: {
+                                    PinnedNoteCard(note: n)
                                 }
+                                .buttonStyle(.plain)
                             }
-                            .padding(.horizontal, 16)
                         }
-                        .padding(.horizontal, -16)
                     }
 
                     // ── Block 3: Calendar ─────────────────────────────────
@@ -362,83 +364,118 @@ private struct TodayWeatherCard: View {
     }
 }
 
-// MARK: - Block 2: Pinned note card (horizontal carousel item)
+// MARK: - Block 2: Pinned note card (flat 2-column grid item)
 
 private struct PinnedNoteCard: View {
     let note: Note
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Header
-            HStack {
-                Image(systemName: note.isChecklist ? "checklist" : "note.text")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(CyberPalette.neonCyan)
-                Spacer()
-                Image(systemName: "pin.fill")
-                    .font(.system(size: 11))
-                    .foregroundStyle(CyberPalette.neonCyan.opacity(0.5))
-            }
-            .padding(.bottom, 10)
+    private var dueChipColor: Color {
+        guard let d = note.dueDate else { return CyberPalette.neonCyan }
+        if d < Date() { return .red }
+        if Calendar.current.isDateInToday(d) { return .yellow }
+        return CyberPalette.neonCyan
+    }
 
-            // Title
-            Text(note.title.isEmpty ? L("Untitled", "无标题") : note.title)
-                .font(.system(size: 16, weight: .semibold, design: .rounded))
-                .foregroundStyle(.primary)
-                .lineLimit(3)
-                .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            Spacer(minLength: 8)
-
-            // Footer
-            if note.isChecklist {
-                let items = note.checklistItems ?? []
-                let done = items.filter(\.done).count
-                if !items.isEmpty {
-                    VStack(alignment: .leading, spacing: 4) {
-                        GeometryReader { g in
-                            ZStack(alignment: .leading) {
-                                Capsule().fill(Color.white.opacity(0.06)).frame(height: 2.5)
-                                Capsule()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [CyberPalette.neonPink, CyberPalette.neonCyan],
-                                            startPoint: .leading, endPoint: .trailing
-                                        )
-                                    )
-                                    .frame(
-                                        width: g.size.width * (Double(done) / Double(items.count)),
-                                        height: 2.5
-                                    )
-                            }
-                        }
-                        .frame(height: 2.5)
-                        Text("\(done) / \(items.count)")
-                            .font(.system(size: 12, design: .monospaced))
-                            .foregroundStyle(.primary.opacity(0.45))
-                    }
-                }
-            } else {
-                Text(note.updatedAt, style: .relative)
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(.primary.opacity(0.35))
-            }
+    private var dueLabel: String? {
+        guard let d = note.dueDate else { return nil }
+        let cal = Calendar.current
+        if d < Date() {
+            let days = cal.dateComponents([.day], from: d, to: Date()).day ?? 0
+            if days == 0 { return L("Today", "今天") }
+            return L("\(days)d overdue", "逾期 \(days) 天")
         }
-        .padding(14)
-        .frame(width: 162, height: 150)
+        if cal.isDateInToday(d)    { return L("Today", "今天") }
+        if cal.isDateInTomorrow(d) { return L("Tomorrow", "明天") }
+        let days = cal.dateComponents([.day], from: Date(), to: d).day ?? 0
+        if days < 7 { return d.formatted(.dateTime.weekday(.abbreviated)) }
+        return d.formatted(.dateTime.month(.abbreviated).day())
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Top: icon · title · pin
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: note.isChecklist ? "checklist" : "note.text")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(CyberPalette.neonCyan)
+                    .frame(width: 16)
+                Text(note.title.isEmpty ? L("Untitled", "无标题") : note.title)
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "pin.fill")
+                    .font(.system(size: 9))
+                    .foregroundStyle(CyberPalette.neonCyan.opacity(0.45))
+            }
+
+            Spacer(minLength: 0)
+
+            // Bottom: progress (checklist) · due (dated) · time (plain)
+            bottomMeta
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 11)
+        .frame(maxWidth: .infinity)
+        .frame(height: 92)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(.ultraThinMaterial.opacity(0.45))
                 .background(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .fill(CyberPalette.neonCyan.opacity(0.04))
                 )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(CyberPalette.neonCyan.opacity(0.22), lineWidth: 0.7)
         )
+    }
+
+    @ViewBuilder
+    private var bottomMeta: some View {
+        if note.isChecklist, let items = note.checklistItems, !items.isEmpty {
+            let done = items.filter(\.done).count
+            HStack(spacing: 8) {
+                GeometryReader { g in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.primary.opacity(0.08)).frame(height: 3)
+                        Capsule()
+                            .fill(
+                                LinearGradient(
+                                    colors: [CyberPalette.neonPink, CyberPalette.neonCyan],
+                                    startPoint: .leading, endPoint: .trailing
+                                )
+                            )
+                            .frame(
+                                width: g.size.width * (Double(done) / Double(items.count)),
+                                height: 3
+                            )
+                    }
+                }
+                .frame(height: 3)
+                Text("\(done)/\(items.count)")
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced).monospacedDigit())
+                    .foregroundStyle(.primary.opacity(0.55))
+            }
+        } else if let label = dueLabel {
+            HStack(spacing: 4) {
+                Image(systemName: "calendar")
+                    .font(.system(size: 9, weight: .semibold))
+                Text(label)
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+            }
+            .foregroundStyle(dueChipColor)
+        } else {
+            HStack(spacing: 4) {
+                Image(systemName: "clock")
+                    .font(.system(size: 9))
+                Text(note.updatedAt, style: .relative)
+                    .font(.system(size: 11, design: .monospaced))
+            }
+            .foregroundStyle(.primary.opacity(0.4))
+        }
     }
 }
 
