@@ -113,7 +113,11 @@ public struct ThemeToggleButton: View {
                 theme.toggle()
             }
         } label: {
-            Image(systemName: theme.mode.iconName)
+            // Icon represents the *destination* theme — the one you'll
+            // switch to. In light mode show a moon (click → go dark);
+            // in dark mode show a sun (click → go light). Matches the
+            // convention every web app uses for theme toggles.
+            Image(systemName: theme.mode.toggled.iconName)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.primary.opacity(0.75))
                 .padding(6)
