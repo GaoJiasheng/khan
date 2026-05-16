@@ -111,9 +111,9 @@ struct TodayScreen: View {
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
             Text("TODAY")
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .font(.system(size: 16, weight: .bold, design: .monospaced))
                 .foregroundStyle(CyberPalette.neonCyan.opacity(0.85))
-                .kerning(2.5)
+                .kerning(3)
         }
     }
 
