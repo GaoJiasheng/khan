@@ -74,7 +74,12 @@ public struct AvatarHero: View {
         self.selfChrome = selfChrome
     }
 
-    @StateObject private var weather = WeatherViewModel()
+    /// Shared app-wide weather state — one network round-trip every
+    /// 10 minutes regardless of how many AvatarHero instances mount or
+    /// how many times the dropdown opens. Was previously a per-view
+    /// `@StateObject`, which meant each dropdown reopen kicked off a
+    /// fresh fetch.
+    @ObservedObject private var weather = WeatherViewModel.shared
     @ObservedObject private var heroEvents = HeroEvents.shared
     /// Procedural starfield. Generated once on view init so positions stay
     /// stable across renders — only the per-star brightness twinkles.
@@ -166,15 +171,23 @@ public struct AvatarHero: View {
             playingMood = mood
             startPerpetualLoops()
             scheduleAutoSleep()
+            // `start()` is idempotent — kicks off the singleton's 10-min
+            // refresh loop on first call, no-op afterwards. We never
+            // `stop()` it on disappear: another AvatarHero instance
+            // (main window vs dropdown) might still be observing, and
+            // the loop is cheap regardless.
             if showWeather { weather.start() }
         }
-        .onDisappear {
-            if showWeather { weather.stop() }
-        }
         .onChange(of: mood) { _, new in handleMoodChange(new) }
-        .onChange(of: heroEvents.lastCelebration) { _, _ in fireOneShot(.celebrating) }
-        .onChange(of: heroEvents.lastGreeting)    { _, _ in fireOneShot(.greeting) }
-        .onChange(of: heroEvents.lastAlert)       { _, _ in fireOneShot(.alerted) }
+        // Bus-driven one-shots respect any one-shot already in flight —
+        // a greeting on window-open shouldn't get cut short by a sync
+        // celebration or an arriving alert. Direct user clicks still
+        // call `fireOneShot` directly (see `handleClick`) and bypass
+        // this gate, since a click is a deliberate poke and the user
+        // expects feedback.
+        .onChange(of: heroEvents.lastCelebration) { _, _ in busFireOneShot(.celebrating) }
+        .onChange(of: heroEvents.lastGreeting)    { _, _ in busFireOneShot(.greeting) }
+        .onChange(of: heroEvents.lastAlert)       { _, _ in busFireOneShot(.alerted) }
         .onChange(of: heroEvents.isListening)     { _, on in setListening(on) }
     }
 
@@ -396,6 +409,15 @@ public struct AvatarHero: View {
         )
     }
 
+    /// Slow neon-pink pulse drawn around the avatar while a `critical`
+    /// event is on screen. Lives as a sibling to the corner accents,
+    /// behind the weather overlay. Uses a `TimelineView` on a 6fps
+    /// tick so the pulse is cheap — it's just a sin wave on the
+    /// halo's opacity + scale, no per-pixel work.
+    ///
+    /// Color follows `EventLevelStyle.critical` (= `CyberPalette.neonPink`)
+    /// so the pulse stays on-brand with the rest of the cyber
+    /// vocabulary — system red would have stood out as foreign.
     private var cornerAccents: some View {
         VStack {
             HStack {
@@ -507,6 +529,16 @@ public struct AvatarHero: View {
         pendingOneShot = nil
         playingMood = new
         scheduleAutoSleep()
+    }
+
+    /// Bus-arriving one-shot. Drops the request when another one-shot is
+    /// already playing, so e.g. a sync celebration arriving mid-greeting
+    /// no longer cuts the greeting in half. Events that fire AFTER the
+    /// in-flight one-shot finishes are processed normally — only the
+    /// concurrent overlap is dropped.
+    private func busFireOneShot(_ shot: HeroMood) {
+        guard pendingOneShot == nil else { return }
+        fireOneShot(shot)
     }
 
     /// Fire a one-shot reaction — play that clip once, then revert to the

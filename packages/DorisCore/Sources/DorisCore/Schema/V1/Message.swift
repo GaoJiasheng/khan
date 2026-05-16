@@ -12,7 +12,11 @@ public final class Message {
     public var iconName: String?
     public var receivedAt: Date = Date()
     public var displayModeRaw: String = DisplayMode.banner.rawValue
-    public var stateRaw: String = MessageState.inbox.rawValue
+    public var stateRaw: String = MessageState.active.rawValue
+    /// Severity / urgency. Defaults to `.info` so older rows that
+    /// predate this column read back as low-priority info events
+    /// rather than blowing up with an unknown rawValue.
+    public var levelRaw: String = EventLevel.info.rawValue
     public var snoozedUntil: Date?
     public var clickActionData: Data?
     public var originDeviceId: String = ""
@@ -35,7 +39,8 @@ public final class Message {
         iconName: String? = nil,
         receivedAt: Date = Date(),
         displayMode: DisplayMode = .banner,
-        state: MessageState = .inbox,
+        state: MessageState = .active,
+        level: EventLevel = .info,
         snoozedUntil: Date? = nil,
         clickAction: ClickAction? = nil,
         originDeviceId: String,
@@ -50,6 +55,7 @@ public final class Message {
         self.receivedAt = receivedAt
         self.displayModeRaw = displayMode.rawValue
         self.stateRaw = state.rawValue
+        self.levelRaw = level.rawValue
         self.snoozedUntil = snoozedUntil
         self.originDeviceId = originDeviceId
         self.originalMessageId = originalMessageId
@@ -69,8 +75,13 @@ public final class Message {
     }
 
     public var state: MessageState {
-        get { MessageState(rawValue: stateRaw) ?? .inbox }
+        get { MessageState(rawValue: stateRaw) ?? .active }
         set { stateRaw = newValue.rawValue }
+    }
+
+    public var level: EventLevel {
+        get { EventLevel(rawValue: levelRaw) ?? .info }
+        set { levelRaw = newValue.rawValue }
     }
 
     public var clickAction: ClickAction? {

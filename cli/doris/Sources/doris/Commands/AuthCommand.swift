@@ -37,7 +37,7 @@ struct AuthCommand: AsyncParsableCommand {
     }
 
     struct Path: AsyncParsableCommand {
-        static let configuration = CommandConfiguration(commandName: "path", abstract: "Print the App Group inbox directory path.")
+        static let configuration = CommandConfiguration(commandName: "path", abstract: "Print the App Group IPC queue directory path.")
         func run() async throws {
             do {
                 let url = try IPCDirectory.inboxDir()

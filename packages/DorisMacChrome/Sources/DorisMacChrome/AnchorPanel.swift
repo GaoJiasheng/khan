@@ -3,7 +3,16 @@ import SwiftUI
 import DorisIPC
 
 public final class DorisAnchorPanel: NSPanel {
-    public override var canBecomeKey: Bool { false }
+    /// Allow the dropdown to become the key window so TextField /
+    /// TextEditor inside it (e.g. the inline note editor's title and
+    /// body fields) can receive keyboard input. Combined with the
+    /// `.nonactivatingPanel` style mask, this lets the panel accept
+    /// keys WITHOUT yanking frontmost-app status from whatever the
+    /// user was using before — focus only shifts when they click on
+    /// the panel.
+    public override var canBecomeKey: Bool { true }
+    /// Stay non-main — main windows participate in window-cycling /
+    /// menu-bar app menu in ways we don't want for a dropdown.
     public override var canBecomeMain: Bool { false }
 }
 
@@ -12,10 +21,10 @@ public enum AnchorPanelLayout {
     public static let pillIdleWidth: CGFloat = 96
     public static let pillIdleHeight: CGFloat = 26
 
-    public static let bannerWidth: CGFloat = 320
-    public static let bannerHeight: CGFloat = 72
-    public static let fixWidth: CGFloat = 360
-    public static let fixHeight: CGFloat = 96
+    public static let bannerWidth: CGFloat = 420
+    public static let bannerHeight: CGFloat = 84
+    public static let fixWidth: CGFloat = 460
+    public static let fixHeight: CGFloat = 108
 
     public static func rendersAsFakeNotch(position: AnchorPosition, screen: NSScreen? = nil) -> Bool {
         let s = screen ?? NSScreen.main ?? NSScreen.screens.first!
@@ -58,13 +67,21 @@ public enum AnchorPanelLayout {
 
     /// Drop-down surface anchored to a status-item button. Doesn't try to draw inside
     /// the menu-bar exclusion zone — the status item handles the in-bar avatar.
+    ///
+    /// `.resizable` is included so the user can drag the panel's
+    /// edges to resize it like a normal macOS window. `isMovable`
+    /// stays `false` because the panel's *position* is always
+    /// computed against the notch — letting the user drag the body
+    /// would pull it off that anchor. `contentMinSize` keeps the
+    /// panel readable when shrunk; without a min the user could
+    /// drag it down to nothing.
     public static func makeFloating<Content: View>(
         initialSize: NSSize,
         @ViewBuilder content: () -> Content
     ) -> DorisAnchorPanel {
         let panel = DorisAnchorPanel(
             contentRect: NSRect(origin: .zero, size: initialSize),
-            styleMask: [.borderless, .nonactivatingPanel],
+            styleMask: [.borderless, .nonactivatingPanel, .resizable],
             backing: .buffered,
             defer: true
         )
@@ -77,6 +94,8 @@ public enum AnchorPanelLayout {
         panel.isFloatingPanel = true
         panel.becomesKeyOnlyIfNeeded = true
         panel.hidesOnDeactivate = false
+        panel.isMovable = false
+        panel.contentMinSize = NSSize(width: 360, height: 260)
         panel.contentViewController = NSHostingController(rootView: AnyView(content()))
         return panel
     }
@@ -200,6 +219,8 @@ public enum AnchorPanelLayout {
 public enum AnchorScreenStore {
     private static let screenKey = "doris.anchorScreenDisplayID"
     private static let edgeKey = "doris.anchorEdge"
+    private static let expandedWidthKey = "doris.anchorExpandedWidth"
+    private static let expandedHeightKey = "doris.anchorExpandedHeight"
 
     public static func savedScreen() -> NSScreen? {
         let raw = UserDefaults.standard.integer(forKey: screenKey)
@@ -222,5 +243,20 @@ public enum AnchorScreenStore {
 
     public static func save(edge: AnchorEdge) {
         UserDefaults.standard.set(edge.rawValue, forKey: edgeKey)
+    }
+
+    /// Last size the user manually resized the expanded dropdown to.
+    /// `nil` means they never resized — caller falls back to the
+    /// baseline `expandedWidth × expandedHeight` (times zoom).
+    public static func savedExpandedSize() -> CGSize? {
+        let w = UserDefaults.standard.double(forKey: expandedWidthKey)
+        let h = UserDefaults.standard.double(forKey: expandedHeightKey)
+        guard w > 0, h > 0 else { return nil }
+        return CGSize(width: w, height: h)
+    }
+
+    public static func save(expandedSize: CGSize) {
+        UserDefaults.standard.set(expandedSize.width, forKey: expandedWidthKey)
+        UserDefaults.standard.set(expandedSize.height, forKey: expandedHeightKey)
     }
 }

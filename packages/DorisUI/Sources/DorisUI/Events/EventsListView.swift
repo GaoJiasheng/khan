@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 import DorisCore
 
-public struct InboxListView: View {
+public struct EventsListView: View {
     @Query(sort: [SortDescriptor(\Message.receivedAt, order: .reverse)])
     private var messages: [Message]
     @Environment(\.modelContext) private var modelContext
@@ -23,7 +23,7 @@ public struct InboxListView: View {
             Divider()
             List {
                 ForEach(filtered) { message in
-                    InboxRowView(message: message)
+                    EventsRowView(message: message)
                         .swipeActions(edge: .trailing) {
                             Button(role: .destructive) {
                                 message.state = .dismissed
@@ -37,12 +37,12 @@ public struct InboxListView: View {
             }
             .listStyle(.inset)
         }
-        .navigationTitle("Inbox")
+        .navigationTitle("Events")
     }
 
     private var filtered: [Message] {
-        guard let f = filter else { return messages.filter { $0.state == .inbox } }
-        return messages.filter { $0.state == .inbox && $0.source == f }
+        guard let f = filter else { return messages.filter { $0.state == .active } }
+        return messages.filter { $0.state == .active && $0.source == f }
     }
 }
 

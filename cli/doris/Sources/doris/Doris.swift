@@ -5,13 +5,13 @@ import Foundation
 struct Doris: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "doris",
-        abstract: "Push notifications, notes, and inbox commands to your doris helper.",
+        abstract: "Push notifications, notes, and events commands to your doris helper.",
         version: "0.1.0",
         subcommands: [
             NotifyCommand.self,
             PushCommand.self,
             NoteCommand.self,
-            InboxCommand.self,
+            EventsCommand.self,
             DevicesCommand.self,
             AuthCommand.self,
             SyncCommand.self,

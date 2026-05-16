@@ -3,18 +3,18 @@ import DorisCore
 import DorisUI
 
 struct SidebarRootView: View {
-    @State private var tab: Tab = .inbox
+    @State private var tab: Tab = .events
 
-    enum Tab: Hashable { case inbox, notes, today }
+    enum Tab: Hashable { case events, notes, today }
 
     var body: some View {
         VStack(spacing: 0) {
             tabBar
             Divider()
             switch tab {
-            case .inbox: InboxListView()
-            case .notes: NoteListView()
-            case .today: TodayView()
+            case .events: EventsListView()
+            case .notes:  NoteListView()
+            case .today:  TodayView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -23,8 +23,8 @@ struct SidebarRootView: View {
 
     private var tabBar: some View {
         HStack {
-            Button("Inbox") { tab = .inbox }
-                .fontWeight(tab == .inbox ? .bold : .regular)
+            Button("Events") { tab = .events }
+                .fontWeight(tab == .events ? .bold : .regular)
             Button("Notes") { tab = .notes }
                 .fontWeight(tab == .notes ? .bold : .regular)
             Button("Today") { tab = .today }

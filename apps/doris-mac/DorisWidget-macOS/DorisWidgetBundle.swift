@@ -4,18 +4,18 @@ import SwiftUI
 @main
 struct DorisWidgetBundleMac: WidgetBundle {
     var body: some Widget {
-        InboxWidgetMac()
+        EventsWidgetMac()
     }
 }
 
-struct InboxWidgetMac: Widget {
-    let kind = "com.gavin.doris.widget.inbox.mac"
+struct EventsWidgetMac: Widget {
+    let kind = "com.gavin.doris.widget.events.mac"
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: PlaceholderProvider()) { _ in
-            VStack { Image(systemName: "tray"); Text("Doris Inbox").font(.caption) }
+            VStack { Image(systemName: "tray"); Text("Doris Events").font(.caption) }
         }
-        .configurationDisplayName("Doris Inbox")
-        .description("Recent inbox items.")
+        .configurationDisplayName("Doris Events")
+        .description("Recent events.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }

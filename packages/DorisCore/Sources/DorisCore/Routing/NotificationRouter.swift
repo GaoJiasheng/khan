@@ -19,6 +19,7 @@ public struct PresentableMessage: Sendable, Identifiable {
     public let source: SourceKind
     public let sourceAppId: String?
     public let iconName: String?
+    public let level: EventLevel
     public let displayMode: DisplayMode
     public let receivedAt: Date
     public let clickAction: ClickAction?
@@ -30,6 +31,7 @@ public struct PresentableMessage: Sendable, Identifiable {
         source: SourceKind,
         sourceAppId: String?,
         iconName: String?,
+        level: EventLevel = .info,
         displayMode: DisplayMode,
         receivedAt: Date,
         clickAction: ClickAction?
@@ -40,6 +42,7 @@ public struct PresentableMessage: Sendable, Identifiable {
         self.source = source
         self.sourceAppId = sourceAppId
         self.iconName = iconName
+        self.level = level
         self.displayMode = displayMode
         self.receivedAt = receivedAt
         self.clickAction = clickAction
@@ -77,11 +80,11 @@ public final class NotificationRouter {
             await ingestNotify(payload, requestID: request.id)
         case .noteAdd(let payload):
             await ingestNoteAdd(payload)
-        case .inboxDismiss(let id):
+        case .eventsDismiss(let id):
             await mutateMessage(id) { $0.state = .dismissed }
-        case .inboxDone(let id):
+        case .eventsDone(let id):
             await mutateMessage(id) { $0.state = .actioned }
-        case .inboxList, .sync, .ping:
+        case .eventsList, .sync, .ping:
             break
         }
     }
@@ -109,7 +112,8 @@ public final class NotificationRouter {
             sourceAppId: payload.sourceAppId,
             iconName: payload.iconName ?? payload.source.sfSymbol,
             displayMode: payload.displayMode,
-            state: .inbox,
+            state: .active,
+            level: payload.level,
             clickAction: payload.clickAction,
             originDeviceId: originDevice.uuidString
         )
@@ -123,15 +127,24 @@ public final class NotificationRouter {
             source: payload.source,
             sourceAppId: payload.sourceAppId,
             iconName: message.iconName,
+            level: payload.level,
             displayMode: payload.displayMode,
             receivedAt: message.receivedAt,
             clickAction: payload.clickAction
         )
 
         if !muted {
-            switch payload.displayMode {
-            case .banner: presenter?.presentBanner(presentable)
-            case .fix:    presenter?.presentFix(presentable)
+            // Level wins over the explicit displayMode flag — `critical`
+            // is always sticky (user must dismiss), the other two are
+            // always auto-dismiss banners with level-derived durations.
+            // The displayMode field is retained on the payload mostly
+            // for legacy / cross-device CloudKit echo where senders may
+            // not yet emit a level.
+            switch payload.level {
+            case .critical:
+                presenter?.presentFix(presentable)
+            case .reminder, .info:
+                presenter?.presentBanner(presentable)
             }
         }
 

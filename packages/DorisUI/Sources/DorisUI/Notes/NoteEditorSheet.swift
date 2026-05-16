@@ -14,7 +14,7 @@ import DorisCore
 ///
 /// Adaptive: dark theme = deep purple cyber backdrop, light = cream.
 /// Pulls language from `LanguageSettings.shared` so the same editor reads
-/// in EN / 中文 / bilingual depending on the user's setting.
+/// in EN or 中文 depending on the user's setting.
 public struct NoteEditorSheet: View {
     @Bindable public var note: Note
     @Environment(\.dismiss) private var dismiss

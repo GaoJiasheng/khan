@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 import SwiftData
 import DorisCore
@@ -7,13 +8,20 @@ import DorisMacChrome
 import DorisUI
 
 @MainActor
-final class AnchorController: NotificationPresenter {
+final class AnchorController: NSObject, NotificationPresenter, NSWindowDelegate {
     private let model = AnchorModel()
     private var panel: DorisAnchorPanel?
     private var avatarWindow: MenuBarAvatarWindow?
     private var screenObserver: NSObjectProtocol?
     private var bannerDismissTask: Task<Void, Never>?
     private let modelContainer: ModelContainer
+    /// Global click monitor while the panel is expanded — fires for any
+    /// mouse-down outside Doris's own windows, so we can collapse the
+    /// panel popover-style. Nil when not expanded.
+    private var outsideClickMonitor: Any?
+    /// Resizes the panel live when the user bumps `Cmd-+/-` in the
+    /// main window while the dropdown is also visible.
+    private var zoomObserver: AnyCancellable?
 
     /// Expanded panel size when user clicks the anchor (no notification active).
     /// Wider than v0.1 to give the cyber-girl scene a proper hero column on the left.
@@ -22,6 +30,7 @@ final class AnchorController: NotificationPresenter {
 
     init(modelContainer: ModelContainer) {
         self.modelContainer = modelContainer
+        super.init()
     }
 
     func show() {
@@ -36,16 +45,136 @@ final class AnchorController: NotificationPresenter {
                 object: nil,
                 queue: .main
             ) { [weak self] _ in
-                self?.avatarWindow?.relayout()
+                // Hot-plug / lid-close fires this notification immediately,
+                // but `NSScreen.auxiliaryTopLeftArea` and `safeAreaInsets`
+                // are populated lazily by the window server — for a few
+                // hundred ms after the notification they can still report
+                // stale or zeroed geometry, which causes the notch-
+                // extension math to land the avatar at the screen's far
+                // left corner. Fire relayout at 0 / 300 / 1000 ms so the
+                // late-arriving geometry gets a chance to be picked up.
+                self?.scheduleAvatarRelayoutsAfterScreenChange()
             }
         }
         if panel == nil {
             buildPanel()
         }
+        if zoomObserver == nil {
+            zoomObserver = ZoomSettings.shared.$scale
+                .dropFirst()
+                .sink { [weak self] _ in
+                    // `@Published` emits inside `willSet` — at this
+                    // exact moment `ZoomSettings.shared.scale` is still
+                    // the OLD value (storage hasn't updated yet).
+                    // `relayoutExpandedPanel` → `computeRect` reads
+                    // that stale value, so the panel would lag one
+                    // step behind every Cmd-+ / Cmd-−. Dispatching
+                    // async to the main runloop punts the work until
+                    // after `willSet` finishes, at which point
+                    // `scale` carries the new value.
+                    DispatchQueue.main.async {
+                        guard let self else { return }
+                        if case .expanded = self.model.state {
+                            self.relayoutExpandedPanel()
+                        }
+                    }
+                }
+        }
+    }
+
+    /// Recompute the expanded panel's frame against the current zoom
+    /// and animate the window to it. The SwiftUI content inside
+    /// auto-reflows via `.dorisZoom()`; running the panel-level
+    /// resize through `animate: true` keeps the two layers visually
+    /// in sync (otherwise the inner content would scale instantly
+    /// while the panel window snapped to its new size with a tiny
+    /// flicker between them).
+    private func relayoutExpandedPanel() {
+        guard let panel else { return }
+        let newFrame = computeRect()
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.18
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            ctx.allowsImplicitAnimation = true
+            panel.animator().setFrame(newFrame, display: true)
+        }
+    }
+
+    // MARK: - NSWindowDelegate (resize)
+
+    /// AppKit fires this when the user finishes dragging an edge of
+    /// the panel to resize it. We:
+    ///   1. Persist the new size as a *logical* size (divided by the
+    ///      current zoom) so changing zoom afterwards still scales
+    ///      the panel predictably.
+    ///   2. Re-snap the panel back into its notch-anchored position
+    ///      (`computeRect()`). Edge-dragging can move the panel off
+    ///      the notch — dragging the bottom edge keeps the top
+    ///      pinned, but dragging the left or right edge does not.
+    ///      Recomputing pulls it back so the popup stays glued to
+    ///      the menu bar with horizontal centering on the
+    ///      (avatar + notch) span.
+    nonisolated func windowDidEndLiveResize(_ notification: Notification) {
+        Task { @MainActor [weak self] in
+            self?.handleResizeFinished()
+        }
+    }
+
+    private func handleResizeFinished() {
+        guard let panel else { return }
+        let zoom = ZoomSettings.shared.scale
+        let visualSize = panel.frame.size
+        let logical = CGSize(
+            width: visualSize.width / zoom,
+            height: visualSize.height / zoom
+        )
+        AnchorScreenStore.save(expandedSize: logical)
+        // Re-anchor to the notch with the new size baked in (computeRect
+        // will read the saved size and re-multiply by zoom).
+        let snapped = computeRect()
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.18
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            ctx.allowsImplicitAnimation = true
+            panel.animator().setFrame(snapped, display: true)
+        }
     }
 
     func hide() {
         panel?.orderOut(nil)
+    }
+
+    /// Three-shot relayout in response to a screen-parameters change.
+    /// Fires now, again at 300 ms, and again at 1000 ms — covers the
+    /// macOS window-server's lazy population of notch/auxiliary-area
+    /// geometry after hot-plug. Each call is cheap (computes a frame,
+    /// sets the window's origin/size); the redundancy is what makes
+    /// the binding stable across plug-in / unplug events.
+    private func scheduleAvatarRelayoutsAfterScreenChange() {
+        avatarWindow?.relayout()
+        for delayMs in [300, 1000] {
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(nanoseconds: UInt64(delayMs) * 1_000_000)
+                self?.avatarWindow?.relayout()
+            }
+        }
+    }
+
+    /// Screen the dropdown panel (or, if not visible, the menu-bar
+    /// avatar) currently lives on. Used by the "open main window"
+    /// command to land the main window on the same display the user
+    /// just clicked from, instead of forcing it onto NSScreen.main.
+    var currentScreen: NSScreen? {
+        panel?.screen ?? avatarWindow?.screen
+    }
+
+    /// Collapse the expanded dropdown (no-op if already idle). Used as
+    /// a precondition when opening the main window — the user shouldn't
+    /// have two parallel surfaces visible for the same content.
+    func collapse() {
+        guard case .expanded = model.state else { return }
+        model.state = .idle
+        hidePanel()
     }
 
     /// Public entry for the launch path — open the dropdown panel at app
@@ -109,6 +238,12 @@ final class AnchorController: NotificationPresenter {
             panel = AnchorPanelLayout.makeFloating(initialSize: NSSize(width: 1, height: 1)) {
                 rootView
             }
+            // Become the panel's window delegate so `windowDidEndLiveResize`
+            // (fired when the user finishes dragging an edge to resize)
+            // lands on `self.windowDidEndLiveResize(_:)` below, where we
+            // persist the new size and re-snap the panel into its
+            // notch-anchored position.
+            panel?.delegate = self
         }
     }
 
@@ -141,48 +276,82 @@ final class AnchorController: NotificationPresenter {
         }
         guard let panel else { return }
         let target = computeRect()
-        let start = collapsedRect()
 
-        // 1. Snap to a tiny frame at the logo's bottom center, transparent.
-        panel.setFrame(start, display: false)
-        panel.alphaValue = 0
+        // Pin the panel's NSAppearance to Doris's in-app theme so
+        // any `Color(light:dark:)` lookups inside the SwiftUI tree
+        // resolve against the SAME appearance the rest of the app
+        // is using. Without this the panel inherits the system
+        // appearance; if the system is in Auto / a different mode
+        // than Doris's theme, the SwiftUI `.preferredColorScheme`
+        // and the NSAppearance disagree, and dynamic NSColors
+        // resolved during render can flicker between the two —
+        // showing up as backdrop / text "changing color."
+        panel.appearance = NSAppearance(
+            named: ThemeSettings.shared.mode == .dark ? .darkAqua : .aqua
+        )
+
+        // Instant show — no frame grow, no alpha fade. Snap-on / snap-off
+        // avoids any blend with the menu bar / desktop behind it.
+        panel.setFrame(target, display: false)
+        panel.alphaValue = 1
         panel.orderFrontRegardless()
 
-        // 2. Snap to fully open with a quick ease-out — feels like the logo bursts open.
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.18
-            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            ctx.allowsImplicitAnimation = true
-            panel.animator().setFrame(target, display: true)
-            panel.animator().alphaValue = 1
+        // Outside-click auto-dismiss is a popover affordance — only
+        // attach it for the expanded panel. Banners auto-dismiss on a
+        // timer and fix messages have their own X / tap-to-act paths.
+        if case .expanded = model.state {
+            installOutsideClickMonitor()
+        }
+    }
+
+    /// Install a global mouse-down monitor that collapses the panel on
+    /// any click outside Doris's own windows. Replaces the dedicated X
+    /// close button — the panel now behaves like a popover (clicking
+    /// the desktop, another app, or the menu bar dismisses it).
+    /// Idempotent — uninstalls any prior monitor first.
+    private func installOutsideClickMonitor() {
+        if let existing = outsideClickMonitor {
+            NSEvent.removeMonitor(existing)
+            outsideClickMonitor = nil
+        }
+        outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+        ) { [weak self] _ in
+            // Global monitors only fire for events outside our own
+            // windows, so reaching here already means "click landed
+            // somewhere else." Collapse the panel.
+            Task { @MainActor [weak self] in
+                self?.dismissActiveMessage()
+            }
+        }
+    }
+
+    private func uninstallOutsideClickMonitor() {
+        if let monitor = outsideClickMonitor {
+            NSEvent.removeMonitor(monitor)
+            outsideClickMonitor = nil
         }
     }
 
     private func hidePanel() {
-        guard let panel, panel.isVisible else {
-            panel?.orderOut(nil)
+        uninstallOutsideClickMonitor()
+        guard let panel else {
             tearDownPanelContent()
             return
         }
-        let end = collapsedRect()
-        NSAnimationContext.runAnimationGroup({ ctx in
-            ctx.duration = 0.14
-            ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
-            ctx.allowsImplicitAnimation = true
-            panel.animator().setFrame(end, display: true)
-            panel.animator().alphaValue = 0
-        }, completionHandler: { [weak self, weak panel] in
-            panel?.orderOut(nil)
-            // Critical for CPU: drop the SwiftUI host once the close
-            // animation finishes. NSPanel.orderOut on its own only hides
-            // the window — the SwiftUI view tree (AvatarHero with its
-            // TimelineView, particle Canvas, animated player) keeps
-            // running in the background and burning CPU at the display
-            // refresh rate. Setting `contentViewController = nil`
-            // releases the hosting controller and SwiftUI tears down
-            // every animator inside it. Next `showPanel()` rebuilds.
-            self?.tearDownPanelContent()
-        })
+        // Instant hide — matches the snap-on `showPanel`. Earlier
+        // we animated alpha 1 → 0 over 0.18s, but during the fade
+        // the half-opaque card mixed with the menu bar / desktop
+        // colors behind it and read as the backdrop / text shifting.
+        // Snap-off avoids the blend.
+        //
+        // `tearDownPanelContent` still releases the SwiftUI host so
+        // any internal `TimelineView` / Canvas inside the dropped
+        // view tree stops burning CPU — that's the real reason hide
+        // is split into "ordered-out + content-torn-down" rather
+        // than just `orderOut(nil)`.
+        panel.orderOut(nil)
+        tearDownPanelContent()
     }
 
     private func tearDownPanelContent() {
@@ -249,25 +418,65 @@ final class AnchorController: NotificationPresenter {
             width = AnchorPanelLayout.fixWidth
             height = AnchorPanelLayout.fixHeight
         case .expanded:
-            width = Self.expandedWidth
-            height = Self.expandedHeight
+            // Expanded size = (saved logical size OR baseline) × zoom.
+            // The saved size is stored *logical* — i.e. zoom-1.0
+            // equivalent — so changing zoom afterwards still scales
+            // the panel proportionally. If the user has never
+            // resized, fall back to the baseline logical size.
+            let zoom = ZoomSettings.shared.scale
+            let logical = AnchorScreenStore.savedExpandedSize()
+                ?? CGSize(width: Self.expandedWidth, height: Self.expandedHeight)
+            width = logical.width * zoom
+            height = logical.height * zoom
         }
 
         if let avatar = avatarWindow, let screen = avatar.screen {
             let aFrame = avatar.screenFrame
             let s = screen.frame
-            let gap: CGFloat = 6
+            // Zero-gap on the `.top` edge so the dropdown's flat top
+            // edge sits flush against the bottom of the avatar / menu
+            // bar — gives the "growing out of the notch" illusion. Side
+            // edges still use a small visual gap because there's no
+            // notch-merge story there.
+            let gap: CGFloat = (avatar.edge == .top) ? 0 : 6
 
-            // The panel anchors to the screen edge the avatar lives on, but it CENTERS
-            // along the perpendicular axis on the screen (not on the avatar). This way
-            // the panel always feels balanced relative to the display, even when the
-            // logo is tucked in a corner or beside the notch.
+            // The panel anchors to the screen edge the avatar lives on, but the
+            // horizontal centering rule differs for the `.top` edge: on a notched
+            // display where the avatar parks beside the notch, "screen-centered"
+            // looks visually off because the (avatar + notch) span is not centered
+            // on the screen — the avatar is to the left of center. Centering the
+            // panel under the visual group (avatar's outer edge → notch's far
+            // edge) makes the dropdown read as belonging to the logo.
             switch avatar.edge {
             case .top:
-                // Drop down from the screen's top edge, horizontally centered on screen.
-                let x = s.midX - width / 2
+                let panelX: CGFloat
+                if #available(macOS 12.0, *),
+                   screen.safeAreaInsets.top > 0,
+                   let leftArea = screen.auxiliaryTopLeftArea,
+                   let rightArea = screen.auxiliaryTopRightArea {
+                    // Combined span = from whichever of (avatar.minX, leftArea.maxX)
+                    // is further left, to whichever of (avatar.maxX, rightArea.minX)
+                    // is further right. Currently the avatar parks left of the
+                    // notch so `combinedLeft = aFrame.minX` and `combinedRight =
+                    // rightArea.minX` (the notch's right edge); but doing it via
+                    // min/max keeps the math correct if the avatar ever lands
+                    // right of the notch.
+                    _ = leftArea  // referenced for symmetry / future right-of-notch case
+                    let combinedLeft = min(aFrame.minX, leftArea.maxX)
+                    let combinedRight = max(aFrame.maxX, rightArea.minX)
+                    let combinedMid = (combinedLeft + combinedRight) / 2
+                    // Clamp so the panel never overflows the screen with a small
+                    // visual inset on whichever side it bumps into.
+                    let inset: CGFloat = 6
+                    let unclamped = combinedMid - width / 2
+                    panelX = min(max(unclamped, s.minX + inset), s.maxX - width - inset)
+                } else {
+                    // No notch — fall back to screen-centered, which matches the
+                    // fake-notch idle placement at midX.
+                    panelX = s.midX - width / 2
+                }
                 let y = aFrame.minY - gap - height
-                return NSRect(x: x, y: y, width: width, height: height)
+                return NSRect(x: panelX, y: y, width: width, height: height)
             case .bottom:
                 // Grow upward from the screen's bottom edge, horizontally centered.
                 let x = s.midX - width / 2
@@ -311,6 +520,7 @@ final class AnchorController: NotificationPresenter {
             title: message.title,
             body: message.body,
             iconName: message.iconName ?? message.source.sfSymbol,
+            level: message.level,
             displayMode: .banner,
             receivedAt: message.receivedAt
         )
@@ -321,8 +531,13 @@ final class AnchorController: NotificationPresenter {
             self.model.state = .banner(message: m)
             self.showPanel()
             self.bannerDismissTask?.cancel()
+            // Level-driven duration: info peeks for 1.5s, reminder
+            // hangs around for 4s. Critical would be .infinity but
+            // critical events are routed through `presentFix` instead
+            // and never reach this path.
+            let duration = m.level.bannerDuration
             self.bannerDismissTask = Task { @MainActor [weak self] in
-                try? await Task.sleep(nanoseconds: 4_000_000_000)
+                try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
                 guard !Task.isCancelled else { return }
                 if case .banner(let current) = self?.model.state, current.id == m.id {
                     self?.dismissActiveMessage()
@@ -337,6 +552,7 @@ final class AnchorController: NotificationPresenter {
             title: message.title,
             body: message.body,
             iconName: message.iconName ?? message.source.sfSymbol,
+            level: message.level,
             displayMode: .fix,
             receivedAt: message.receivedAt
         )

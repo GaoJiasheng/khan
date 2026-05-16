@@ -1,15 +1,16 @@
 import SwiftUI
 import SwiftData
 import DorisCore
+import DorisIPC
 import DorisUI
 
-/// Inbox tab — list of Messages received via CloudKit / local insertion,
-/// rendered as cyber-themed cards. Mirrors the Mac AnchorInboxView but
+/// Events tab — list of Messages received via CloudKit / local insertion,
+/// rendered as cyber-themed cards. Mirrors the Mac AnchorEventsView but
 /// vertically scrollable for a phone form factor.
 ///
 /// Pull-to-refresh fires `AppCommands.syncNow` (manual sync) so the user
 /// can force a CloudKit poke without going to Settings.
-struct InboxScreen: View {
+struct EventsScreen: View {
     @ObservedObject private var lang = LanguageSettings.shared
     @Environment(\.modelContext) private var ctx
 
@@ -17,7 +18,7 @@ struct InboxScreen: View {
     private var messages: [Message]
 
     var body: some View {
-        let active = messages.filter { $0.state == .inbox }
+        let active = messages.filter { $0.state == .active }
         NavigationStack {
             ScrollView {
                 if active.isEmpty {
@@ -26,7 +27,7 @@ struct InboxScreen: View {
                 } else {
                     LazyVStack(spacing: 8) {
                         ForEach(active) { m in
-                            InboxRow(message: m)
+                            EventRow(message: m)
                                 .contextMenu {
                                     Button {
                                         m.state = .actioned
@@ -61,7 +62,7 @@ struct InboxScreen: View {
                 AppCommands.syncNow()
                 try? await Task.sleep(nanoseconds: 600_000_000)
             }
-            .navigationTitle(L("Inbox", "收件箱"))
+            .navigationTitle(L("Events", "事件"))
             .navigationBarTitleDisplayMode(.large)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbarBackground(.hidden, for: .navigationBar)
@@ -70,10 +71,10 @@ struct InboxScreen: View {
 
     private var emptyState: some View {
         VStack(spacing: 8) {
-            Image(systemName: "tray")
+            Image(systemName: "bell.slash")
                 .font(.system(size: 36))
                 .foregroundStyle(.primary.opacity(0.4))
-            Text(L("No new messages", "暂无新消息"))
+            Text(L("No events yet", "暂无事件"))
                 .font(.subheadline)
                 .foregroundStyle(.primary.opacity(0.65))
             Text(L("Pull down to sync now.", "下拉以立即同步。"))
@@ -83,21 +84,35 @@ struct InboxScreen: View {
     }
 }
 
-private struct InboxRow: View {
+private struct EventRow: View {
     let message: Message
 
     var body: some View {
+        let levelTint = EventLevelStyle.color(for: message.level)
         CyberCard {
             HStack(alignment: .top, spacing: 12) {
+                RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+                    .fill(levelTint)
+                    .frame(width: 3)
+                    .opacity(message.level == .info ? 0.35 : 1.0)
                 Image(systemName: message.iconName ?? message.source.sfSymbol)
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(CyberPalette.neonCyan)
+                    .foregroundStyle(message.level == .info
+                                     ? AnyShapeStyle(CyberPalette.neonCyan)
+                                     : AnyShapeStyle(levelTint))
                     .frame(width: 22)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(message.title)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
-                        .lineLimit(2)
+                    HStack(spacing: 4) {
+                        Text(message.title)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(2)
+                        if message.level != .info {
+                            Image(systemName: message.level.sfSymbol)
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(levelTint)
+                        }
+                    }
                     if let body = message.bodyMarkdown, !body.isEmpty {
                         Text(body)
                             .font(.caption)
