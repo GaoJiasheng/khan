@@ -17,6 +17,7 @@ import DorisUI
 struct NotesScreen: View {
     @ObservedObject private var lang = LanguageSettings.shared
     @ObservedObject private var sync = SyncSettings.shared
+    @ObservedObject private var theme = ThemeSettings.shared
     @Environment(\.modelContext) private var ctx
 
     @Query(
@@ -232,6 +233,7 @@ struct NotesScreen: View {
             }
             .background { CyberBackground().ignoresSafeArea() }
         }
+        .preferredColorScheme(theme.mode.colorScheme)
         .presentationDetents([.medium])
     }
 

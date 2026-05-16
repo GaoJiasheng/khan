@@ -12,11 +12,6 @@ struct SettingsScreen: View {
 
     var body: some View {
         NavigationStack {
-            // CyberBackground sits BEHIND the Form via `.background` so the
-            // gradient extends edge-to-edge (`.ignoresSafeArea()` inside
-            // CyberBackground), but the Form itself respects the safe area
-            // so the first row ("主题") is no longer hidden behind the
-            // navigation bar.
             Form {
                 themeSection
                 languageSection
@@ -38,6 +33,7 @@ struct SettingsScreen: View {
                 }
             }
         }
+        .preferredColorScheme(theme.mode.colorScheme)
     }
 
     private var themeSection: some View {
