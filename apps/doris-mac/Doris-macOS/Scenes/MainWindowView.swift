@@ -36,29 +36,32 @@ struct MainWindowView: View {
         ZStack {
             CyberBackground(haloIntensity: 0.7)
             NavigationSplitView(columnVisibility: $columnVisibility) {
-                sidebar
+                // Apply zoom *inside* each pane rather than wrapping
+                // NavigationSplitView. The earlier "wrap the whole
+                // thing in dorisZoom" approach put a GeometryReader
+                // above NavigationSplitView, which broke its
+                // internal hit-test routing — clicks on TODO/Events/
+                // sync/theme stopped registering. Per-pane zoom
+                // keeps NavSplitView's own layout/divider/responder
+                // logic intact; each pane's content is what scales.
+                sidebar.dorisZoom()
             } detail: {
-                detail
+                detail.dorisZoom()
             }
             .navigationSplitViewStyle(.balanced)
             .scrollContentBackground(.hidden)
         }
         .frame(minWidth: 760, minHeight: 520)
         .preferredColorScheme(theme.mode.colorScheme)
-        // Zoom is applied at the *window* level only — see
-        // `MainWindowController.applyZoomIfNeeded` — not via a SwiftUI
-        // `scaleEffect`. Earlier we used `.dorisZoom()` here, but the
-        // GeometryReader it relies on broke `NavigationSplitView`'s
-        // hit-test routing: every button at the top of the detail
-        // header (TODO / Events / sync / theme toggle) stopped
-        // registering clicks. Browser-style content scaling didn't
-        // fit the macOS native NavigationSplitView surface; we settle
-        // for window-grow zoom (text stays at native size, window
-        // gets bigger / smaller).
-        //
-        // Keyboard shortcuts (Cmd-+ / Cmd-− / Cmd-0) are registered
-        // by `MainWindowController` via `NSEvent.addLocalMonitorForEvents`,
-        // not by hidden SwiftUI Buttons — same hit-test reason.
+        // Cmd-+ / Cmd-− / Cmd-0 are intercepted by
+        // `MainWindowController.installZoomKeyMonitor` (NSEvent
+        // local monitor). The keypress mutates `ZoomSettings.shared.scale`;
+        // each `dorisZoom()` above observes that setting and
+        // re-renders with the new scale. Dragging the window border
+        // is unchanged — it resizes the window's content area,
+        // which `dorisZoom()` reflows into without changing the
+        // visual font size. So Cmd-+ scales fonts/icons, drag
+        // expands layout space.
     }
 
     // MARK: - Sidebar

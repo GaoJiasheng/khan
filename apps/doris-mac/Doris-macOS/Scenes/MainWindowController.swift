@@ -1,5 +1,4 @@
 import AppKit
-import Combine
 import SwiftUI
 import SwiftData
 import DorisCore
@@ -27,29 +26,6 @@ final class MainWindowController: NSObject, NSWindowDelegate {
     static let shared = MainWindowController()
 
     private var window: NSWindow?
-    /// Last zoom level we sized the window for. When `ZoomSettings.scale`
-    /// changes we resize by the *ratio* (new / last) so the user's
-    /// manual resize choices are preserved — we're scaling, not snapping
-    /// back to a fixed baseline.
-    ///
-    /// Starts at `1.0` (not the persisted zoom) because the window is
-    /// created with the baseline 900×600 `contentRect`. On first show,
-    /// if the user had a saved zoom of e.g. 1.25, we need ratio
-    /// `1.25 / 1.0 = 1.25` to grow the window to 1125×750. If we
-    /// initialised `lastAppliedZoom` to the saved 1.25 instead, the
-    /// ratio would be 1.0 and the window would stay at the baseline
-    /// — with the persisted zoom applied to layout that's a
-    /// "shrunk content" look that the user reads as proportionally
-    /// off.
-    private var lastAppliedZoom: Double = 1.0
-    private var zoomObserver: AnyCancellable?
-    /// `NSEvent` local monitor for Cmd-+ / Cmd-− / Cmd-0. Lives at
-    /// the AppKit level (not as SwiftUI `keyboardShortcut` modifiers
-    /// hung in the view tree) because the SwiftUI approach forced
-    /// hidden Button elements into the responder chain and broke
-    /// hit-testing for every visible Button at the top of the
-    /// NavigationSplitView's detail header.
-    private var zoomKeyMonitor: Any?
 
     private override init() { super.init() }
 
@@ -74,12 +50,6 @@ final class MainWindowController: NSObject, NSWindowDelegate {
             }
             window.makeKeyAndOrderFront(nil)
             scheduleGreetOnNextRunloop()
-            // Catch any zoom changes that happened while the window
-            // was closed — the observer is set up after first show
-            // so before that we'd have missed them.
-            applyZoom(ZoomSettings.shared.scale, toWindow: window, animated: false)
-            observeZoom()
-            installZoomKeyMonitor()
             return
         }
 
@@ -124,106 +94,6 @@ final class MainWindowController: NSObject, NSWindowDelegate {
         self.window = win
         win.makeKeyAndOrderFront(nil)
         scheduleGreetOnNextRunloop()
-        // Apply current zoom to the freshly-built window once, then
-        // observe ZoomSettings for subsequent Cmd-+/Cmd-− events.
-        applyZoom(ZoomSettings.shared.scale, toWindow: win, animated: false)
-        observeZoom()
-        installZoomKeyMonitor()
-    }
-
-    /// Listen for Cmd-+ / Cmd-− / Cmd-0 at the AppKit event level and
-    /// route them to `ZoomSettings`. Local monitors fire while *any*
-    /// of our app's windows are key; we explicitly gate on
-    /// `self.window?.isKeyWindow` so a focused dropdown panel doesn't
-    /// accidentally consume the shortcut (the dropdown follows zoom
-    /// passively — it shouldn't issue zoom commands itself).
-    ///
-    /// Matched by physical `keyCode` rather than `charactersIgnoringModifiers`
-    /// because the latter goes through the active keyboard layout +
-    /// input source — under a Chinese IME or a remapping utility
-    /// (Karabiner, Hammerspoon) it can return a substituted or
-    /// reversed character, which is what produced the "Cmd-= shrinks,
-    /// Cmd-− grows" complaint. Physical keyCodes ignore those layers.
-    ///
-    /// Returning `nil` swallows the event; returning it passes it on.
-    private func installZoomKeyMonitor() {
-        guard zoomKeyMonitor == nil else { return }
-        zoomKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self,
-                  let window = self.window,
-                  window.isKeyWindow,
-                  event.modifierFlags.contains(.command)
-            else { return event }
-            // US ANSI Mac keyCodes for the affected keys:
-            //   24 = `=` / `+` (top row, right of `0`)
-            //   27 = `-` / `_` (top row)
-            //   29 = `0` (top row)
-            //   69 = numeric keypad `+`
-            //   78 = numeric keypad `-`
-            //   82 = numeric keypad `0`
-            switch event.keyCode {
-            case 24, 69:
-                ZoomSettings.shared.zoomIn()
-                return nil
-            case 27, 78:
-                ZoomSettings.shared.zoomOut()
-                return nil
-            case 29, 82:
-                ZoomSettings.shared.reset()
-                return nil
-            default:
-                return event
-            }
-        }
-    }
-
-    /// Resize the main window to reflect a zoom value. Uses the
-    /// *ratio* between the new zoom and the last-applied zoom so the
-    /// user's manual resize choices are preserved — if they dragged
-    /// the window to 1100×700 at zoom 1.0 and then bump zoom to 1.25,
-    /// the window becomes 1375×875 (not snapped to a fixed baseline
-    /// × 1.25). Re-centers around the window's current center.
-    ///
-    /// The zoom value MUST be passed in explicitly: reading from
-    /// `ZoomSettings.shared.scale` inside an `@Published` sink callback
-    /// returns the *old* value (`@Published` emits during `willSet`,
-    /// before the wrappedValue is updated). That's what produced the
-    /// reversed-direction bug — the first Cmd-+ press read scale=1.0
-    /// while it was already on its way to 1.10, mis-computed a 1.0
-    /// ratio, etc. Always take the value from the publisher.
-    private func applyZoom(_ newZoom: Double, toWindow win: NSWindow, animated: Bool = false) {
-        let ratio = newZoom / lastAppliedZoom
-        guard abs(ratio - 1.0) > 0.001 else {
-            lastAppliedZoom = newZoom
-            return
-        }
-        let oldFrame = win.frame
-        let newWidth = oldFrame.width * ratio
-        let newHeight = oldFrame.height * ratio
-        let centerX = oldFrame.midX
-        let centerY = oldFrame.midY
-        let newFrame = NSRect(
-            x: centerX - newWidth / 2,
-            y: centerY - newHeight / 2,
-            width: newWidth,
-            height: newHeight
-        )
-        win.setFrame(newFrame, display: true, animate: animated)
-        lastAppliedZoom = newZoom
-    }
-
-    /// Subscribe to `ZoomSettings.shared.$scale`. Idempotent — multiple
-    /// `show()` calls reuse the same subscription. The published value
-    /// is forwarded into `applyZoom` directly so we don't accidentally
-    /// read the stale `wrappedValue` mid-willSet.
-    private func observeZoom() {
-        guard zoomObserver == nil else { return }
-        zoomObserver = ZoomSettings.shared.$scale
-            .dropFirst() // skip current value; we applied it inline
-            .sink { [weak self] newScale in
-                guard let self, let window = self.window else { return }
-                self.applyZoom(newScale, toWindow: window, animated: true)
-            }
     }
 
     /// Fire a hero greeting one tick after the window is shown.

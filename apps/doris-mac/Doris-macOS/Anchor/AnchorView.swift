@@ -37,16 +37,13 @@ struct AnchorView: View {
                 expandedMessageView(m)
                     .transition(Self.notchDropTransition)
             case .expanded:
-                // Zoom is reflected at the panel-window level (see
-                // `AnchorController.computeRect` — it multiplies the
-                // saved logical size by the current zoom). No
-                // `.dorisZoom()` on the SwiftUI tree because the
-                // `GeometryReader + scaleEffect` it requires fights
-                // with this view's tab buttons + edit affordances.
-                // Content stays at native size; the panel grows /
-                // shrinks instead, so the user gets "more space at
-                // higher zoom" rather than "bigger text."
+                // Scale content via `.dorisZoom()`. The panel window
+                // itself stays at the size the user dragged it to —
+                // resizing the window only changes layout space
+                // (more content visible), not font size. Cmd-+ / Cmd-−
+                // are what changes font size.
                 expandedSummaryView
+                    .dorisZoom()
                     .transition(Self.notchDropTransition)
             }
         }

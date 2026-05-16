@@ -1,5 +1,4 @@
 import AppKit
-import Combine
 import SwiftUI
 import SwiftData
 import DorisCore
@@ -19,9 +18,6 @@ final class AnchorController: NSObject, NotificationPresenter, NSWindowDelegate 
     /// mouse-down outside Doris's own windows, so we can collapse the
     /// panel popover-style. Nil when not expanded.
     private var outsideClickMonitor: Any?
-    /// Resizes the panel live when the user bumps `Cmd-+/-` in the
-    /// main window while the dropdown is also visible.
-    private var zoomObserver: AnyCancellable?
 
     /// Expanded panel size when user clicks the anchor (no notification active).
     /// Wider than v0.1 to give the cyber-girl scene a proper hero column on the left.
@@ -59,45 +55,11 @@ final class AnchorController: NSObject, NotificationPresenter, NSWindowDelegate 
         if panel == nil {
             buildPanel()
         }
-        if zoomObserver == nil {
-            zoomObserver = ZoomSettings.shared.$scale
-                .dropFirst()
-                .sink { [weak self] _ in
-                    // `@Published` emits inside `willSet` — at this
-                    // exact moment `ZoomSettings.shared.scale` is still
-                    // the OLD value (storage hasn't updated yet).
-                    // `relayoutExpandedPanel` → `computeRect` reads
-                    // that stale value, so the panel would lag one
-                    // step behind every Cmd-+ / Cmd-−. Dispatching
-                    // async to the main runloop punts the work until
-                    // after `willSet` finishes, at which point
-                    // `scale` carries the new value.
-                    DispatchQueue.main.async {
-                        guard let self else { return }
-                        if case .expanded = self.model.state {
-                            self.relayoutExpandedPanel()
-                        }
-                    }
-                }
-        }
-    }
-
-    /// Recompute the expanded panel's frame against the current zoom
-    /// and animate the window to it. The SwiftUI content inside
-    /// auto-reflows via `.dorisZoom()`; running the panel-level
-    /// resize through `animate: true` keeps the two layers visually
-    /// in sync (otherwise the inner content would scale instantly
-    /// while the panel window snapped to its new size with a tiny
-    /// flicker between them).
-    private func relayoutExpandedPanel() {
-        guard let panel else { return }
-        let newFrame = computeRect()
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.18
-            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            ctx.allowsImplicitAnimation = true
-            panel.animator().setFrame(newFrame, display: true)
-        }
+        // No zoom observer needed at the controller level. The panel
+        // window's size is decoupled from zoom — Cmd-+ / Cmd-− only
+        // changes font/icon scale (via `.dorisZoom()` inside the
+        // SwiftUI tree); the panel window stays at whatever size the
+        // user dragged it to (or the baseline).
     }
 
     // MARK: - NSWindowDelegate (resize)
@@ -122,15 +84,12 @@ final class AnchorController: NSObject, NotificationPresenter, NSWindowDelegate 
 
     private func handleResizeFinished() {
         guard let panel else { return }
-        let zoom = ZoomSettings.shared.scale
-        let visualSize = panel.frame.size
-        let logical = CGSize(
-            width: visualSize.width / zoom,
-            height: visualSize.height / zoom
-        )
-        AnchorScreenStore.save(expandedSize: logical)
-        // Re-anchor to the notch with the new size baked in (computeRect
-        // will read the saved size and re-multiply by zoom).
+        // Save the panel's pixel dimensions directly — no zoom
+        // division. The popup window size is decoupled from zoom;
+        // Cmd-+ / Cmd-− only changes font/icon scale via
+        // `.dorisZoom()` inside the SwiftUI tree.
+        AnchorScreenStore.save(expandedSize: panel.frame.size)
+        // Re-anchor to the notch with the new size baked in.
         let snapped = computeRect()
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.18
@@ -418,16 +377,16 @@ final class AnchorController: NSObject, NotificationPresenter, NSWindowDelegate 
             width = AnchorPanelLayout.fixWidth
             height = AnchorPanelLayout.fixHeight
         case .expanded:
-            // Expanded size = (saved logical size OR baseline) × zoom.
-            // The saved size is stored *logical* — i.e. zoom-1.0
-            // equivalent — so changing zoom afterwards still scales
-            // the panel proportionally. If the user has never
-            // resized, fall back to the baseline logical size.
-            let zoom = ZoomSettings.shared.scale
-            let logical = AnchorScreenStore.savedExpandedSize()
+            // Saved size wins if the user has manually resized — kept
+            // in raw pixels (no zoom multiplication). Zoom affects
+            // font / icon scale inside the panel via `.dorisZoom()`,
+            // NOT the panel window's outer dimensions. Drag the
+            // border to resize the window; press Cmd-+ to scale
+            // content within whatever size you chose.
+            let saved = AnchorScreenStore.savedExpandedSize()
                 ?? CGSize(width: Self.expandedWidth, height: Self.expandedHeight)
-            width = logical.width * zoom
-            height = logical.height * zoom
+            width = saved.width
+            height = saved.height
         }
 
         if let avatar = avatarWindow, let screen = avatar.screen {
