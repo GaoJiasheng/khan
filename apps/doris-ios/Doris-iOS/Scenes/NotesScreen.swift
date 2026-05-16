@@ -37,9 +37,10 @@ struct NotesScreen: View {
 
     @State private var path = NavigationPath()
     @State private var showSettings = false
+    @State private var showArchived = false
     @State private var nowTick: Date = Date()
     @State private var searchText: String = ""
-    @State private var dueDateNoteID: UUID?   // which note's due-date picker is open
+    @State private var dueDateNoteID: UUID?
     private let tickTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     private var filteredNotes: [Note] {
@@ -169,9 +170,7 @@ struct NotesScreen: View {
                 }
             }
             .safeAreaInset(edge: .top, spacing: 0) {
-                syncPill
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 6)
+                statusBar
             }
             // Note detail destination
             .navigationDestination(for: UUID.self) { id in
@@ -192,6 +191,10 @@ struct NotesScreen: View {
             }
             .sheet(isPresented: $showSettings) {
                 SettingsScreen()
+            }
+            .sheet(isPresented: $showArchived) {
+                ArchivedNotesSheet()
+                    .preferredColorScheme(theme.mode.colorScheme)
             }
             // Quick due-date picker from contextMenu
             .sheet(item: Binding(
@@ -253,75 +256,69 @@ struct NotesScreen: View {
         .presentationDetents([.medium])
     }
 
-    // MARK: - Sync pill
+    // MARK: - Compact status bar
 
-    private var syncPill: some View {
+    private var statusBar: some View {
         let hasError = sync.lastSyncError != nil
-        return HStack(spacing: 8) {
-            Image(systemName: hasError ? "icloud.slash" :
-                  (sync.cloudKitEnabled ? "icloud.fill" : "icloud.slash"))
-                .font(.caption)
-                .foregroundStyle(hasError ? .red :
-                    (sync.cloudKitEnabled ? CyberPalette.neonCyan : .primary.opacity(0.5)))
-            Text(syncStatusLabel)
-                .font(.caption2)
-                .foregroundStyle(hasError ? .red : .primary.opacity(0.65))
-                .monospacedDigit()
-            Spacer(minLength: 0)
+        let accentColor: Color = hasError ? .red : CyberPalette.neonCyan
+
+        return HStack(spacing: 0) {
+            // Left: sync button + status text
             Button {
-                if hasError {
-                    showSettings = true
-                } else {
-                    AppCommands.syncNow()
-                }
+                hasError ? showSettings = true : AppCommands.syncNow()
             } label: {
-                HStack(spacing: 3) {
-                    Image(systemName: hasError ? "exclamationmark.circle" :
-                          "arrow.triangle.2.circlepath")
-                        .font(.system(size: 10, weight: .semibold))
-                    Text(hasError ? L("Error", "错误") : L("Sync", "同步"))
-                        .font(.caption2.weight(.medium))
+                HStack(spacing: 5) {
+                    Image(systemName: hasError
+                          ? "exclamationmark.icloud.fill"
+                          : (sync.cloudKitEnabled ? "arrow.triangle.2.circlepath" : "icloud.slash"))
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(accentColor)
+                    Text(syncStatusLabel)
+                        .font(.system(size: 11, design: .monospaced).monospacedDigit())
+                        .foregroundStyle(hasError ? .red : .primary.opacity(0.6))
+                        .lineLimit(1)
                 }
-                .padding(.horizontal, 8)
+            }
+            .buttonStyle(.plain)
+
+            Spacer(minLength: 8)
+
+            // Right: archived notes button
+            Button { showArchived = true } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "archivebox")
+                        .font(.system(size: 10, weight: .semibold))
+                    Text(L("Archived", "已归档"))
+                        .font(.system(size: 11, weight: .medium))
+                }
+                .foregroundStyle(.primary.opacity(0.5))
+                .padding(.horizontal, 9)
                 .padding(.vertical, 4)
-                .background(Capsule().fill(
-                    (hasError ? Color.red : CyberPalette.neonCyan).opacity(0.15)
-                ))
-                .overlay(Capsule().stroke(
-                    (hasError ? Color.red : CyberPalette.neonCyan).opacity(0.45),
-                    lineWidth: 0.6
-                ))
-                .foregroundStyle(hasError ? .red : .primary)
+                .background(
+                    Capsule().fill(.primary.opacity(0.06))
+                )
+                .overlay(
+                    Capsule().stroke(.primary.opacity(0.09), lineWidth: 0.5)
+                )
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 16)
         .padding(.vertical, 6)
-        .background(
-            Capsule()
-                .fill(.ultraThinMaterial)
-                .opacity(0.6)
-        )
-        .overlay(
-            Capsule()
-                .stroke(
-                    hasError ? Color.red.opacity(0.35) : Color.primary.opacity(0.08),
-                    lineWidth: hasError ? 0.8 : 0.5
-                )
-        )
+        .background(.ultraThinMaterial.opacity(0.7))
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(.primary.opacity(0.06))
+                .frame(height: 0.5)
+        }
     }
 
     private var syncStatusLabel: String {
         if let err = sync.lastSyncError {
-            let truncated = err.count > 40 ? String(err.prefix(40)) + "…" : err
-            return truncated
+            return err.count > 36 ? String(err.prefix(36)) + "…" : err
         }
-        guard sync.cloudKitEnabled else {
-            return L("Local only", "仅本地")
-        }
-        guard let last = sync.lastSyncedAt else {
-            return L("Never synced", "尚未同步")
-        }
+        guard sync.cloudKitEnabled else { return L("Local only", "仅本地") }
+        guard let last = sync.lastSyncedAt else { return L("Never synced", "尚未同步") }
         _ = nowTick
         let f = RelativeDateTimeFormatter()
         f.unitsStyle = .short
@@ -346,6 +343,94 @@ struct NotesScreen: View {
                     .font(.caption)
                     .foregroundStyle(.primary.opacity(0.45))
                     .multilineTextAlignment(.center)
+            }
+        }
+    }
+}
+
+// MARK: - Archived notes sheet
+
+private struct ArchivedNotesSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var ctx
+
+    @Query(
+        filter: #Predicate<Note> { note in note.archived },
+        sort: [SortDescriptor(\Note.updatedAt, order: .reverse)]
+    )
+    private var archived: [Note]
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if archived.isEmpty {
+                    VStack(spacing: 10) {
+                        Image(systemName: "archivebox")
+                            .font(.system(size: 36))
+                            .foregroundStyle(.primary.opacity(0.3))
+                        Text(L("No archived notes", "没有已归档的笔记"))
+                            .font(.subheadline)
+                            .foregroundStyle(.primary.opacity(0.55))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List {
+                        ForEach(archived) { note in
+                            HStack(spacing: 12) {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(note.title.isEmpty ? L("Untitled", "无标题") : note.title)
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(1)
+                                    Text(note.updatedAt, style: .relative)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Button(L("Restore", "恢复")) {
+                                    note.archived = false
+                                    note.touch()
+                                    try? ctx.save()
+                                }
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(CyberPalette.neonCyan)
+                                .buttonStyle(.plain)
+                            }
+                            .listRowBackground(Color.primary.opacity(0.04))
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    ctx.delete(note)
+                                    try? ctx.save()
+                                } label: {
+                                    Label(L("Delete", "删除"), systemImage: "trash")
+                                }
+                            }
+                        }
+                    }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                }
+            }
+            .background { CyberBackground().ignoresSafeArea() }
+            .navigationTitle(L("Archived", "已归档"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(L("Done", "完成")) { dismiss() }
+                        .foregroundStyle(CyberPalette.neonCyan)
+                }
+                if !archived.isEmpty {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(role: .destructive) {
+                            for n in archived { ctx.delete(n) }
+                            try? ctx.save()
+                        } label: {
+                            Text(L("Delete All", "全部删除"))
+                                .foregroundStyle(.red)
+                        }
+                    }
+                }
             }
         }
     }

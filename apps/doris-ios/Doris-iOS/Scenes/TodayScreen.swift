@@ -159,10 +159,59 @@ struct TodayScreen: View {
 private struct TodayWeatherCard: View {
     @ObservedObject var vm: WeatherViewModel
     @ObservedObject private var lang = LanguageSettings.shared
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var isDark: Bool { colorScheme == .dark }
+
+    // Theme-aware colors
+    private var tempColor: Color      { isDark ? .white : Color(red: 0.08, green: 0.08, blue: 0.18) }
+    private var conditionColor: Color { isDark ? .white.opacity(0.68) : Color(red: 0.15, green: 0.15, blue: 0.30).opacity(0.75) }
+    private var metaColor: Color      { isDark ? .white.opacity(0.32) : Color(red: 0.2, green: 0.2, blue: 0.35).opacity(0.45) }
+    private var statValueColor: Color { isDark ? .white : Color(red: 0.08, green: 0.08, blue: 0.18) }
+    private var statLabelColor: Color { isDark ? .white.opacity(0.42) : Color(red: 0.2, green: 0.2, blue: 0.35).opacity(0.5) }
+    private var separatorColor: Color { isDark ? .white.opacity(0.07) : Color.black.opacity(0.06) }
+
+    // Card background differs by theme
+    private var cardFill: some ShapeStyle {
+        if isDark {
+            return AnyShapeStyle(LinearGradient(
+                colors: [
+                    Color(red: 0.06, green: 0.04, blue: 0.14).opacity(0.92),
+                    Color(red: 0.02, green: 0.06, blue: 0.16).opacity(0.88)
+                ],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            ))
+        } else {
+            return AnyShapeStyle(LinearGradient(
+                colors: [
+                    Color(red: 0.94, green: 0.95, blue: 1.00).opacity(0.88),
+                    Color(red: 0.88, green: 0.92, blue: 0.98).opacity(0.82)
+                ],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            ))
+        }
+    }
+
+    private var borderGradient: LinearGradient {
+        isDark
+            ? LinearGradient(
+                colors: [CyberPalette.neonPink.opacity(0.55), CyberPalette.neonCyan.opacity(0.65)],
+                startPoint: .topLeading, endPoint: .bottomTrailing)
+            : LinearGradient(
+                colors: [CyberPalette.neonPink.opacity(0.40), CyberPalette.neonCyan.opacity(0.50)],
+                startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
 
     var body: some View {
         ZStack {
-            cardBackground
+            // Background
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(cardFill)
+                .background(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(.ultraThinMaterial.opacity(isDark ? 0.3 : 0.5))
+                )
+
             Group {
                 if let s = vm.snapshot {
                     weatherContent(s)
@@ -176,34 +225,13 @@ private struct TodayWeatherCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [
-                            CyberPalette.neonPink.opacity(0.45),
-                            CyberPalette.neonCyan.opacity(0.55)
-                        ],
-                        startPoint: .topLeading, endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 0.9
-                )
+                .strokeBorder(borderGradient, lineWidth: isDark ? 0.9 : 0.7)
         )
-    }
-
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 22, style: .continuous)
-            .fill(.ultraThinMaterial.opacity(0.55))
-            .background(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(LinearGradient(
-                        colors: [
-                            CyberPalette.neonPink.opacity(0.07),
-                            Color.clear,
-                            CyberPalette.neonCyan.opacity(0.07)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ))
-            )
+        // Subtle shadow on light mode for depth
+        .shadow(
+            color: isDark ? .clear : Color(red: 0.55, green: 0.60, blue: 0.85).opacity(0.18),
+            radius: 12, x: 0, y: 4
+        )
     }
 
     private func weatherContent(_ s: WeatherSnapshot) -> some View {
@@ -214,57 +242,49 @@ private struct TodayWeatherCard: View {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Image(systemName: s.symbolName)
                             .symbolRenderingMode(.palette)
-                            .foregroundStyle(iconPrimary(s), Color.white.opacity(0.85))
+                            .foregroundStyle(iconPrimary(s), isDark ? Color.white.opacity(0.85) : Color(red: 0.3, green: 0.35, blue: 0.5).opacity(0.9))
                             .font(.system(size: 32, weight: .light))
                         Text("\(Int(s.temperatureC.rounded()))°")
                             .font(.system(size: 56, weight: .thin, design: .rounded).monospacedDigit())
-                            .foregroundStyle(.white)
+                            .foregroundStyle(tempColor)
                     }
                     Text(WeatherCode.text(for: s.weatherCode))
                         .font(.system(size: 13, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(conditionColor)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 6) {
                     HStack(spacing: 3) {
                         Image(systemName: "location.fill")
                             .font(.system(size: 8))
-                            .foregroundStyle(CyberPalette.neonCyan.opacity(0.9))
+                            .foregroundStyle(CyberPalette.neonCyan.opacity(isDark ? 0.9 : 1.0))
                         Text(s.locationName)
                             .font(.system(size: 10, weight: .medium, design: .monospaced))
-                            .foregroundStyle(CyberPalette.neonCyan.opacity(0.9))
+                            .foregroundStyle(CyberPalette.neonCyan.opacity(isDark ? 0.9 : 1.0))
                             .lineLimit(1)
                     }
                     Text(Date(), format: .dateTime.hour().minute())
                         .font(.system(size: 10, design: .monospaced).monospacedDigit())
-                        .foregroundStyle(.white.opacity(0.35))
-                    if s.isDay {
-                        Text(L("Daytime", "白天"))
-                            .font(.system(size: 9, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.3))
-                    } else {
-                        Text(L("Night", "夜晚"))
-                            .font(.system(size: 9, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.3))
-                    }
+                        .foregroundStyle(metaColor)
+                    Text(s.isDay ? L("Daytime", "白天") : L("Night", "夜晚"))
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundStyle(metaColor)
                 }
             }
             .padding(.horizontal, 20)
             .padding(.top, 20)
             .padding(.bottom, 14)
 
-            // Divider
+            // Gradient divider
             LinearGradient(
-                colors: [
-                    CyberPalette.neonPink.opacity(0.4),
-                    CyberPalette.neonCyan.opacity(0.4)
-                ],
+                colors: [CyberPalette.neonPink.opacity(isDark ? 0.45 : 0.35),
+                         CyberPalette.neonCyan.opacity(isDark ? 0.45 : 0.35)],
                 startPoint: .leading, endPoint: .trailing
             )
             .frame(height: 0.6)
             .padding(.horizontal, 20)
 
-            // Bottom: stat row
+            // Stat row
             HStack(spacing: 0) {
                 statCell(
                     icon: "drop.fill",
@@ -272,14 +292,14 @@ private struct TodayWeatherCard: View {
                     label: L("Rain", "降水"),
                     tint: RainScale.tint(s.precipitationProbability)
                 )
-                separator
+                Rectangle().fill(separatorColor).frame(width: 0.6).padding(.vertical, 6)
                 statCell(
                     icon: "wind",
                     value: "\(Int(s.windSpeedKmh.rounded())) km/h",
                     label: WindScale.compass(s.windDirectionDeg),
                     tint: CyberPalette.neonCyan
                 )
-                separator
+                Rectangle().fill(separatorColor).frame(width: 0.6).padding(.vertical, 6)
                 statCell(
                     icon: "sun.max.trianglebadge.exclamationmark.fill",
                     value: UVScale.label(s.uvIndex),
@@ -293,13 +313,6 @@ private struct TodayWeatherCard: View {
         }
     }
 
-    private var separator: some View {
-        Rectangle()
-            .fill(Color.white.opacity(0.07))
-            .frame(width: 0.6)
-            .padding(.vertical, 4)
-    }
-
     private func statCell(icon: String, value: String, label: String, tint: Color) -> some View {
         VStack(spacing: 4) {
             Image(systemName: icon)
@@ -307,20 +320,20 @@ private struct TodayWeatherCard: View {
                 .foregroundStyle(tint)
             Text(value)
                 .font(.system(size: 12, weight: .bold, design: .rounded).monospacedDigit())
-                .foregroundStyle(.white)
+                .foregroundStyle(statValueColor)
             Text(label)
                 .font(.system(size: 9, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.45))
+                .foregroundStyle(statLabelColor)
         }
         .frame(maxWidth: .infinity)
     }
 
     private var loadingView: some View {
         HStack(spacing: 10) {
-            ProgressView().tint(.white.opacity(0.5))
+            ProgressView().tint(CyberPalette.neonCyan.opacity(0.6))
             Text(L("Loading weather…", "加载天气中…"))
                 .font(.caption.monospaced())
-                .foregroundStyle(.white.opacity(0.45))
+                .foregroundStyle(conditionColor)
         }
         .padding(32)
         .frame(maxWidth: .infinity)
@@ -329,7 +342,7 @@ private struct TodayWeatherCard: View {
     private var emptyView: some View {
         Text(L("Weather unavailable", "天气不可用"))
             .font(.caption.monospaced())
-            .foregroundStyle(.white.opacity(0.35))
+            .foregroundStyle(metaColor)
             .padding(32)
             .frame(maxWidth: .infinity)
     }
@@ -337,13 +350,13 @@ private struct TodayWeatherCard: View {
     private func iconPrimary(_ s: WeatherSnapshot) -> Color {
         switch s.symbolName {
         case "sun.max.fill", "moon.stars.fill", "moon.fill":
-            return Color(red: 1.0, green: 0.82, blue: 0.35)
+            return Color(red: 1.0, green: 0.80, blue: 0.25)
         case "snowflake", "cloud.snow.fill", "cloud.sleet.fill":
-            return .white
+            return isDark ? .white : Color(red: 0.6, green: 0.75, blue: 0.95)
         case "cloud.bolt.rain.fill", "cloud.bolt.fill":
-            return Color(red: 1.0, green: 0.85, blue: 0.30)
+            return Color(red: 1.0, green: 0.82, blue: 0.25)
         default:
-            return Color(red: 0.0, green: 0.85, blue: 1.0)
+            return Color(red: 0.0, green: 0.82, blue: 1.0)
         }
     }
 }
