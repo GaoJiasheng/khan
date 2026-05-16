@@ -1075,7 +1075,8 @@ private struct AnchorTodayView: View {
                             .foregroundStyle(.primary)
                             .lineLimit(1)
                         if let due = n.dueDate {
-                            let color: Color = due < Date() ? .red : Calendar.current.isDateInToday(due) ? .yellow : CyberPalette.neonCyan
+                            let startOfToday = Calendar.current.startOfDay(for: Date())
+                            let color: Color = due < startOfToday ? .red : Calendar.current.isDateInToday(due) ? .yellow : CyberPalette.neonCyan
                             Text(due, format: .dateTime.month(.abbreviated).day())
                                 .font(.caption2.monospacedDigit())
                                 .foregroundStyle(color)

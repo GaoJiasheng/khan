@@ -61,7 +61,8 @@ public struct DueDateChipButton: View {
 
     private var chipColor: Color {
         guard let due = note.dueDate else { return CyberPalette.neonCyan }
-        if due < Date() { return .red }
+        let startOfToday = Calendar.current.startOfDay(for: Date())
+        if due < startOfToday { return .red }
         if Calendar.current.isDateInToday(due) { return .yellow }
         return CyberPalette.neonCyan
     }

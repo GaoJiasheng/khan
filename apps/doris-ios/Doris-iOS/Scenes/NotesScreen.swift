@@ -460,14 +460,10 @@ private struct NoteRow: View {
                             .foregroundStyle(.primary)
                             .lineLimit(1)
                     }
-                    if note.isChecklist {
-                        let items = note.checklistItems ?? []
-                        let done = items.filter(\.done).count
-                        if !items.isEmpty {
-                            Text("\(done) / \(items.count)")
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(.primary.opacity(0.55))
-                        }
+                    if let p = note.checklistProgress {
+                        Text("\(p.done) / \(p.total)")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.primary.opacity(0.55))
                     } else if !note.bodyMarkdown.isEmpty {
                         Text(note.bodyMarkdown)
                             .font(.caption)
@@ -491,7 +487,8 @@ private struct NoteRow: View {
 
     private func dueDateChip(_ due: Date) -> some View {
         let cal = Calendar.current
-        let color: Color = due < Date() ? .red : cal.isDateInToday(due) ? .yellow : CyberPalette.neonCyan
+        let startOfToday = cal.startOfDay(for: Date())
+        let color: Color = due < startOfToday ? .red : cal.isDateInToday(due) ? .yellow : CyberPalette.neonCyan
         return HStack(spacing: 3) {
             Image(systemName: "calendar")
                 .font(.system(size: 8))

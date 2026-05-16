@@ -382,7 +382,8 @@ private struct PinnedNoteCard: View {
 
     private var dueChipColor: Color {
         guard let d = note.dueDate else { return CyberPalette.neonCyan }
-        if d < Date() { return .red }
+        let startOfToday = Calendar.current.startOfDay(for: Date())
+        if d < startOfToday { return .red }
         if Calendar.current.isDateInToday(d) { return .yellow }
         return CyberPalette.neonCyan
     }
@@ -390,14 +391,15 @@ private struct PinnedNoteCard: View {
     private var dueLabel: String? {
         guard let d = note.dueDate else { return nil }
         let cal = Calendar.current
-        if d < Date() {
-            let days = cal.dateComponents([.day], from: d, to: Date()).day ?? 0
-            if days == 0 { return L("Today", "今天") }
+        let today = cal.startOfDay(for: Date())
+        let dueDay = cal.startOfDay(for: d)
+        if dueDay < today {
+            let days = cal.dateComponents([.day], from: dueDay, to: today).day ?? 0
             return L("\(days)d overdue", "逾期 \(days) 天")
         }
         if cal.isDateInToday(d)    { return L("Today", "今天") }
         if cal.isDateInTomorrow(d) { return L("Tomorrow", "明天") }
-        let days = cal.dateComponents([.day], from: Date(), to: d).day ?? 0
+        let days = cal.dateComponents([.day], from: today, to: dueDay).day ?? 0
         if days < 7 { return d.formatted(.dateTime.weekday(.abbreviated)) }
         return d.formatted(.dateTime.month(.abbreviated).day())
     }
@@ -444,16 +446,9 @@ private struct PinnedNoteCard: View {
         )
     }
 
-    private var checklistProgress: (done: Int, total: Int)? {
-        guard note.isChecklist, let items = note.checklistItems, !items.isEmpty else {
-            return nil
-        }
-        return (items.filter(\.done).count, items.count)
-    }
-
     @ViewBuilder
     private var bottomMeta: some View {
-        let progress = checklistProgress
+        let progress = note.checklistProgress
         let due = dueLabel
 
         // Three permitted pieces of info: title (above) · progress · due.
@@ -511,21 +506,23 @@ private struct CalendarNoteRow: View {
     private var due: Date { note.dueDate ?? .distantFuture }
 
     private var chipColor: Color {
-        if due < Date() { return .red }
+        let startOfToday = Calendar.current.startOfDay(for: Date())
+        if due < startOfToday { return .red }
         if Calendar.current.isDateInToday(due) { return .yellow }
         return CyberPalette.neonCyan
     }
 
     private var dueLabel: String {
         let cal = Calendar.current
-        if due < Date() {
-            let days = cal.dateComponents([.day], from: due, to: Date()).day ?? 0
-            if days == 0 { return L("Today", "今天") }
+        let today = cal.startOfDay(for: Date())
+        let dueDay = cal.startOfDay(for: due)
+        if dueDay < today {
+            let days = cal.dateComponents([.day], from: dueDay, to: today).day ?? 0
             return L("\(days)d overdue", "逾期 \(days) 天")
         }
         if cal.isDateInToday(due)     { return L("Today", "今天") }
         if cal.isDateInTomorrow(due)  { return L("Tomorrow", "明天") }
-        let days = cal.dateComponents([.day], from: Date(), to: due).day ?? 0
+        let days = cal.dateComponents([.day], from: today, to: dueDay).day ?? 0
         if days < 7 { return due.formatted(.dateTime.weekday(.wide)) }
         return due.formatted(.dateTime.month(.abbreviated).day())
     }
@@ -564,14 +561,10 @@ private struct CalendarNoteRow: View {
                     Text(dueLabel)
                         .font(.system(size: 13, weight: .semibold, design: .monospaced))
                         .foregroundStyle(chipColor)
-                    if note.isChecklist {
-                        let items = note.checklistItems ?? []
-                        let done = items.filter(\.done).count
-                        if !items.isEmpty {
-                            Text("· \(done)/\(items.count)")
-                                .font(.system(size: 12, design: .monospaced))
-                                .foregroundStyle(.primary.opacity(0.4))
-                        }
+                    if let p = note.checklistProgress {
+                        Text("· \(p.done)/\(p.total)")
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundStyle(.primary.opacity(0.4))
                     }
                 }
             }
