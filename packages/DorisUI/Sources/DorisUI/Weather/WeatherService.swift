@@ -4,16 +4,16 @@ import Combine
 
 /// One-shot snapshot of "what's the weather where the user is right now."
 public struct WeatherSnapshot: Equatable {
-    var temperatureC: Double
-    var weatherCode: Int            // raw WMO code; resolve to text at view-time
-    var symbolName: String          // SF Symbol
-    var isDay: Bool
-    var windSpeedKmh: Double
-    var windDirectionDeg: Double    // meteorological "from" direction (0=N)
-    var uvIndex: Double
-    var precipitationProbability: Double  // 0-100, current hour
-    var locationName: String        // city, state — short form for the bubble
-    var fetchedAt: Date
+    public var temperatureC: Double
+    public var weatherCode: Int
+    public var symbolName: String
+    public var isDay: Bool
+    public var windSpeedKmh: Double
+    public var windDirectionDeg: Double
+    public var uvIndex: Double
+    public var precipitationProbability: Double
+    public var locationName: String
+    public var fetchedAt: Date
 }
 
 /// Pulls the user's location (IP-based, no permission prompt) and the current
