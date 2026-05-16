@@ -54,7 +54,7 @@ public struct NoteEditorSheet: View {
             isPresented: $confirmingDelete
         ) {
             Button(L("Delete", "删除"), role: .destructive) {
-                ctx.delete(note)
+                note.archive()
                 try? ctx.save()
                 dismiss()
             }
@@ -89,7 +89,7 @@ public struct NoteEditorSheet: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(L("Done", "完成")) {
-                        note.updatedAt = Date()
+                        note.touch()
                         try? ctx.save()
                         dismiss()
                     }
@@ -135,7 +135,7 @@ public struct NoteEditorSheet: View {
             }
             .buttonStyle(.plain)
             Button {
-                note.updatedAt = Date()
+                note.touch()
                 try? ctx.save()
                 dismiss()
             } label: {
@@ -214,10 +214,10 @@ public struct NoteEditorSheet: View {
             }
         }
         .onChange(of: note.bodyMarkdown) { _, _ in
-            note.updatedAt = Date()
+            note.touch()
         }
         .onChange(of: note.title) { _, _ in
-            note.updatedAt = Date()
+            note.touch()
         }
     }
 }

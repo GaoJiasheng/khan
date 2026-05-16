@@ -990,6 +990,113 @@ private struct AnchorNotesView: View {
 // (TodoRow lives in DorisUI — the same row UI is used by both this
 // dropdown view and the main window's notes pane.)
 
+// MARK: - Today strip (due today + pinned + recent 24h)
+
+private struct AnchorTodayView: View {
+    @ObservedObject private var lang = LanguageSettings.shared
+    @Environment(\.modelContext) private var ctx
+
+    @Query(
+        filter: #Predicate<Note> { note in !note.archived },
+        sort: [SortDescriptor(\Note.updatedAt, order: .reverse)]
+    )
+    private var allNotes: [Note]
+
+    @State private var editing: Note?
+
+    private var dueNotes: [Note] {
+        let end = Calendar.current.startOfDay(for: Date()).addingTimeInterval(24 * 60 * 60 - 1)
+        return allNotes
+            .filter { $0.dueDate != nil && $0.dueDate! <= end }
+            .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+    }
+    private var pinnedNotes: [Note] {
+        let ids = Set(dueNotes.map(\.id))
+        return allNotes.filter { $0.pinned && !ids.contains($0.id) }
+    }
+    private var recentNotes: [Note] {
+        let cutoff = Date().addingTimeInterval(-24 * 60 * 60)
+        let dueIds = Set(dueNotes.map(\.id))
+        let pinIds = Set(pinnedNotes.map(\.id))
+        return allNotes.filter {
+            $0.updatedAt >= cutoff && !dueIds.contains($0.id) && !pinIds.contains($0.id)
+        }
+    }
+
+    var body: some View {
+        Group {
+            if let editing {
+                InlineNoteEditor(note: editing) { self.editing = nil }
+            } else {
+                todayList
+            }
+        }
+    }
+
+    private var todayList: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                if dueNotes.isEmpty && pinnedNotes.isEmpty && recentNotes.isEmpty {
+                    empty(L("Nothing due today", "今日无截止任务"),
+                          systemImage: "calendar",
+                          subtitle: L("Set a due date on a note to see it here.",
+                                      "在笔记上设置截止日期，它就会出现在这里。"))
+                } else {
+                    if !dueNotes.isEmpty {
+                        stripHeader(L("Due", "截止任务"), color: CyberPalette.neonPink)
+                        ForEach(dueNotes) { n in todayRow(n) }
+                    }
+                    if !pinnedNotes.isEmpty {
+                        stripHeader(L("Pinned", "置顶"), color: CyberPalette.neonCyan)
+                        ForEach(pinnedNotes) { n in todayRow(n) }
+                    }
+                    if !recentNotes.isEmpty {
+                        stripHeader(L("Recent", "最近 24 小时"), color: .primary.opacity(0.4))
+                        ForEach(recentNotes) { n in todayRow(n) }
+                    }
+                }
+            }
+            .padding(12)
+        }
+    }
+
+    @ViewBuilder
+    private func todayRow(_ n: Note) -> some View {
+        Button { editing = n } label: {
+            CyberCard {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: n.isChecklist ? "checklist" : "note.text")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(CyberPalette.neonPink.opacity(0.85))
+                        .frame(width: 18)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(n.title.isEmpty ? L("Untitled", "无标题") : n.title)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                        if let due = n.dueDate {
+                            let color: Color = due < Date() ? .red : Calendar.current.isDateInToday(due) ? .yellow : CyberPalette.neonCyan
+                            Text(due, format: .dateTime.month(.abbreviated).day())
+                                .font(.caption2.monospacedDigit())
+                                .foregroundStyle(color)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(10)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func stripHeader(_ label: String, color: Color) -> some View {
+        Text(label)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(color)
+            .padding(.top, 4)
+    }
+}
+
 @ViewBuilder
 private func empty(_ title: String, systemImage: String, subtitle: String? = nil) -> some View {
     VStack(spacing: 6) {

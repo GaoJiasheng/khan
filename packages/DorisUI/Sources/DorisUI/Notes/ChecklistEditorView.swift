@@ -138,7 +138,7 @@ public struct ChecklistEditorView: View {
 
     private func writeBack(_ arr: [Line]) {
         note.bodyMarkdown = Line.serialize(arr)
-        note.updatedAt = Date()
+        note.touch()
     }
 
     // MARK: - Checkbox visuals

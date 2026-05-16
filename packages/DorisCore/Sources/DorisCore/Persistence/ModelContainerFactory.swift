@@ -7,9 +7,26 @@ public enum ModelContainerFactory {
         case appGroupUnavailable
     }
 
+    /// Creates the shared Doris `ModelContainer`.
+    ///
+    /// Both iOS and macOS call this via `DorisRuntime.shared.container`
+    /// so they always use the **same** schema and CloudKit container —
+    /// the single source of truth for cross-device data consistency.
+    ///
+    /// Migration: SwiftData performs automatic lightweight migration for
+    /// additive changes (new optional columns, new relationships). An
+    /// explicit `SchemaMigrationPlan` is not needed here because adding
+    /// `Note.dueDate: Date?` is a nullable column addition — existing
+    /// rows silently get NULL. For non-lightweight migrations (renaming
+    /// columns, dropping non-null columns) a versioned migration plan
+    /// would be required.
     public static func make(useCloudKit: Bool = true, inMemory: Bool = false) throws -> ModelContainer {
         let url = try storeURL(inMemory: inMemory)
-        let schema = SchemaV1.schema
+        let schema = Schema([
+            Folder.self, Note.self, ChecklistItem.self,
+            Tag.self, Attachment.self, Message.self,
+            Device.self, UserSettings.self
+        ])
 
         let config: ModelConfiguration
         if inMemory {

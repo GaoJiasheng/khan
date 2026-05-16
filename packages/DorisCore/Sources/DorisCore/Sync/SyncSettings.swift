@@ -14,9 +14,10 @@ import Combine
 public final class SyncSettings: ObservableObject {
     public static let shared = SyncSettings()
 
-    private static let cloudKitEnabledKey = "doris.sync.cloudkit.enabled"
-    private static let autoSyncEnabledKey = "doris.sync.auto.enabled"
-    private static let lastSyncedAtKey    = "doris.sync.lastSyncedAt"
+    private static let cloudKitEnabledKey  = "doris.sync.cloudkit.enabled"
+    private static let autoSyncEnabledKey  = "doris.sync.auto.enabled"
+    private static let lastSyncedAtKey     = "doris.sync.lastSyncedAt"
+    private static let lastSyncErrorKey    = "doris.sync.lastError"
 
     /// Cross-process defaults. Returns the App-Group-scoped suite when
     /// available, otherwise falls back to standard. Same fallback shape
@@ -38,6 +39,15 @@ public final class SyncSettings: ObservableObject {
         didSet { Self.store.set(autoSyncEnabled, forKey: Self.autoSyncEnabledKey) }
     }
 
+    /// Last error message from `SyncTimer.poke`, or nil if the most recent
+    /// poke succeeded. UI surfaces this as a red indicator on the sync pill
+    /// (iOS) or the Sync Now button (Mac). Cleared on next successful poke.
+    @Published public var lastSyncError: String? {
+        didSet {
+            Self.store.set(lastSyncError, forKey: Self.lastSyncErrorKey)
+        }
+    }
+
     /// Last time `SyncTimer.poke` saved without error. Drives the "Last
     /// synced 30 s ago" label in Settings + the toolbar Sync Now button.
     @Published public var lastSyncedAt: Date? {
@@ -57,10 +67,12 @@ public final class SyncSettings: ObservableObject {
         let ck = store.object(forKey: Self.cloudKitEnabledKey) as? Bool ?? false
         let auto = store.object(forKey: Self.autoSyncEnabledKey) as? Bool ?? true
         let last = store.object(forKey: Self.lastSyncedAtKey) as? TimeInterval
+        let err = store.string(forKey: Self.lastSyncErrorKey)
 
         self.cloudKitEnabled = ck
         self.autoSyncEnabled = auto
         self.lastSyncedAt = last.map { Date(timeIntervalSince1970: $0) }
+        self.lastSyncError = err
 
         // Honor the legacy env-var override on first launch — if the user has
         // DORIS_USE_CLOUDKIT=1 in their shell, treat it as opt-in. We only do

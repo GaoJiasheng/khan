@@ -70,20 +70,20 @@ public struct InlineNoteEditor: View {
         }
         // Stamp updatedAt as the user types. SwiftData persists
         // automatically; we set it explicitly to drive list re-sort.
-        .onChange(of: note.bodyMarkdown) { _, _ in note.updatedAt = Date() }
-        .onChange(of: note.title)        { _, _ in note.updatedAt = Date() }
+        .onChange(of: note.bodyMarkdown) { _, _ in note.touch() }
+        .onChange(of: note.title)        { _, _ in note.touch() }
         .alert(
             L("Delete this note?", "删除这条笔记?"),
             isPresented: $confirmingDelete
         ) {
             Button(L("Delete", "删除"), role: .destructive) {
-                ctx.delete(note)
+                note.archive()
                 try? ctx.save()
                 onClose()
             }
             Button(L("Cancel", "取消"), role: .cancel) {}
         } message: {
-            Text(L("This can't be undone.", "此操作无法撤销。"))
+            Text(L("The note will be archived and can be recovered from Settings.", "笔记将被归档，可以从设置中恢复。"))
         }
     }
 
@@ -95,7 +95,7 @@ public struct InlineNoteEditor: View {
         HStack(spacing: 6) {
             // Back
             Button {
-                note.updatedAt = Date()
+                note.touch()
                 try? ctx.save()
                 onClose()
             } label: {
@@ -117,6 +117,7 @@ public struct InlineNoteEditor: View {
 
             pinToggle
             checklistToggle
+            DueDateChipButton(note: note)
 
             Spacer(minLength: 0)
 
@@ -199,7 +200,7 @@ public struct InlineNoteEditor: View {
                 convertBodyToChecklistMarkers()
             }
             note.isChecklist.toggle()
-            note.updatedAt = Date()
+            note.touch()
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "checklist")
