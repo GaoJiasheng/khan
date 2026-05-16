@@ -124,9 +124,25 @@ struct NotesScreen: View {
             .searchable(text: $searchText,
                         prompt: L("Search notes…", "搜索笔记…"))
             .refreshable { await runSync() }
-            .navigationTitle(L("Notes", "笔记"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    VStack(spacing: 0) {
+                        Text("DORIS")
+                            .font(.system(size: 17, weight: .heavy, design: .rounded))
+                            .kerning(2.5)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [CyberPalette.neonPink, CyberPalette.neonCyan],
+                                    startPoint: .leading, endPoint: .trailing
+                                )
+                            )
+                        Text("cyber notes")
+                            .font(.system(size: 9, weight: .medium, design: .monospaced))
+                            .foregroundStyle(CyberPalette.neonCyan.opacity(0.7))
+                            .kerning(1.5)
+                    }
+                }
                 ToolbarItemGroup(placement: .topBarLeading) {
                     ThemeToggleButton()
                     Button {
