@@ -10,16 +10,23 @@ public enum ModelContainerFactory {
     /// Creates the shared Doris `ModelContainer`.
     ///
     /// Both iOS and macOS call this via `DorisRuntime.shared.container`
-    /// so they always use the **same** schema version, migration plan,
-    /// and CloudKit container — the single source of truth for cross-
-    /// device data consistency.
+    /// so they always use the **same** schema and CloudKit container —
+    /// the single source of truth for cross-device data consistency.
     ///
-    /// Migration: `DorisMigrationPlan` is always registered. On first
-    /// launch after an app update that bumps the schema version, SwiftData
-    /// runs the appropriate lightweight stage before the container opens.
+    /// Migration: SwiftData performs automatic lightweight migration for
+    /// additive changes (new optional columns, new relationships). An
+    /// explicit `SchemaMigrationPlan` is not needed here because adding
+    /// `Note.dueDate: Date?` is a nullable column addition — existing
+    /// rows silently get NULL. For non-lightweight migrations (renaming
+    /// columns, dropping non-null columns) a versioned migration plan
+    /// would be required.
     public static func make(useCloudKit: Bool = true, inMemory: Bool = false) throws -> ModelContainer {
         let url = try storeURL(inMemory: inMemory)
-        let schema = SchemaV2.schema
+        let schema = Schema([
+            Folder.self, Note.self, ChecklistItem.self,
+            Tag.self, Attachment.self, Message.self,
+            Device.self, UserSettings.self
+        ])
 
         let config: ModelConfiguration
         if inMemory {
@@ -44,11 +51,7 @@ public enum ModelContainerFactory {
             )
         }
 
-        return try ModelContainer(
-            for: schema,
-            migrationPlan: DorisMigrationPlan.self,
-            configurations: [config]
-        )
+        return try ModelContainer(for: schema, configurations: [config])
     }
 
     public static func storeURL(inMemory: Bool) throws -> URL {
