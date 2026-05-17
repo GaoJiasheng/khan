@@ -154,21 +154,32 @@ struct SettingsView: View {
 /// observed without ballooning the parent's body.
 private struct SyncSettingsTab: View {
     @ObservedObject private var sync = SyncSettings.shared
+    @ObservedObject private var lang = LanguageSettings.shared
     @State private var isSyncing: Bool = false
     @State private var lastTickTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     @State private var nowTick: Date = Date()
 
     var body: some View {
         Form {
+            // ── Status banner — always visible, mirrors the iOS sync pill ──
             Section {
-                Toggle("Use iCloud (CloudKit) sync", isOn: $sync.cloudKitEnabled)
-                    .help("Mirrors notes and events through your iCloud account so other devices stay in sync.")
+                statusBanner
+                    .listRowInsets(EdgeInsets())
+            }
+
+            Section {
+                Toggle(L("Use iCloud sync", "使用 iCloud 同步"),
+                       isOn: $sync.cloudKitEnabled)
+                    .help(L("Mirrors notes and events through your iCloud account so other devices stay in sync.",
+                            "通过 iCloud 镜像笔记和事件,让其他设备保持同步。"))
                 if sync.cloudKitEnabled {
-                    Text("Restart Doris after toggling iCloud for the change to take effect.")
+                    Text(L("Restart Doris after toggling iCloud for the change to take effect.",
+                           "切换 iCloud 后需重启 Doris 才会生效。"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
-                    Text("Local only. Notes stay on this Mac.")
+                    Text(L("Local only. Notes stay on this Mac.",
+                           "仅本地存储,笔记不会离开本机。"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -177,10 +188,12 @@ private struct SyncSettingsTab: View {
             }
 
             Section {
-                Toggle("Auto-sync every 60 seconds", isOn: $sync.autoSyncEnabled)
-                    .help("When on, Doris periodically flushes pending writes so iCloud has the latest state. Turn off if you only want manual sync.")
+                Toggle(L("Auto-sync every 60 seconds", "每 60 秒自动同步"),
+                       isOn: $sync.autoSyncEnabled)
+                    .help(L("When on, Doris periodically flushes pending writes so iCloud has the latest state. Turn off if you only want manual sync.",
+                            "开启后,Doris 会定期刷写改动到 iCloud。关闭则只在手动同步时触发。"))
             } header: {
-                Text("Auto-sync")
+                Text(L("Auto-sync", "自动同步"))
             }
 
             Section {
@@ -195,7 +208,9 @@ private struct SyncSettingsTab: View {
                                 } else {
                                     Image(systemName: "arrow.triangle.2.circlepath")
                                 }
-                                Text(isSyncing ? "Syncing…" : "Sync Now")
+                                Text(isSyncing
+                                     ? L("Syncing…", "同步中…")
+                                     : L("Sync Now", "立即同步"))
                             }
                         }
                         .disabled(isSyncing)
@@ -205,23 +220,12 @@ private struct SyncSettingsTab: View {
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
                     }
-                    // Error row — only when there's an active sync error
-                    if let err = sync.lastSyncError {
-                        HStack(spacing: 6) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.caption)
-                                .foregroundStyle(.red)
-                            Text(err)
-                                .font(.caption)
-                                .foregroundStyle(.red)
-                                .lineLimit(3)
-                        }
-                    }
                 }
             } header: {
-                Text("Manual sync")
+                Text(L("Manual sync", "手动同步"))
             } footer: {
-                Text("Sync Now flushes pending writes to disk and lets iCloud pick them up. Independent of the auto-sync toggle.")
+                Text(L("Sync Now performs a local save plus a CloudKit reachability check (account status + user record fetch). Last-synced only updates when both succeed.",
+                       "立即同步会先本地保存,然后真实验证 iCloud 可达性(账号状态 + 拉取用户 record)。两步都成功才会刷新「上次同步」时间。"))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -230,25 +234,102 @@ private struct SyncSettingsTab: View {
         .onReceive(lastTickTimer) { nowTick = $0 }
     }
 
+    // MARK: - Status banner
+
+    /// Always-visible state strip at the top of the Sync tab. Reads from
+    /// the same `SyncSettings.shared` the toolbar pill uses, so the two
+    /// surfaces always agree on whether iCloud is green / red / local.
+    private var statusBanner: some View {
+        let hasError = sync.lastSyncError != nil
+        let accent: Color =
+            hasError ? .red :
+            !sync.cloudKitEnabled ? Color.primary.opacity(0.45) :
+            CyberPalette.neonCyan
+
+        return HStack(spacing: 10) {
+            Image(systemName: bannerIcon)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(accent)
+                .frame(width: 24)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(bannerTitle)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(hasError ? .red : .primary)
+                Text(bannerSubtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(accent.opacity(0.06))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(accent.opacity(hasError ? 0.45 : 0.18), lineWidth: 0.7)
+        )
+        .padding(.vertical, 4)
+    }
+
+    private var bannerIcon: String {
+        if sync.lastSyncError != nil { return "exclamationmark.icloud.fill" }
+        if !sync.cloudKitEnabled     { return "icloud.slash" }
+        if sync.lastSyncedAt == nil  { return "icloud" }
+        return "checkmark.icloud.fill"
+    }
+
+    private var bannerTitle: String {
+        if sync.lastSyncError != nil {
+            return L("Sync error", "同步失败")
+        }
+        if !sync.cloudKitEnabled {
+            return L("iCloud sync disabled", "未启用 iCloud 同步")
+        }
+        if sync.lastSyncedAt == nil {
+            return L("Not synced yet", "尚未同步")
+        }
+        return L("In sync with iCloud", "已与 iCloud 同步")
+    }
+
+    private var bannerSubtitle: String {
+        if let err = sync.lastSyncError {
+            return err
+        }
+        if !sync.cloudKitEnabled {
+            return L("Notes stay on this Mac. Toggle iCloud on below to mirror to other devices.",
+                     "笔记仅保存在本机。下方开启 iCloud 即可与其他设备同步。")
+        }
+        if sync.lastSyncedAt == nil {
+            return L("Tap Sync Now below to start a sync.",
+                     "点击下方「立即同步」开始第一次同步。")
+        }
+        return lastSyncedLabel
+    }
+
     /// Friendly "Last synced 30s ago" / "Last synced 2 min ago" label.
-    /// Recomputes via `nowTick` once a second so the value stays fresh
-    /// without us hammering the formatter.
+    /// Recomputes via `nowTick` once a second so the value stays fresh.
     private var lastSyncedLabel: String {
-        guard let last = sync.lastSyncedAt else { return "Never synced yet" }
+        guard let last = sync.lastSyncedAt else {
+            return L("Never synced yet", "尚未同步")
+        }
         let f = RelativeDateTimeFormatter()
         f.unitsStyle = .short
-        _ = nowTick // dependency
-        return "Last synced " + f.localizedString(for: last, relativeTo: Date())
+        _ = nowTick
+        return L("Last synced ", "上次同步 ")
+            + f.localizedString(for: last, relativeTo: Date())
     }
 
     private func runManualSync() {
         isSyncing = true
         AppCommands.syncNow()
-        // The hook fires off-thread; we just give the UI a beat to show
-        // the spinner before flipping back. The "Last synced" label
-        // updates from SyncSettings.shared.lastSyncedAt the moment the
-        // poke succeeds.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+        // SyncTimer.pokeNow does its own CloudKit roundtrip; result
+        // lands in SyncSettings.shared as either lastSyncedAt update
+        // or lastSyncError. The spinner is just visual buffering.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
             isSyncing = false
         }
     }

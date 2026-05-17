@@ -29,8 +29,28 @@ public final class DorisRuntime {
     ///   CloudKit  →  on-disk no-CloudKit  →  in-memory
     /// so the app still launches in some usable state.
     public lazy var container: ModelContainer = {
-        let useCloudKit = SyncSettings.shared.cloudKitEnabled
-        if useCloudKit, let c = try? ModelContainerFactory.make(useCloudKit: true) {
+        let userWantsCloudKit = SyncSettings.shared.cloudKitEnabled
+
+        // Defensive gate: SwiftData's CloudKit mirror traps the process
+        // (brk 1 on `com.apple.coredata.cloudkit.queue`) when the binary
+        // declares CloudKit entitlements but isn't actually signed for
+        // them — typical for dev builds compiled with
+        // `CODE_SIGN_IDENTITY=""`. The crash happens asynchronously, so
+        // `try? ModelContainer(...)` can't catch it. We refuse to opt
+        // into CloudKit when the signature isn't trustworthy, and write
+        // the reason into `lastSyncError` so the UI banner / popover
+        // can explain why "iCloud sync" doesn't actually sync.
+        let canUseCloudKit = userWantsCloudKit && CodeSigningCheck.hasTeamIdentifier
+
+        if userWantsCloudKit && !canUseCloudKit {
+            let msg = "App is not signed with a Development Team — iCloud sync disabled to avoid a crash. Open the project in Xcode and Run with your signing team selected to enable sync."
+            let zh = "App 没有用开发证书签名 — 为避免崩溃,iCloud 同步已自动禁用。请在 Xcode 中选择签名团队后 Run 即可启用同步。"
+            let mode = UserDefaults.standard.string(forKey: "doris.language.mode") ?? "zh"
+            SyncSettings.shared.lastSyncError = mode == "en" ? msg : zh
+            DorisLog.sync.warning("DorisRuntime: CloudKit requested but binary has no team identifier; falling back to local-only")
+        }
+
+        if canUseCloudKit, let c = try? ModelContainerFactory.make(useCloudKit: true) {
             DorisLog.sync.info("DorisRuntime: CloudKit-backed container ready")
             return c
         }

@@ -38,7 +38,14 @@ final class DorisAppDelegate: NSObject, NSApplicationDelegate {
             // builds one. Anchor + main window + share extension all read
             // from `.shared.container` so edits in one surface in the other.
             let container = DorisRuntime.shared.container
+            // `cloudKitOn` gates every CloudKit-touching subsystem
+            // (OutboxPublisher, SilentPushHandler, CloudKitBootstrap).
+            // We AND in the same code-signing check `DorisRuntime` uses
+            // to gate the SwiftData container — instantiating
+            // `CKContainer(identifier:)` on an unsigned dev build traps
+            // the whole process, so all four paths must agree.
             let cloudKitOn = SyncSettings.shared.cloudKitEnabled
+                && CodeSigningCheck.hasTeamIdentifier
 
             let router = NotificationRouter(modelContainer: container)
             self.router = router
@@ -112,6 +119,15 @@ final class DorisAppDelegate: NSObject, NSApplicationDelegate {
                 let screen = self?.anchorController?.currentScreen
                 self?.anchorController?.collapse()
                 MainWindowController.shared.show(preferredScreen: screen)
+            }
+
+            // Settings — same panel the menu-bar avatar's right-click
+            // "Settings…" opens. Routed through AppCommands so DorisUI
+            // components (e.g. the sync popover's "Open Sync Settings"
+            // button) can request the panel without taking a hard
+            // dependency on the Mac app target.
+            AppCommands.openSettings = {
+                SettingsWindowController.shared.show()
             }
 
             // Voice capture: long-press the configured modifier → mic →
