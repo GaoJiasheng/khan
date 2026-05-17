@@ -62,7 +62,7 @@ struct TodayScreen: View {
                         sectionHeader(
                             icon: "pin.fill",
                             title: L("Pinned", "置顶"),
-                            tint: CyberPalette.neonCyan
+                            tint: CyberPalette.neonPink
                         )
                         LazyVGrid(
                             columns: [
@@ -85,7 +85,7 @@ struct TodayScreen: View {
                         sectionHeader(
                             icon: "calendar",
                             title: L("Upcoming", "日程"),
-                            tint: CyberPalette.neonPink
+                            tint: CyberPalette.neonCyan
                         )
                         VStack(spacing: 8) {
                             ForEach(calendarNotes) { n in
