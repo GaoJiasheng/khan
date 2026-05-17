@@ -109,6 +109,7 @@ struct MainTodayView: View {
                                 TodayPinnedCard(note: n)
                             }
                             .buttonStyle(.plain)
+                            .noteContextMenu(for: n, onOpenEditor: { editing = n })
                         }
                     }
                 }
@@ -126,6 +127,7 @@ struct MainTodayView: View {
                                 TodayCalendarRow(note: n)
                             }
                             .buttonStyle(.plain)
+                            .noteContextMenu(for: n, onOpenEditor: { editing = n })
                         }
                     }
                 }
