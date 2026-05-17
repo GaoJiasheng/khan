@@ -11,7 +11,6 @@
 		0573E0604AA69758A8931230 /* DorisIntentsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AC3F2A4FFB36D66A3B4097B /* DorisIntentsBundle.swift */; };
 		063391B1AD51BEFF94090ED9 /* DorisWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 235E4E6BF62F710B10B2A744 /* DorisWidgetBundle.swift */; };
 		0E47D461AC54CAD4B526B172 /* DynamicNotchKit in Frameworks */ = {isa = PBXBuildFile; productRef = 338965571C4ABCBED67F1739 /* DynamicNotchKit */; };
-		126B80D5F495F7A606F0F7CA /* EventsWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB34BF47B2278B68E9DAE577 /* EventsWidget.swift */; };
 		14161D6853103C65305E90E2 /* doris-avatar-trimmed.png in Resources */ = {isa = PBXBuildFile; fileRef = F13C5714B3654AB630384690 /* doris-avatar-trimmed.png */; };
 		187793297F238EBEDE789CF3 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57AA392218328D9FF434AF27 /* ShareViewController.swift */; };
 		18DCA92C843F79A3D19BC210 /* AnchorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA324399D378502240BA8470 /* AnchorView.swift */; };
@@ -29,6 +28,7 @@
 		48CC44A9136AA529B293628C /* MarkMessageDoneIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEB137662D3DAC600C955D36 /* MarkMessageDoneIntent.swift */; };
 		4C1CEAF18F24677CAA6C453A /* DorisApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBB8053A703823FBC40C2D8 /* DorisApp.swift */; };
 		4D1DACEE3B5F8E6A874A90A7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0ECD70CD58C18BA0CEC81EB /* SettingsView.swift */; };
+		513597108B56CFB5759C787A /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C0A5F483ACA3F72ED343586 /* RootTabView.swift */; };
 		51389334F27B6EF35EB52DEC /* Doris.sdef in Resources */ = {isa = PBXBuildFile; fileRef = 64155F5EDC6DD796F45AED03 /* Doris.sdef */; };
 		54F5154519AC049C9E0EB47D /* AddNoteIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 158FE15ABF0D2A4C3DC8BAC3 /* AddNoteIntent.swift */; };
 		585D3E3760BE6A4849A2A6D3 /* NotesScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EBAD6C975AC7AE7F032E9F4 /* NotesScreen.swift */; };
@@ -48,6 +48,7 @@
 		78CA3520A42A3E3A386F56C4 /* DorisIPC in Frameworks */ = {isa = PBXBuildFile; productRef = A94341D713EC4ECB57B278E8 /* DorisIPC */; };
 		7955A88D3B0E011532D4A845 /* SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD66496AECE70963437B750C /* SettingsWindow.swift */; };
 		7AB729215471A36A3D7DD39B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7EF4AEE04447F0F367068947 /* Assets.xcassets */; };
+		7B784650FD90AC6F7C0BF3C2 /* CalendarTimelineScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ABB340E9D12DD0046C284D2 /* CalendarTimelineScreen.swift */; };
 		7CAA2583EEF2F330507A408C /* DorisUI in Frameworks */ = {isa = PBXBuildFile; productRef = 60993E93C5706A24F9A3A2F8 /* DorisUI */; };
 		7FD008279B8E6C17E1FF1A8E /* MenuBarAvatarWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0239401BE0698A4354F48B33 /* MenuBarAvatarWindow.swift */; };
 		7FDF4AF55B5C0F11CA0F3A5F /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = E2C43AC1A96796BEB25788BA /* README.md */; };
@@ -59,10 +60,14 @@
 		8ED5DFED5A53891D5722EA26 /* DorisCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4124A40499C64EAE53B1128A /* DorisCore */; };
 		982C365E820E9632BE11F092 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 4B931B0521591438F422CD68 /* KeyboardShortcuts */; };
 		99A039F0737F80C5295506D0 /* StatusBarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9124431BB7A8127A5AE105A1 /* StatusBarItem.swift */; };
+		9AC1BB149284034A65540B33 /* EventsWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CCE4FF1D8E965309B159C1A /* EventsWidget.swift */; };
 		A0F7FF72AF4875483A24DF83 /* DorisUI in Frameworks */ = {isa = PBXBuildFile; productRef = 9431A062C82DE62CD42CD56E /* DorisUI */; };
 		A6855D156B8AB8040C74AFD6 /* HotkeyEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A957823B6968DE8D6D1C19A9 /* HotkeyEngine.swift */; };
 		AC5618F120AE8AEA3954A591 /* doris-avatar.png in Resources */ = {isa = PBXBuildFile; fileRef = CE1DB98BBE156A6C003C5363 /* doris-avatar.png */; };
+		BE57B57CE9DCCD7F9B1E5175 /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1428A4010334504409D6401 /* MainWindowController.swift */; };
+		E7F8A9B0C1D2E3F4A5B607C8 /* MainTodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19F2E3D4A5B6C7D8E9F0A1B2 /* MainTodayView.swift */; };
 		C0E36B64A06FE09BF55B87AA /* MarkMessageDoneIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEB137662D3DAC600C955D36 /* MarkMessageDoneIntent.swift */; };
+		C597EEBAAAF4373EE7F54D85 /* EventsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E94332B9CD417EEC812A1F43 /* EventsScreen.swift */; };
 		C8A90F820AABDC6FE94E2417 /* DorisCore in Frameworks */ = {isa = PBXBuildFile; productRef = 807EB227D46D06301C8887E2 /* DorisCore */; };
 		C925620D6935B31ED0C947F8 /* OpenSidebarIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1DCF61C45573AFCC4F934A3 /* OpenSidebarIntent.swift */; };
 		CEB4D62898B42D02C13B7429 /* DorisIntentsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AC3F2A4FFB36D66A3B4097B /* DorisIntentsBundle.swift */; };
@@ -71,8 +76,6 @@
 		D9A5A2014C165680B7BD0DA4 /* DorisCore in Frameworks */ = {isa = PBXBuildFile; productRef = 730F2C1AAAC114AFFE964277 /* DorisCore */; };
 		DC3062E4DFBF622D3BAD70ED /* DorisCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2DBDD4CD5705CFC775419428 /* DorisCore */; };
 		DEDAD6EE1603ABB0F65DE5FA /* TodayScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D8B8DA6961CB3BF53478514 /* TodayScreen.swift */; };
-		15CA868ED8D246FEAF5A6BF8 /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54F12F74DFF14C6CB24B4E38 /* RootTabView.swift */; };
-		A78F6EE3AFBD49A68134B053 /* EventsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7343327D3A4F41348742B7DA /* EventsScreen.swift */; };
 		E04B3E365C9DB9EDDA3F16B9 /* OpenBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1447CB53626E37F1DD855B25 /* OpenBarController.swift */; };
 		E9874DBDAB1A27FE48686FCB /* SpeechRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB8853F1317B2486DAB7E291 /* SpeechRecognizer.swift */; };
 		EDF671F1202F7239EC0D7109 /* PushNotificationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5860F89D0929C6440DEA0036 /* PushNotificationIntent.swift */; };
@@ -81,8 +84,6 @@
 		F44F0262B381BA936FD37F16 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0457AEB878C7FB706DFC7635 /* SettingsScreen.swift */; };
 		F548C0123D3DCE76BD293315 /* NoteDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7263649E21CCBD2C930F4317 /* NoteDetailScreen.swift */; };
 		FCE5B30D06A345D7F7F149AD /* MainWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC6D9364F0DDD9193D0C20C8 /* MainWindowView.swift */; };
-		3A15A5D415A4416D89930248 /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6491F8FDACC4A73AA24FD92 /* MainWindowController.swift */; };
-		E7F8A9B0C1D2E3F4A5B607C8 /* MainTodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19F2E3D4A5B6C7D8E9F0A1B2 /* MainTodayView.swift */; };
 		FCF68FD5D0FF4E8842C08219 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E06A5801ADADFF5C8CC26B70 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -104,6 +105,7 @@
 		33E29E09A7E0346CA78ADE04 /* Info-iOS.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Info-iOS.plist"; sourceTree = "<group>"; };
 		34B6A23241EBA8A24694833B /* DorisScriptCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DorisScriptCommands.swift; sourceTree = "<group>"; };
 		3ACC181989765CFA4AACB513 /* DorisWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DorisWidgetBundle.swift; sourceTree = "<group>"; };
+		3C0A5F483ACA3F72ED343586 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
 		3EBAD6C975AC7AE7F032E9F4 /* NotesScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesScreen.swift; sourceTree = "<group>"; };
 		4739E02B1BDFA6BEFF3F866E /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		50476AECFF2B8FC223258807 /* DorisMacChrome */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DorisMacChrome; path = packages/DorisMacChrome; sourceTree = SOURCE_ROOT; };
@@ -122,8 +124,6 @@
 		76B0F44E3C2D25836321C501 /* SidebarRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarRootView.swift; sourceTree = "<group>"; };
 		7A5943A6757B5692B643221E /* FixNotchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixNotchView.swift; sourceTree = "<group>"; };
 		7D8B8DA6961CB3BF53478514 /* TodayScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayScreen.swift; sourceTree = "<group>"; };
-		54F12F74DFF14C6CB24B4E38 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
-		7343327D3A4F41348742B7DA /* EventsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsScreen.swift; sourceTree = "<group>"; };
 		7EF4AEE04447F0F367068947 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		84456DD8EB1EDDEC13EC70AE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8551C8092D18325AF6DBB4E7 /* DorisWidget-macOS.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "DorisWidget-macOS.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -134,7 +134,9 @@
 		977DBCC8D26ABB074DFF788B /* VoiceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceController.swift; sourceTree = "<group>"; };
 		98A3FC079DDFBF06BE116BE0 /* DorisShareExtension-macOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "DorisShareExtension-macOS.entitlements"; sourceTree = "<group>"; };
 		9A35E4AD7194BBDC008223FF /* doris-avatar-fullbody.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "doris-avatar-fullbody.png"; sourceTree = "<group>"; };
+		9ABB340E9D12DD0046C284D2 /* CalendarTimelineScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarTimelineScreen.swift; sourceTree = "<group>"; };
 		9BC4E4D9520090DC1F0AAF0A /* DorisIntents-macOS.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "DorisIntents-macOS.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9CCE4FF1D8E965309B159C1A /* EventsWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsWidget.swift; sourceTree = "<group>"; };
 		9FBB8053A703823FBC40C2D8 /* DorisApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DorisApp.swift; sourceTree = "<group>"; };
 		A584C5F63CBA4D5E8A7D7E6E /* DorisWidget-iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "DorisWidget-iOS.entitlements"; sourceTree = "<group>"; };
 		A61E213B461498BA248EB494 /* DorisWidget-macOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "DorisWidget-macOS.entitlements"; sourceTree = "<group>"; };
@@ -143,20 +145,20 @@
 		AEB137662D3DAC600C955D36 /* MarkMessageDoneIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkMessageDoneIntent.swift; sourceTree = "<group>"; };
 		B1DCF61C45573AFCC4F934A3 /* OpenSidebarIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenSidebarIntent.swift; sourceTree = "<group>"; };
 		B489FE10D147F23B18789AFF /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		BB34BF47B2278B68E9DAE577 /* EventsWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsWidget.swift; sourceTree = "<group>"; };
 		BB71668C471E5FF4D4AF7C06 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		BC455D587B89C7FF473794D7 /* Doris-macOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Doris-macOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CC6D9364F0DDD9193D0C20C8 /* MainWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowView.swift; sourceTree = "<group>"; };
-		B6491F8FDACC4A73AA24FD92 /* MainWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowController.swift; sourceTree = "<group>"; };
-		19F2E3D4A5B6C7D8E9F0A1B2 /* MainTodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTodayView.swift; sourceTree = "<group>"; };
 		CE1DB98BBE156A6C003C5363 /* doris-avatar.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "doris-avatar.png"; sourceTree = "<group>"; };
 		D0ECD70CD58C18BA0CEC81EB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		D1428A4010334504409D6401 /* MainWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowController.swift; sourceTree = "<group>"; };
+		19F2E3D4A5B6C7D8E9F0A1B2 /* MainTodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTodayView.swift; sourceTree = "<group>"; };
 		D711C527DD44237BA4A5C40D /* DorisApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DorisApp.swift; sourceTree = "<group>"; };
 		D9FAEC524DB6AA1CA56A6024 /* DorisShareExtension-iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "DorisShareExtension-iOS.entitlements"; sourceTree = "<group>"; };
 		D9FD36425E135CC9E362FCB4 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
 		DB8853F1317B2486DAB7E291 /* SpeechRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognizer.swift; sourceTree = "<group>"; };
 		E06A5801ADADFF5C8CC26B70 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E2C43AC1A96796BEB25788BA /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		E94332B9CD417EEC812A1F43 /* EventsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsScreen.swift; sourceTree = "<group>"; };
 		EB0CC25ABC1FEFF7EB8E7F34 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		EB5AC31A5A3E443FAE68C56F /* DorisIntents.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DorisIntents.entitlements; sourceTree = "<group>"; };
 		ED774E489BE2AD3814737812 /* AnchorState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnchorState.swift; sourceTree = "<group>"; };
@@ -245,12 +247,13 @@
 		0CE106F7AD9579029B3D8857 /* Scenes */ = {
 			isa = PBXGroup;
 			children = (
+				9ABB340E9D12DD0046C284D2 /* CalendarTimelineScreen.swift */,
+				E94332B9CD417EEC812A1F43 /* EventsScreen.swift */,
 				7263649E21CCBD2C930F4317 /* NoteDetailScreen.swift */,
 				3EBAD6C975AC7AE7F032E9F4 /* NotesScreen.swift */,
+				3C0A5F483ACA3F72ED343586 /* RootTabView.swift */,
 				0457AEB878C7FB706DFC7635 /* SettingsScreen.swift */,
 				7D8B8DA6961CB3BF53478514 /* TodayScreen.swift */,
-				54F12F74DFF14C6CB24B4E38 /* RootTabView.swift */,
-				7343327D3A4F41348742B7DA /* EventsScreen.swift */,
 			);
 			path = Scenes;
 			sourceTree = "<group>";
@@ -374,7 +377,7 @@
 			children = (
 				A584C5F63CBA4D5E8A7D7E6E /* DorisWidget-iOS.entitlements */,
 				235E4E6BF62F710B10B2A744 /* DorisWidgetBundle.swift */,
-				BB34BF47B2278B68E9DAE577 /* EventsWidget.swift */,
+				9CCE4FF1D8E965309B159C1A /* EventsWidget.swift */,
 				BB71668C471E5FF4D4AF7C06 /* Info.plist */,
 			);
 			path = "DorisWidget-iOS";
@@ -384,8 +387,8 @@
 			isa = PBXGroup;
 			children = (
 				7441423CEB7BB2DEB9E04F7F /* DorisCommands.swift */,
+				D1428A4010334504409D6401 /* MainWindowController.swift */,
 				CC6D9364F0DDD9193D0C20C8 /* MainWindowView.swift */,
-				B6491F8FDACC4A73AA24FD92 /* MainWindowController.swift */,
 				19F2E3D4A5B6C7D8E9F0A1B2 /* MainTodayView.swift */,
 				D0ECD70CD58C18BA0CEC81EB /* SettingsView.swift */,
 			);
@@ -815,13 +818,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				219B4A18A9E56D3980082AFB /* AppDelegate.swift in Sources */,
+				7B784650FD90AC6F7C0BF3C2 /* CalendarTimelineScreen.swift in Sources */,
 				4C1CEAF18F24677CAA6C453A /* DorisApp.swift in Sources */,
+				C597EEBAAAF4373EE7F54D85 /* EventsScreen.swift in Sources */,
 				F548C0123D3DCE76BD293315 /* NoteDetailScreen.swift in Sources */,
 				585D3E3760BE6A4849A2A6D3 /* NotesScreen.swift in Sources */,
+				513597108B56CFB5759C787A /* RootTabView.swift in Sources */,
 				F44F0262B381BA936FD37F16 /* SettingsScreen.swift in Sources */,
 				DEDAD6EE1603ABB0F65DE5FA /* TodayScreen.swift in Sources */,
-				15CA868ED8D246FEAF5A6BF8 /* RootTabView.swift in Sources */,
-				A78F6EE3AFBD49A68134B053 /* EventsScreen.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -878,7 +882,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				063391B1AD51BEFF94090ED9 /* DorisWidgetBundle.swift in Sources */,
-				126B80D5F495F7A606F0F7CA /* EventsWidget.swift in Sources */,
+				9AC1BB149284034A65540B33 /* EventsWidget.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -901,9 +905,9 @@
 				A6855D156B8AB8040C74AFD6 /* HotkeyEngine.swift in Sources */,
 				7650F868B576783BBDB02F79 /* IPCFSEventReader.swift in Sources */,
 				876FD52E07C7DC2ED1B0F03C /* InstallCLIWizardView.swift in Sources */,
-				FCE5B30D06A345D7F7F149AD /* MainWindowView.swift in Sources */,
-				3A15A5D415A4416D89930248 /* MainWindowController.swift in Sources */,
+				BE57B57CE9DCCD7F9B1E5175 /* MainWindowController.swift in Sources */,
 				E7F8A9B0C1D2E3F4A5B607C8 /* MainTodayView.swift in Sources */,
+				FCE5B30D06A345D7F7F149AD /* MainWindowView.swift in Sources */,
 				7FD008279B8E6C17E1FF1A8E /* MenuBarAvatarWindow.swift in Sources */,
 				EF69E97D44844A37B41713D4 /* NotchExpandedView.swift in Sources */,
 				E04B3E365C9DB9EDDA3F16B9 /* OpenBarController.swift in Sources */,

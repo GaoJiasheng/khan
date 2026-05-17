@@ -2,15 +2,17 @@ import SwiftUI
 import DorisCore
 import DorisUI
 
-/// Top-level tab bar. Order: Today / Notes / Events.
-/// Today is the agenda hero (weather + pinned + calendar). Notes is the
-/// primary writing surface, kept adjacent to Today since users move
-/// between them most often. Events is the inbox of cross-device pings.
+/// Top-level tab bar. Order: Today / Notes / Events / Settings.
+/// Today is the agenda hero (weather + pinned + calendar preview).
+/// Notes is the primary writing surface. Events is the cross-device
+/// notifications inbox. Settings was lifted from a Notes-toolbar sheet
+/// into its own tab so the Notes top bar can stay focused on quick
+/// actions (calendar timeline + new note).
 struct RootTabView: View {
     @ObservedObject private var lang = LanguageSettings.shared
     @State private var selection: Tab = .today
 
-    enum Tab: Hashable { case today, notes, events }
+    enum Tab: Hashable { case today, notes, events, settings }
 
     var body: some View {
         TabView(selection: $selection) {
@@ -31,6 +33,12 @@ struct RootTabView: View {
                     Label(L("Events", "事件"), systemImage: "tray.fill")
                 }
                 .tag(Tab.events)
+
+            SettingsScreen()
+                .tabItem {
+                    Label(L("Settings", "设置"), systemImage: "gearshape.fill")
+                }
+                .tag(Tab.settings)
         }
         .tint(CyberPalette.neonCyan)
     }

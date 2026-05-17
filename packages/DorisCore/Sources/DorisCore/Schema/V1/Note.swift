@@ -99,4 +99,25 @@ public final class Note {
         archived = true
         touch()
     }
+
+    /// Single source of truth for checklist progress, derived live from
+    /// `bodyMarkdown`. The `checklistItems` relationship above is legacy
+    /// and is not written by any current editor — the editor stores task
+    /// state inline as `- [ ]` / `- [x]` lines in the markdown body
+    /// (see `DorisUI.ChecklistEditorView`). Returns nil when the note
+    /// isn't a checklist or has no checkbox lines.
+    public var checklistProgress: (done: Int, total: Int)? {
+        guard isChecklist else { return nil }
+        var done = 0
+        var total = 0
+        for raw in bodyMarkdown.components(separatedBy: "\n") {
+            if raw.hasPrefix("- [ ]") {
+                total += 1
+            } else if raw.hasPrefix("- [x]") || raw.hasPrefix("- [X]") {
+                total += 1
+                done += 1
+            }
+        }
+        return total > 0 ? (done, total) : nil
+    }
 }
