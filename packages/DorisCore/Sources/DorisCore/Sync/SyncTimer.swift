@@ -1,16 +1,23 @@
 import Foundation
 import DorisIPC
 import SwiftData
+import CloudKit
 
 /// Periodically calls `ModelContext.save()` to flush pending writes and let
-/// SwiftData's CloudKit mirror push them upstream. The "poke" model is
-/// deliberately conservative — saves are cheap when there's nothing dirty
-/// and SwiftData handles the actual CloudKit round-trip behind the scenes.
+/// SwiftData's CloudKit mirror push them upstream — then verifies CloudKit
+/// is actually reachable before declaring success. Local `context.save()`
+/// only writes to the SQLite store; SwiftData's CloudKit mirror is
+/// asynchronous and ignorant of failures (no Apple ID, no network, account
+/// restricted). Earlier the "Sync Now" button cheerfully reported success
+/// in any of those cases. Now we do a real `CKContainer.accountStatus()`
+/// plus a `userRecordID()` roundtrip after the local save; only if that
+/// roundtrip succeeds do we stamp `lastSyncedAt`.
 ///
-/// On every successful poke, updates `SyncSettings.shared.lastSyncedAt`
-/// so UI can render a "Last synced 30 s ago" label. On failure, updates
-/// `SyncSettings.shared.lastSyncError` so both iOS and Mac can surface
-/// a red alert without the user digging into logs.
+/// On failure, `SyncSettings.shared.lastSyncError` carries a human-readable
+/// reason (e.g. "未登录 iCloud 账号" / "No iCloud account signed in") so
+/// both iOS and Mac sync UIs can surface a red alert without digging into
+/// logs. `lastSyncedAt` is NOT updated on failure — the "Last synced N
+/// minutes ago" label stays anchored to the last verified-good sync.
 ///
 /// Also runs a 30-day tombstone purge on each poke: notes that have been
 /// soft-deleted (`archived = true`) for 30+ days are hard-deleted so they
@@ -54,22 +61,105 @@ public actor SyncTimer {
     }
 
     private func poke(container: ModelContainer) async {
-        await MainActor.run {
+        // 1. Local save (SwiftData ops must run on MainActor).
+        let saveError: String? = await MainActor.run {
             let context = ModelContext(container)
             do {
                 try context.save()
-                SyncSettings.shared.markSyncedNow()
-                SyncSettings.shared.lastSyncError = nil
-                DorisLog.sync.debug("sync poke fired")
             } catch {
                 let msg = error.localizedDescription
-                SyncSettings.shared.lastSyncError = msg
-                DorisLog.sync.error("sync poke save failed: \(msg, privacy: .public)")
+                DorisLog.sync.error("local save failed: \(msg, privacy: .public)")
+                // Still try to purge tombstones — they don't depend on the
+                // dirty write that just failed.
+                Self.purgeTombstones(context: context)
+                return Self.localized(
+                    en: "Local save failed: \(msg)",
+                    zh: "本地保存失败:\(msg)"
+                )
             }
-            // 30-day tombstone purge — runs on every poke so it's
-            // ambient and doesn't require a separate scheduled task.
             Self.purgeTombstones(context: context)
+            return nil
         }
+        if let saveError {
+            await MainActor.run { SyncSettings.shared.lastSyncError = saveError }
+            return
+        }
+
+        // 2. If CloudKit is on, verify it's actually reachable. Without
+        //    this, `context.save()` returning success means **nothing**
+        //    about the cloud round-trip — SwiftData's CloudKit mirror is
+        //    asynchronous and silent on failure.
+        let cloudKitEnabled = await MainActor.run { SyncSettings.shared.cloudKitEnabled }
+        if cloudKitEnabled {
+            if let cloudError = await Self.verifyCloudKit() {
+                await MainActor.run { SyncSettings.shared.lastSyncError = cloudError }
+                DorisLog.sync.error("cloud verify failed: \(cloudError, privacy: .public)")
+                return
+            }
+        }
+
+        // 3. Success path — only here do we update lastSyncedAt.
+        await MainActor.run {
+            SyncSettings.shared.markSyncedNow()
+            SyncSettings.shared.lastSyncError = nil
+            DorisLog.sync.debug("sync poke ok (cloudKit=\(cloudKitEnabled))")
+        }
+    }
+
+    /// Reachability probe for the private CloudKit container. Two cheap
+    /// async calls: `accountStatus()` to learn whether there's an Apple
+    /// ID signed in at all, then `userRecordID()` as an actual network
+    /// roundtrip — together they catch every realistic failure mode
+    /// (no account, restricted, no network, server unreachable).
+    /// Returns `nil` on success or a localized error string otherwise.
+    private static func verifyCloudKit() async -> String? {
+        let container = CKContainer(identifier: DorisIdentifiers.cloudKitContainer)
+        do {
+            let status = try await container.accountStatus()
+            switch status {
+            case .available:
+                _ = try await container.userRecordID()
+                return nil
+            case .noAccount:
+                return localized(
+                    en: "No iCloud account signed in on this device",
+                    zh: "此设备未登录 iCloud 账号"
+                )
+            case .restricted:
+                return localized(
+                    en: "iCloud is restricted on this device",
+                    zh: "iCloud 在此设备上被限制"
+                )
+            case .couldNotDetermine:
+                return localized(
+                    en: "Couldn't reach iCloud",
+                    zh: "无法连接 iCloud"
+                )
+            case .temporarilyUnavailable:
+                return localized(
+                    en: "iCloud temporarily unavailable",
+                    zh: "iCloud 暂时不可用"
+                )
+            @unknown default:
+                return localized(
+                    en: "Unknown iCloud account state",
+                    zh: "未知 iCloud 账号状态"
+                )
+            }
+        } catch {
+            return localized(
+                en: "iCloud: \(error.localizedDescription)",
+                zh: "iCloud:\(error.localizedDescription)"
+            )
+        }
+    }
+
+    /// Tiny EN/ZH switcher. `DorisCore` doesn't depend on `DorisUI`, so we
+    /// read the same UserDefaults key the `L()` helper in DorisUI writes
+    /// to. Default is Chinese to match `LanguageSettings`'s default.
+    private static func localized(en: String, zh: String) -> String {
+        let mode = UserDefaults.standard.string(forKey: "doris.language.mode") ?? "zh"
+        return mode == "en" ? en : zh
     }
 
     /// Hard-deletes notes that have been soft-deleted (`archived = true`)
