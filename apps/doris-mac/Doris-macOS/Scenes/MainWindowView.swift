@@ -153,20 +153,23 @@ struct MainWindowView: View {
     /// stays minimal and the whole "navigation strip" reads as one row.
     private var detailHeader: some View {
         HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 0) {
-                Text("DORIS")
-                    .font(.system(size: 16, weight: .heavy, design: .rounded))
-                    .kerning(2)
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [CyberPalette.neonPink, CyberPalette.neonCyan],
-                            startPoint: .leading, endPoint: .trailing
-                        )
+            // DORIS wordmark — single line, with `.fixedSize` so SwiftUI
+            // doesn't squeeze it letter-by-letter into a vertical column
+            // when the toolbar fills up. The decorative "cyber helper /
+            // 赛博助手" subtitle that used to live here was removed —
+            // it duplicates the dock-bar app name and was the main
+            // source of visual noise when the row got crowded.
+            Text("DORIS")
+                .font(.system(size: 16, weight: .heavy, design: .rounded))
+                .kerning(2)
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [CyberPalette.neonPink, CyberPalette.neonCyan],
+                        startPoint: .leading, endPoint: .trailing
                     )
-                Text(L("cyber helper", "赛博助手"))
-                    .font(.caption2.monospaced())
-                    .foregroundStyle(CyberPalette.neonCyan.opacity(0.7))
-            }
+                )
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
 
             HStack(spacing: 6) {
                 // Today is the landing tab — first slot so it reads
