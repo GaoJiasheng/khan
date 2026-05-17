@@ -114,6 +114,15 @@ final class DorisAppDelegate: NSObject, NSApplicationDelegate {
                 MainWindowController.shared.show(preferredScreen: screen)
             }
 
+            // Settings — same panel the menu-bar avatar's right-click
+            // "Settings…" opens. Routed through AppCommands so DorisUI
+            // components (e.g. the sync popover's "Open Sync Settings"
+            // button) can request the panel without taking a hard
+            // dependency on the Mac app target.
+            AppCommands.openSettings = {
+                SettingsWindowController.shared.show()
+            }
+
             // Voice capture: long-press the configured modifier → mic →
             // route to ChatGPT (or web fallback).
             self.voiceController = VoiceController()

@@ -13,4 +13,9 @@ import Foundation
 public enum AppCommands {
     public static var syncNow: () -> Void = {}
     public static var openMainWindow: () -> Void = {}
+    /// Open the app's settings UI. On Mac this brings up the standalone
+    /// `SettingsWindowController` panel (the same one the menu-bar
+    /// avatar's right-click → "Settings…" opens). No-op on iOS where
+    /// Settings is reached via the tab bar.
+    public static var openSettings: () -> Void = {}
 }

@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import DorisCore
 import DorisUI
 
 /// Stand-alone settings panel. Lives outside the menu-bar avatar so the
@@ -120,10 +121,13 @@ private struct AppearanceSettingsView: View {
     @ObservedObject var voice = VoiceSettings.shared
     @ObservedObject var lang = LanguageSettings.shared
     @ObservedObject var theme = ThemeSettings.shared
+    @ObservedObject var sync = SyncSettings.shared
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                syncSection
+                Divider().overlay(Color.primary.opacity(0.08))
                 themeSection
                 Divider().overlay(Color.primary.opacity(0.08))
                 languageSection
@@ -136,6 +140,51 @@ private struct AppearanceSettingsView: View {
             .padding(.vertical, 6)
         }
         .scrollContentBackground(.hidden)
+    }
+
+    // MARK: - Sync
+
+    /// Sync section — mirrors the iOS Settings → Sync tab. Status banner
+    /// at the top reflects the same `SyncSettings.shared` state that
+    /// drives the toolbar sync pill, so the two surfaces always agree.
+    private var syncSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(L("Sync", "同步"))
+                .font(.headline)
+                .foregroundStyle(.primary)
+
+            SyncStatusBanner()
+
+            HStack {
+                Text(L("Use iCloud sync", "使用 iCloud 同步"))
+                    .frame(width: 160, alignment: .leading)
+                    .foregroundStyle(.primary)
+                Toggle("", isOn: $sync.cloudKitEnabled)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                Spacer()
+            }
+
+            HStack {
+                Text(L("Auto-sync every 60s", "每 60 秒自动同步"))
+                    .frame(width: 160, alignment: .leading)
+                    .foregroundStyle(.primary)
+                Toggle("", isOn: $sync.autoSyncEnabled)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                Spacer()
+            }
+
+            SyncNowRow()
+
+            Text(L(
+                "Sync Now performs a local save plus a CloudKit reachability check (account status + user record fetch). \"Last synced\" only updates when both succeed. Restart Doris after toggling iCloud for the change to take effect.",
+                "立即同步会先本地保存,然后真实验证 iCloud 可达性(账号状态 + 拉取用户 record)。两步都成功才会刷新「上次同步」时间。切换 iCloud 后需重启 Doris 才会生效。"
+            ))
+            .font(.caption)
+            .foregroundStyle(.primary.opacity(0.6))
+            .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private var themeSection: some View {
@@ -343,5 +392,152 @@ private struct BindingRow: View {
             .help(L("Remove this binding", "删除此绑定"))
         }
         .padding(.vertical, 2)
+    }
+}
+
+// MARK: - Sync status banner
+
+/// Status card at the top of the Sync section. Mirrors the iOS Settings
+/// → Sync banner and the toolbar sync pill — same `SyncSettings.shared`
+/// state, four mutually exclusive variants: in-sync (cyan checkmark),
+/// error (red triangle + full message), local-only (muted slash), and
+/// first-run "never synced".
+private struct SyncStatusBanner: View {
+    @ObservedObject private var sync = SyncSettings.shared
+    @ObservedObject private var lang = LanguageSettings.shared
+    @State private var nowTick = Date()
+    private let tickTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        let hasError = sync.lastSyncError != nil
+        let accent: Color =
+            hasError ? .red :
+            !sync.cloudKitEnabled ? Color.primary.opacity(0.45) :
+            CyberPalette.neonCyan
+
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: bannerIcon)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(accent)
+                .frame(width: 24)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(bannerTitle)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(hasError ? .red : .primary)
+                Text(bannerSubtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(accent.opacity(0.06))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(accent.opacity(hasError ? 0.45 : 0.18), lineWidth: 0.7)
+        )
+        .onReceive(tickTimer) { nowTick = $0 }
+    }
+
+    private var bannerIcon: String {
+        if sync.lastSyncError != nil { return "exclamationmark.icloud.fill" }
+        if !sync.cloudKitEnabled     { return "icloud.slash" }
+        if sync.lastSyncedAt == nil  { return "icloud" }
+        return "checkmark.icloud.fill"
+    }
+
+    private var bannerTitle: String {
+        if sync.lastSyncError != nil { return L("Sync failed", "同步失败") }
+        if !sync.cloudKitEnabled     { return L("iCloud sync is off", "iCloud 同步未启用") }
+        if sync.lastSyncedAt == nil  { return L("Not synced yet", "尚未同步") }
+        return L("In sync with iCloud", "已与 iCloud 同步")
+    }
+
+    private var bannerSubtitle: String {
+        if let err = sync.lastSyncError { return err }
+        if !sync.cloudKitEnabled {
+            return L(
+                "Notes stay on this Mac. Toggle iCloud on below to mirror to other devices.",
+                "笔记仅保存在本机。下方开启 iCloud 即可与其他设备同步。"
+            )
+        }
+        if sync.lastSyncedAt == nil {
+            return L("Click Sync Now below to start a sync.",
+                     "点击下方「立即同步」开始第一次同步。")
+        }
+        return lastSyncedLabel
+    }
+
+    private var lastSyncedLabel: String {
+        guard let last = sync.lastSyncedAt else { return "" }
+        _ = nowTick
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .short
+        return L("Last synced ", "上次同步 ")
+            + f.localizedString(for: last, relativeTo: Date())
+    }
+}
+
+// MARK: - Sync Now row
+
+/// Manual sync button + live last-synced label, side by side. Same
+/// behaviour as the iOS Settings → Sync row: tap fires
+/// `AppCommands.syncNow`, the spinner runs for 1.2s while the actor
+/// performs the local save + CloudKit reachability probe, then the
+/// "Last synced" label updates from `SyncSettings.shared`.
+private struct SyncNowRow: View {
+    @ObservedObject private var sync = SyncSettings.shared
+    @ObservedObject private var lang = LanguageSettings.shared
+    @State private var isSyncing = false
+    @State private var nowTick = Date()
+    private let tickTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        HStack {
+            Button { runManualSync() } label: {
+                HStack(spacing: 6) {
+                    if isSyncing {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                    }
+                    Text(isSyncing
+                         ? L("Syncing…", "同步中…")
+                         : L("Sync Now", "立即同步"))
+                }
+            }
+            .disabled(isSyncing)
+            Spacer()
+            Text(lastSyncedLabel)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
+        }
+        .onReceive(tickTimer) { nowTick = $0 }
+    }
+
+    private var lastSyncedLabel: String {
+        guard let last = sync.lastSyncedAt else {
+            return L("Never synced yet", "尚未同步")
+        }
+        _ = nowTick
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .short
+        return L("Last synced ", "上次同步 ")
+            + f.localizedString(for: last, relativeTo: Date())
+    }
+
+    private func runManualSync() {
+        isSyncing = true
+        AppCommands.syncNow()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            isSyncing = false
+        }
     }
 }

@@ -138,18 +138,13 @@ public struct SyncNowToolbarButton: View {
         .frame(width: 320)
     }
 
-    /// Open the SwiftUI `Settings` scene programmatically.
-    /// macOS 14+ uses `showSettingsWindow:`; older versions use the legacy
-    /// `showPreferencesWindow:` selector. Both are no-ops in unit tests
-    /// or non-AppKit hosts.
+    /// Route through `AppCommands.openSettings` so the host app gets to
+    /// decide which Settings UI to open. On Mac this lands on the
+    /// stand-alone `SettingsWindowController` panel (same one the
+    /// menu-bar avatar's right-click → "Settings…" opens), keeping a
+    /// single mental model of "the Settings window".
     private func openSyncSettings() {
-        #if os(macOS)
-        if #available(macOS 14, *) {
-            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-        } else {
-            NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
-        }
-        #endif
+        AppCommands.openSettings()
     }
 
     // MARK: - Derived visuals
