@@ -1088,6 +1088,7 @@ private struct AnchorTodayView: View {
             }
         }
         .buttonStyle(.plain)
+        .noteContextMenu(for: n, onOpenEditor: { editing = n })
     }
 
     private func stripHeader(_ label: String, color: Color) -> some View {

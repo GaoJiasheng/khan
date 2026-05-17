@@ -230,6 +230,11 @@ public struct TodoRow: View {
             Text(L("This task can't be recovered after a permanent delete.",
                    "彻底删除后此任务无法恢复。"))
         }
+        // Whole-row right-click menu: scheduling quick picks + pin /
+        // open / archive / trash. Lives at the bottom of the modifier
+        // chain so it doesn't interfere with the drag/drop or hover
+        // gestures above.
+        .noteContextMenu(for: note, onOpenEditor: onExpand)
     }
 
     // MARK: - Action buttons
@@ -294,7 +299,9 @@ public struct TodoRow: View {
     }
 
     /// Shared visual style for the two action icons — same size / shape /
-    /// hover treatment so the cluster reads as a unit.
+    /// hover treatment so the cluster reads as a unit. The right-click
+    /// menu is attached to the whole row body via `.noteContextMenu`,
+    /// not to this icon, so users can right-click anywhere on the row.
     private func actionIcon(_ symbol: String, tint: Color) -> some View {
         Image(systemName: symbol)
             .font(.system(size: 10, weight: .semibold))
@@ -306,57 +313,6 @@ public struct TodoRow: View {
             .overlay(
                 Circle().stroke(tint.opacity(0.3), lineWidth: 0.5)
             )
-        .contextMenu {
-            if !note.deleted {
-                Button {
-                    note.pinned.toggle()
-                    note.updatedAt = Date()
-                } label: {
-                    Label(note.pinned
-                          ? L("Unpin", "取消置顶")
-                          : L("Pin to top", "置顶"),
-                          systemImage: note.pinned ? "pin.slash" : "pin")
-                }
-                Button(action: onExpand) {
-                    Label(L("Open editor", "打开编辑器"), systemImage: "doc.text")
-                }
-                Divider()
-                Button {
-                    let now = Date()
-                    note.archived.toggle()
-                    note.archivedAt = note.archived ? now : nil
-                    note.updatedAt = now
-                } label: {
-                    Label(note.archived
-                          ? L("Unarchive", "解归档")
-                          : L("Archive", "归档"),
-                          systemImage: note.archived ? "tray.and.arrow.up" : "archivebox")
-                }
-                Button {
-                    let now = Date()
-                    note.deleted = true
-                    note.deletedAt = now
-                    note.updatedAt = now
-                } label: {
-                    Label(L("Move to trash", "移到回收站"), systemImage: "trash")
-                }
-            } else {
-                // Trash row context menu
-                Button {
-                    let now = Date()
-                    note.deleted = false
-                    note.deletedAt = nil
-                    note.updatedAt = now
-                } label: {
-                    Label(L("Restore", "还原"), systemImage: "arrow.uturn.backward")
-                }
-                Button(role: .destructive) {
-                    confirmingDelete = true
-                } label: {
-                    Label(L("Delete forever", "彻底删除"), systemImage: "trash.slash")
-                }
-            }
-        }
     }
 
     private var hasBody: Bool {
