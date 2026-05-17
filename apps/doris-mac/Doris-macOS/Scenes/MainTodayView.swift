@@ -90,10 +90,15 @@ struct MainTodayView: View {
 
                 // ── Pinned ──────────────────────────────────────────────
                 if !pinnedNotes.isEmpty {
+                    // Pinned uses pink to read as "attention worthy"
+                    // (user-flagged stuff), Upcoming uses cyan as the
+                    // calmer schedule color. Swapped from the original
+                    // pin=cyan / calendar=pink because pinning is more
+                    // active/personal and deserves the warmer accent.
                     sectionHeader(
                         icon: "pin.fill",
                         title: L("Pinned", "置顶"),
-                        tint: CyberPalette.neonCyan
+                        tint: CyberPalette.neonPink
                     )
                     LazyVGrid(
                         columns: [GridItem(.adaptive(minimum: 180), spacing: 10)],
@@ -113,7 +118,7 @@ struct MainTodayView: View {
                     sectionHeader(
                         icon: "calendar",
                         title: L("Upcoming", "日程"),
-                        tint: CyberPalette.neonPink
+                        tint: CyberPalette.neonCyan
                     )
                     VStack(spacing: 8) {
                         ForEach(calendarNotes) { n in

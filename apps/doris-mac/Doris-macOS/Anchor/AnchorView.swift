@@ -1073,10 +1073,13 @@ private struct AnchorTodayView: View {
                 // the popup, which is short.
 
                 if !pinnedNotes.isEmpty {
+                    // See `MainTodayView` — pinned gets the warm pink
+                    // (user-flagged / attention) and upcoming gets the
+                    // calmer cyan (scheduled), opposite of the original.
                     sectionHeader(
                         icon: "pin.fill",
                         title: L("Pinned", "置顶"),
-                        tint: CyberPalette.neonCyan
+                        tint: CyberPalette.neonPink
                     )
                     // Tighter min-width (150 vs the main window's 180)
                     // so the popup's narrower content area (~330pt at
@@ -1099,7 +1102,7 @@ private struct AnchorTodayView: View {
                     sectionHeader(
                         icon: "calendar",
                         title: L("Upcoming", "日程"),
-                        tint: CyberPalette.neonPink
+                        tint: CyberPalette.neonCyan
                     )
                     VStack(spacing: 6) {
                         ForEach(calendarNotes) { n in
