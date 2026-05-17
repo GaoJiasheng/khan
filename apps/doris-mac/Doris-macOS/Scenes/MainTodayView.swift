@@ -1,0 +1,175 @@
+import SwiftUI
+import SwiftData
+import DorisCore
+import DorisUI
+
+/// macOS "Today" surface — first tab of the main window. Visual
+/// vocabulary follows the iOS Today screen one-to-one (same weather
+/// card, pinned grid, upcoming list), since the three card types live
+/// in `DorisUI/Today/TodayComponents.swift` and are imported by both
+/// platforms.
+///
+/// The screen *wrapper* diverges from iOS because mac uses
+/// NavigationSplitView + an `editing: Note?` binding (rather than
+/// NavigationStack + NavigationPath). Tapping any pinned card or
+/// upcoming row sets the binding; the parent (`MainWindowView`) swaps
+/// to `InlineNoteEditor` for the whole detail pane. That keeps Today's
+/// "open a note" feel identical to the TODO tab's.
+///
+/// One macOS-only tweak: the pinned grid uses an adaptive column
+/// layout (`GridItem(.adaptive(minimum: 180))`) instead of the iOS
+/// fixed 2-column grid, so wider windows naturally fan out to 3 or 4
+/// columns without wasted space.
+struct MainTodayView: View {
+    @ObservedObject private var lang = LanguageSettings.shared
+    @Environment(\.modelContext) private var ctx
+    // Weather lives on the sidebar avatar already — no second copy in
+    // the Today pane. The date strip below stays as the "this is Today"
+    // anchor.
+
+    @Query(
+        filter: #Predicate<Note> { note in !note.archived && !note.deleted },
+        sort: [SortDescriptor(\Note.updatedAt, order: .reverse)]
+    )
+    private var allNotes: [Note]
+
+    /// Binding lifted from `MainWindowView` — same one that the TODO
+    /// tab uses, so opening a note from Today goes through the exact
+    /// same editor path (and parent hides the detail header etc.).
+    @Binding var editing: Note?
+
+    /// Pinned notes sorted by urgency:
+    ///   1. Notes with a `dueDate` come first, sorted ascending (most
+    ///      overdue → today → soonest future).
+    ///   2. Notes without a `dueDate` come after, sorted by `updatedAt`
+    ///      descending (most recently touched first).
+    private var pinnedNotes: [Note] {
+        allNotes
+            .filter { $0.pinned }
+            .sorted { a, b in
+                switch (a.dueDate, b.dueDate) {
+                case let (l?, r?): return l < r
+                case (_?, nil):    return true
+                case (nil, _?):    return false
+                case (nil, nil):   return a.updatedAt > b.updatedAt
+                }
+            }
+    }
+
+    private var calendarNotes: [Note] {
+        allNotes
+            .filter { $0.dueDate != nil }
+            .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+    }
+
+    var body: some View {
+        // Same pattern as `MainNotesList`: when `editing` is set we
+        // swap the entire tab body to the inline editor. The parent
+        // (`MainWindowView.detail`) hides the detail header in that
+        // same condition, so the editor gets the full pane.
+        Group {
+            if let editing {
+                InlineNoteEditor(note: editing) { self.editing = nil }
+            } else {
+                scrollBody
+            }
+        }
+    }
+
+    private var scrollBody: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+
+                // The date is rendered up in `MainWindowView`'s detail
+                // header (next to the tab strip, only while Today is
+                // active) so the scroll content can lead directly with
+                // the actual content — saves a row of vertical space
+                // that was otherwise just visual chrome. iOS Today also
+                // shows a weather card here; we skip it on mac because
+                // the sidebar avatar already carries the weather pill.
+
+                // ── Pinned ──────────────────────────────────────────────
+                if !pinnedNotes.isEmpty {
+                    sectionHeader(
+                        icon: "pin.fill",
+                        title: L("Pinned", "置顶"),
+                        tint: CyberPalette.neonCyan
+                    )
+                    LazyVGrid(
+                        columns: [GridItem(.adaptive(minimum: 180), spacing: 10)],
+                        spacing: 10
+                    ) {
+                        ForEach(pinnedNotes) { n in
+                            Button { editing = n } label: {
+                                TodayPinnedCard(note: n)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+
+                // ── Upcoming ────────────────────────────────────────────
+                if !calendarNotes.isEmpty {
+                    sectionHeader(
+                        icon: "calendar",
+                        title: L("Upcoming", "日程"),
+                        tint: CyberPalette.neonPink
+                    )
+                    VStack(spacing: 8) {
+                        ForEach(calendarNotes) { n in
+                            Button { editing = n } label: {
+                                TodayCalendarRow(note: n)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+
+                if pinnedNotes.isEmpty && calendarNotes.isEmpty {
+                    emptyState
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 14)
+            .padding(.bottom, 32)
+        }
+        .scrollContentBackground(.hidden)
+    }
+
+    // MARK: - Section header
+
+    private func sectionHeader(icon: String, title: String, tint: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .black))
+                .foregroundStyle(tint)
+            Text(title.uppercased())
+                .font(.system(size: 14, weight: .bold, design: .monospaced))
+                .foregroundStyle(tint)
+                .kerning(2)
+            Rectangle()
+                .fill(tint.opacity(0.18))
+                .frame(height: 0.6)
+        }
+    }
+
+    // MARK: - Empty state
+
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 42))
+                .foregroundStyle(CyberPalette.neonCyan.opacity(0.45))
+            Text(L("All clear", "今日清净"))
+                .font(.system(size: 19, weight: .semibold, design: .rounded))
+                .foregroundStyle(.primary.opacity(0.65))
+            Text(L("Pin a note or set a due date to see it here.",
+                   "置顶笔记或设定截止日期即可出现在这里。"))
+                .font(.system(size: 14))
+                .foregroundStyle(.primary.opacity(0.45))
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 60)
+    }
+}

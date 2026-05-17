@@ -82,6 +82,7 @@
 		F548C0123D3DCE76BD293315 /* NoteDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7263649E21CCBD2C930F4317 /* NoteDetailScreen.swift */; };
 		FCE5B30D06A345D7F7F149AD /* MainWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC6D9364F0DDD9193D0C20C8 /* MainWindowView.swift */; };
 		3A15A5D415A4416D89930248 /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6491F8FDACC4A73AA24FD92 /* MainWindowController.swift */; };
+		E7F8A9B0C1D2E3F4A5B607C8 /* MainTodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19F2E3D4A5B6C7D8E9F0A1B2 /* MainTodayView.swift */; };
 		FCF68FD5D0FF4E8842C08219 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E06A5801ADADFF5C8CC26B70 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -147,6 +148,7 @@
 		BC455D587B89C7FF473794D7 /* Doris-macOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Doris-macOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CC6D9364F0DDD9193D0C20C8 /* MainWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowView.swift; sourceTree = "<group>"; };
 		B6491F8FDACC4A73AA24FD92 /* MainWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowController.swift; sourceTree = "<group>"; };
+		19F2E3D4A5B6C7D8E9F0A1B2 /* MainTodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTodayView.swift; sourceTree = "<group>"; };
 		CE1DB98BBE156A6C003C5363 /* doris-avatar.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "doris-avatar.png"; sourceTree = "<group>"; };
 		D0ECD70CD58C18BA0CEC81EB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		D711C527DD44237BA4A5C40D /* DorisApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DorisApp.swift; sourceTree = "<group>"; };
@@ -384,6 +386,7 @@
 				7441423CEB7BB2DEB9E04F7F /* DorisCommands.swift */,
 				CC6D9364F0DDD9193D0C20C8 /* MainWindowView.swift */,
 				B6491F8FDACC4A73AA24FD92 /* MainWindowController.swift */,
+				19F2E3D4A5B6C7D8E9F0A1B2 /* MainTodayView.swift */,
 				D0ECD70CD58C18BA0CEC81EB /* SettingsView.swift */,
 			);
 			path = Scenes;
@@ -900,6 +903,7 @@
 				876FD52E07C7DC2ED1B0F03C /* InstallCLIWizardView.swift in Sources */,
 				FCE5B30D06A345D7F7F149AD /* MainWindowView.swift in Sources */,
 				3A15A5D415A4416D89930248 /* MainWindowController.swift in Sources */,
+				E7F8A9B0C1D2E3F4A5B607C8 /* MainTodayView.swift in Sources */,
 				7FD008279B8E6C17E1FF1A8E /* MenuBarAvatarWindow.swift in Sources */,
 				EF69E97D44844A37B41713D4 /* NotchExpandedView.swift in Sources */,
 				E04B3E365C9DB9EDDA3F16B9 /* OpenBarController.swift in Sources */,

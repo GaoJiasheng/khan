@@ -18,10 +18,12 @@ struct MainWindowView: View {
     /// SwiftUI re-evaluation. Without this binding the window kept
     /// whatever colorScheme was captured at first mount.
     @ObservedObject private var theme = ThemeSettings.shared
-    @State private var tab: Tab = .events
+    @State private var tab: Tab = .today
     /// Lifted up from `MainNotesList` so the detail header (DORIS
     /// brand + tab buttons) can hide while editing — the editor gets
-    /// the entire detail pane.
+    /// the entire detail pane. Shared with `MainTodayView` too, so
+    /// tapping a pinned/upcoming card on Today opens the same editor
+    /// surface used by the TODO tab.
     @State private var editingNote: Note?
     /// Two-way bound so we can react to "sidebar collapsed" — when the
     /// avatar pane is hidden, the detail pane fills the window and
@@ -30,7 +32,7 @@ struct MainWindowView: View {
     /// for those, otherwise the DORIS / tabs strip slides under them.
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
-    enum Tab: Hashable { case events, notes }
+    enum Tab: Hashable { case today, events, notes }
 
     var body: some View {
         ZStack {
@@ -131,6 +133,7 @@ struct MainWindowView: View {
             }
             Group {
                 switch tab {
+                case .today:  MainTodayView(editing: $editingNote)
                 case .events: MainEventsList()
                 case .notes:  MainNotesList(editing: $editingNote)
                 }
@@ -166,13 +169,32 @@ struct MainWindowView: View {
             }
 
             HStack(spacing: 6) {
+                // Today is the landing tab — first slot so it reads
+                // as the primary surface. `sparkles` matches the
+                // iOS empty-state icon and stays out of the way of
+                // the theme toggle's sun/moon glyphs (which sit on
+                // the trailing edge of the same strip).
+                tabButton(.today, label: L("Today", "今日"), system: "sparkles")
                 tabButton(.notes, label: L("TODO", "TODO"), system: "checklist")
                 tabButton(.events, label: L("Events", "事件"), system: "tray.fill")
             }
 
             Spacer()
 
-            HStack(spacing: 8) {
+            // Right cluster: date stamp + actions. Putting the date
+            // here (rather than between tabs and the spacer) groups
+            // "info + actions" as one trailing unit and gives the
+            // tab buttons room to breathe — at higher zoom levels
+            // the previous middle-positioned date squeezed the tabs
+            // hard enough that their labels collapsed vertically.
+            // Abbreviated weekday ("Sat, May 16") keeps the stamp
+            // narrow without losing day-of-week info.
+            HStack(spacing: 10) {
+                Text(Date().formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.primary.opacity(0.6))
+                    .lineLimit(1)
+                    .fixedSize()
                 SyncNowToolbarButton()
                 ThemeToggleButton()
             }
@@ -212,6 +234,14 @@ struct MainWindowView: View {
                 Text(label)
                     .font(.system(size: 12, weight: isSelected ? .semibold : .regular, design: .rounded))
                     .kerning(0.4)
+                    // Without these, SwiftUI compresses the label
+                    // when the row gets crowded and the text breaks
+                    // into one-character-per-line vertical stacks
+                    // ("今日" → 今 / 日, "TODO" → T / O / D / O).
+                    // `fixedSize` reserves the natural width; the
+                    // surrounding Spacer absorbs any leftover slack.
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
             .foregroundStyle(
                 isSelected
