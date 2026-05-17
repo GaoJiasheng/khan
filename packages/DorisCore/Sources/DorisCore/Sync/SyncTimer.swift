@@ -113,6 +113,19 @@ public actor SyncTimer {
     /// (no account, restricted, no network, server unreachable).
     /// Returns `nil` on success or a localized error string otherwise.
     private static func verifyCloudKit() async -> String? {
+        // Refuse to even instantiate CKContainer on unsigned dev builds —
+        // `CKContainer.init(identifier:)` itself traps the process with
+        // brk 1 when the running binary declares iCloud entitlements but
+        // wasn't signed with a Development Team. Same root cause as
+        // SwiftData's mirror crash on launch; we keep one check here so
+        // tapping "Sync Now" stays safe even when the user has the
+        // CloudKit toggle on.
+        guard CodeSigningCheck.hasTeamIdentifier else {
+            return localized(
+                en: "App is not signed with a Development Team — iCloud sync disabled.",
+                zh: "App 没有用开发证书签名 — iCloud 同步已禁用。"
+            )
+        }
         let container = CKContainer(identifier: DorisIdentifiers.cloudKitContainer)
         do {
             let status = try await container.accountStatus()
