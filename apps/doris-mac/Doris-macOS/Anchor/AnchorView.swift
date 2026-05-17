@@ -404,11 +404,20 @@ struct AnchorView: View {
                 .padding(.top, useFakeNotch ? 12 : 16)
                 .padding(.bottom, 10)
 
-                // Tabs
+                // Tabs — Today first (mirrors main window's order).
+                // Trailing date stamp is permanently parked here as a
+                // global "when am I?" anchor (mac main window does the
+                // same). Saves the popup a row of scroll content.
                 HStack(spacing: 6) {
+                    tabButton(L("Today", "今日"), tag: .today)
                     tabButton(L("TODO", "TODO"), tag: .notes)
                     tabButton(L("Events", "事件"), tag: .events)
                     Spacer()
+                    Text(Date().formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.primary.opacity(0.6))
+                        .lineLimit(1)
+                        .fixedSize()
                 }
                 .padding(.horizontal, 12)
                 .padding(.bottom, 6)
@@ -421,6 +430,7 @@ struct AnchorView: View {
                 // Body
                 Group {
                     switch model.expandedTab {
+                    case .today:  AnchorTodayView(editing: $editingNote)
                     case .events: AnchorEventsView()
                     case .notes:  AnchorNotesView(editing: $editingNote)
                     }
@@ -508,6 +518,11 @@ struct AnchorView: View {
                 .font(.system(size: 12, weight: isSelected ? .semibold : .regular, design: .rounded))
                 .kerning(0.5)
                 .foregroundStyle(isSelected ? AnyShapeStyle(Color.primary) : AnyShapeStyle(Color.primary.opacity(0.45)))
+                // Lock natural width so a crowded row (esp. at higher
+                // zoom levels) doesn't compress labels into vertical
+                // one-character stacks.
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 5)
                 .background(
@@ -990,112 +1005,154 @@ private struct AnchorNotesView: View {
 // (TodoRow lives in DorisUI — the same row UI is used by both this
 // dropdown view and the main window's notes pane.)
 
-// MARK: - Today strip (due today + pinned + recent 24h)
+// MARK: - Today tab (pinned + upcoming, shared design w/ mac main window)
+//
+// Uses the same `TodayPinnedCard` / `TodayCalendarRow` from
+// DorisUI/Today/TodayComponents.swift as the mac main window's Today
+// pane and the iOS Today screen, so visual tweaks live in one place.
+// No weather card here — the avatar window hanging above this panel
+// already shows weather, like the main window's sidebar does.
+//
+// `editing` is bound from the parent `AnchorView.editingNote` so the
+// chrome (title bar + tabs) hides while a note is open, matching the
+// behavior of the popup's TODO tab.
 
 private struct AnchorTodayView: View {
     @ObservedObject private var lang = LanguageSettings.shared
     @Environment(\.modelContext) private var ctx
 
     @Query(
-        filter: #Predicate<Note> { note in !note.archived },
+        filter: #Predicate<Note> { note in !note.archived && !note.deleted },
         sort: [SortDescriptor(\Note.updatedAt, order: .reverse)]
     )
     private var allNotes: [Note]
 
-    @State private var editing: Note?
+    @Binding var editing: Note?
 
-    private var dueNotes: [Note] {
-        let end = Calendar.current.startOfDay(for: Date()).addingTimeInterval(24 * 60 * 60 - 1)
-        return allNotes
-            .filter { $0.dueDate != nil && $0.dueDate! <= end }
-            .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
-    }
     private var pinnedNotes: [Note] {
-        let ids = Set(dueNotes.map(\.id))
-        return allNotes.filter { $0.pinned && !ids.contains($0.id) }
+        allNotes
+            .filter { $0.pinned }
+            .sorted { a, b in
+                switch (a.dueDate, b.dueDate) {
+                case let (l?, r?): return l < r
+                case (_?, nil):    return true
+                case (nil, _?):    return false
+                case (nil, nil):   return a.updatedAt > b.updatedAt
+                }
+            }
     }
-    private var recentNotes: [Note] {
-        let cutoff = Date().addingTimeInterval(-24 * 60 * 60)
-        let dueIds = Set(dueNotes.map(\.id))
-        let pinIds = Set(pinnedNotes.map(\.id))
-        return allNotes.filter {
-            $0.updatedAt >= cutoff && !dueIds.contains($0.id) && !pinIds.contains($0.id)
-        }
+
+    private var calendarNotes: [Note] {
+        allNotes
+            .filter { $0.dueDate != nil }
+            .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
     }
 
     var body: some View {
+        // Same pattern as `AnchorNotesView`: swap the whole body to the
+        // inline editor when a note is opened. The parent panel hides
+        // its title bar + tab strip in the same condition (because
+        // `editingNote != nil`), so the editor occupies the full popup.
         Group {
             if let editing {
-                InlineNoteEditor(note: editing) { self.editing = nil }
+                InlineNoteEditor(note: editing) {
+                    self.editing = nil
+                }
             } else {
-                todayList
+                scrollBody
             }
         }
     }
 
-    private var todayList: some View {
+    private var scrollBody: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                if dueNotes.isEmpty && pinnedNotes.isEmpty && recentNotes.isEmpty {
-                    empty(L("Nothing due today", "今日无截止任务"),
-                          systemImage: "calendar",
-                          subtitle: L("Set a due date on a note to see it here.",
-                                      "在笔记上设置截止日期，它就会出现在这里。"))
-                } else {
-                    if !dueNotes.isEmpty {
-                        stripHeader(L("Due", "截止任务"), color: CyberPalette.neonPink)
-                        ForEach(dueNotes) { n in todayRow(n) }
+            VStack(alignment: .leading, spacing: 14) {
+                // Date stamp lives up in `AnchorView.chrome`'s tab row
+                // (next to the trailing Spacer, only when Today is the
+                // active tab). Saves a line of vertical space inside
+                // the popup, which is short.
+
+                if !pinnedNotes.isEmpty {
+                    sectionHeader(
+                        icon: "pin.fill",
+                        title: L("Pinned", "置顶"),
+                        tint: CyberPalette.neonCyan
+                    )
+                    // Tighter min-width (150 vs the main window's 180)
+                    // so the popup's narrower content area (~330pt at
+                    // default size) still fits two columns. Wider
+                    // popups (user-dragged) naturally fan out to three.
+                    LazyVGrid(
+                        columns: [GridItem(.adaptive(minimum: 150), spacing: 8)],
+                        spacing: 8
+                    ) {
+                        ForEach(pinnedNotes) { n in
+                            Button { editing = n } label: {
+                                TodayPinnedCard(note: n)
+                            }
+                            .buttonStyle(.plain)
+                            .noteContextMenu(for: n, onOpenEditor: { editing = n })
+                        }
                     }
-                    if !pinnedNotes.isEmpty {
-                        stripHeader(L("Pinned", "置顶"), color: CyberPalette.neonCyan)
-                        ForEach(pinnedNotes) { n in todayRow(n) }
+                }
+
+                if !calendarNotes.isEmpty {
+                    sectionHeader(
+                        icon: "calendar",
+                        title: L("Upcoming", "日程"),
+                        tint: CyberPalette.neonPink
+                    )
+                    VStack(spacing: 6) {
+                        ForEach(calendarNotes) { n in
+                            Button { editing = n } label: {
+                                TodayCalendarRow(note: n)
+                            }
+                            .buttonStyle(.plain)
+                            .noteContextMenu(for: n, onOpenEditor: { editing = n })
+                        }
                     }
-                    if !recentNotes.isEmpty {
-                        stripHeader(L("Recent", "最近 24 小时"), color: .primary.opacity(0.4))
-                        ForEach(recentNotes) { n in todayRow(n) }
-                    }
+                }
+
+                if pinnedNotes.isEmpty && calendarNotes.isEmpty {
+                    emptyState
                 }
             }
             .padding(12)
         }
+        .scrollContentBackground(.hidden)
     }
 
-    @ViewBuilder
-    private func todayRow(_ n: Note) -> some View {
-        Button { editing = n } label: {
-            CyberCard {
-                HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: n.isChecklist ? "checklist" : "note.text")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(CyberPalette.neonPink.opacity(0.85))
-                        .frame(width: 18)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(n.title.isEmpty ? L("Untitled", "无标题") : n.title)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
-                        if let due = n.dueDate {
-                            let startOfToday = Calendar.current.startOfDay(for: Date())
-                            let color: Color = due < startOfToday ? .red : Calendar.current.isDateInToday(due) ? .yellow : CyberPalette.neonCyan
-                            Text(due, format: .dateTime.month(.abbreviated).day())
-                                .font(.caption2.monospacedDigit())
-                                .foregroundStyle(color)
-                        }
-                    }
-                    Spacer(minLength: 0)
-                }
-                .padding(10)
-            }
+    private func sectionHeader(icon: String, title: String, tint: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .black))
+                .foregroundStyle(tint)
+            Text(title.uppercased())
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundStyle(tint)
+                .kerning(2)
+            Rectangle()
+                .fill(tint.opacity(0.18))
+                .frame(height: 0.6)
         }
-        .buttonStyle(.plain)
-        .noteContextMenu(for: n, onOpenEditor: { editing = n })
     }
 
-    private func stripHeader(_ label: String, color: Color) -> some View {
-        Text(label)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(color)
-            .padding(.top, 4)
+    private var emptyState: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 32))
+                .foregroundStyle(CyberPalette.neonCyan.opacity(0.45))
+            Text(L("All clear", "今日清净"))
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .foregroundStyle(.primary.opacity(0.65))
+            Text(L("Pin a note or set a due date to see it here.",
+                   "置顶笔记或设定截止日期即可出现在这里。"))
+                .font(.system(size: 11))
+                .foregroundStyle(.primary.opacity(0.45))
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 30)
     }
 }
 
@@ -1124,10 +1181,10 @@ private func empty(_ title: String, systemImage: String, subtitle: String? = nil
 
 @MainActor
 final class AnchorModel: ObservableObject {
-    enum Tab { case events, notes }
+    enum Tab { case today, events, notes }
     @Published var state: AnchorState = .idle
     @Published var hovered: Bool = false
-    @Published var expandedTab: Tab = .notes
+    @Published var expandedTab: Tab = .today
     @Published var avatarState: AvatarState = .idle
 
     private var resetTask: Task<Void, Never>?
