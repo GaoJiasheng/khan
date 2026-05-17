@@ -105,8 +105,8 @@ struct TodayScreen: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) { ThemeToggleButton() }
                 ToolbarItem(placement: .principal) { navTitle }
-                ToolbarItem(placement: .topBarTrailing) { ThemeToggleButton() }
             }
             .navigationDestination(for: UUID.self) { id in
                 if let note = allNotes.first(where: { $0.id == id }) {
