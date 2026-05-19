@@ -114,6 +114,57 @@ targets:
         product: DorisMacChrome
       - package: DynamicNotchKit
       - package: KeyboardShortcuts
+      # Embed the `doris` CLI inside Doris.app/Contents/Resources/doris
+      # with its own signing/entitlements. The InstallCLIWizardView
+      # symlinks it to /usr/local/bin/doris. `embed: true` +
+      # `codeSign: true` makes Xcode handle bundle copy + per-target
+      # entitlements correctly — see the doris-cli target below.
+      - target: doris-cli
+        embed: true
+        codeSign: true
+        copy:
+          destination: resources
+
+  # Standalone `doris` CLI binary. Embedded inside Doris.app/Contents/
+  # Resources/doris (see Doris-macOS dependencies). Kept as a sibling
+  # Xcode target rather than a Run Script so Xcode's final Sign phase
+  # honors *this target's* entitlements (App Group, NO sandbox) instead
+  # of stripping them and re-signing with the app's sandboxed
+  # entitlements. The cli/doris/Package.swift remains usable for
+  # standalone `swift build` during CLI development.
+  doris-cli:
+    type: tool
+    platform: macOS
+    sources:
+      - path: cli/doris/Sources/doris
+    settings:
+      base:
+        PRODUCT_NAME: doris
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        CODE_SIGN_ENTITLEMENTS: cli/doris/cli.entitlements
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: "$(DORIS_TEAM_ID)"
+        ENABLE_HARDENED_RUNTIME: YES
+        # Stop Xcode from auto-merging app-level entitlements (sandbox,
+        # iCloud, mic) into the CLI's signed entitlements. The CLI is
+        # invoked from any shell and must stay non-sandboxed; the only
+        # entitlement it needs is the App Group declared in
+        # cli/doris/cli.entitlements.
+        CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
+        # `--timestamp` is required for notarization to accept this
+        # embedded binary; --options runtime is implied by
+        # ENABLE_HARDENED_RUNTIME.
+        OTHER_CODE_SIGN_FLAGS: --timestamp
+        # Don't auto-install at xcodebuild install time — we ship via
+        # the host app's bundle, not via /usr/local/bin from the build
+        # system.
+        SKIP_INSTALL: YES
+        INSTALL_PATH: ""
+    dependencies:
+      - package: ArgumentParser
+        product: ArgumentParser
+      - package: DorisCore
+        product: DorisIPC
 
   DorisShareExtension-macOS:
     type: app-extension
@@ -302,6 +353,7 @@ schemes:
         DorisShareExtension-macOS: all
         DorisWidget-macOS: all
         DorisIntents-macOS: all
+        doris-cli: all
     run:
       config: Debug
     test:
