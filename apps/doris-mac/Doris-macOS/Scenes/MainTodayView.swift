@@ -101,7 +101,12 @@ struct MainTodayView: View {
                         tint: CyberPalette.neonPink
                     )
                     LazyVGrid(
-                        columns: [GridItem(.adaptive(minimum: 180), spacing: 10)],
+                        // Bumped from 180 → 270 (+50%) so cards read
+                        // chunkier; at the default 760pt window width
+                        // that lands 1 column, fanning out to 2 once
+                        // the user resizes the window past ~620pt of
+                        // detail-pane content space.
+                        columns: [GridItem(.adaptive(minimum: 270), spacing: 10)],
                         spacing: 10
                     ) {
                         ForEach(pinnedNotes) { n in

@@ -1081,12 +1081,12 @@ private struct AnchorTodayView: View {
                         title: L("Pinned", "置顶"),
                         tint: CyberPalette.neonPink
                     )
-                    // Tighter min-width (150 vs the main window's 180)
-                    // so the popup's narrower content area (~330pt at
-                    // default size) still fits two columns. Wider
-                    // popups (user-dragged) naturally fan out to three.
+                    // Bumped from 150 → 225 (+50%) to match the main
+                    // window's wider pinned cards. At default popup
+                    // size (~330pt content) this lands 1 column;
+                    // user-resized wider popups fan out to 2.
                     LazyVGrid(
-                        columns: [GridItem(.adaptive(minimum: 150), spacing: 8)],
+                        columns: [GridItem(.adaptive(minimum: 225), spacing: 8)],
                         spacing: 8
                     ) {
                         ForEach(pinnedNotes) { n in
