@@ -122,11 +122,20 @@ private struct AppearanceSettingsView: View {
     @ObservedObject var lang = LanguageSettings.shared
     @ObservedObject var theme = ThemeSettings.shared
     @ObservedObject var sync = SyncSettings.shared
+    @ObservedObject var integrations = IntegrationsRegistry.shared
+    /// Toggled by the "Install CLI…" button on a .missingCLI integration
+    /// row — presents the InstallCLIWizardView as a sheet so the user
+    /// can finish the wizard without leaving Settings. On dismiss we
+    /// re-poll the registry so the row flips out of .missingCLI
+    /// automatically once the symlink is in place.
+    @State private var showInstallWizard = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 syncSection
+                Divider().overlay(Color.primary.opacity(0.08))
+                integrationsSection
                 Divider().overlay(Color.primary.opacity(0.08))
                 themeSection
                 Divider().overlay(Color.primary.opacity(0.08))
@@ -140,6 +149,16 @@ private struct AppearanceSettingsView: View {
             .padding(.vertical, 6)
         }
         .scrollContentBackground(.hidden)
+        // Re-poll provider statuses every time the panel appears so
+        // the user sees fresh "已注册" / "未注册" pills (e.g. after
+        // editing ~/.claude/settings.json by hand outside Doris).
+        .task { await integrations.refresh() }
+        .sheet(isPresented: $showInstallWizard) {
+            InstallCLIWizardView {
+                showInstallWizard = false
+                Task { await integrations.refresh() }
+            }
+        }
     }
 
     // MARK: - Sync
@@ -185,6 +204,178 @@ private struct AppearanceSettingsView: View {
             .foregroundStyle(.primary.opacity(0.6))
             .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    // MARK: - Integrations
+
+    /// "应用集成" — show each registered IntegrationProvider as a row
+    /// with current status + an action button. Bound to the shared
+    /// `IntegrationsRegistry`, which already debounces filesystem
+    /// reads to the explicit `refresh()` we call in `.task`.
+    private var integrationsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text(L("App integrations", "应用集成"))
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                if integrations.isRefreshing {
+                    ProgressView()
+                        .controlSize(.small)
+                        .scaleEffect(0.7)
+                }
+                Spacer()
+            }
+            Text(L(
+                "Route task-completion notifications from Claude Code / Codex / ChatGPT through Doris instead of the system Notification Center.",
+                "把 Claude Code / Codex / ChatGPT 等 AI 应用的「任务完成」通知改走 Doris，绕过系统通知中心。"
+            ))
+            .font(.caption)
+            .foregroundStyle(.primary.opacity(0.6))
+            .fixedSize(horizontal: false, vertical: true)
+
+            VStack(spacing: 8) {
+                ForEach(integrations.providers, id: \.id) { provider in
+                    integrationRow(provider)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func integrationRow(_ provider: any IntegrationProvider) -> some View {
+        let status = integrations.statuses[provider.id] ?? .notApplicable
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: provider.iconSymbol)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(.primary.opacity(0.85))
+                .frame(width: 22, height: 22)
+                .padding(.top, 2)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(provider.displayName)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.primary)
+                Text(integrationSubtitle(provider: provider, status: status))
+                    .font(.caption)
+                    .foregroundStyle(.primary.opacity(0.6))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 8)
+
+            integrationActionView(provider: provider, status: status)
+        }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.primary.opacity(0.04))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.primary.opacity(0.06), lineWidth: 0.5)
+        )
+    }
+
+    /// Subtitle copy varies with status — bare summary for the .full
+    /// happy paths, plus a clearer "manual setup" line for tiers that
+    /// can't be auto-wired.
+    private func integrationSubtitle(provider: any IntegrationProvider, status: IntegrationStatus) -> String {
+        switch status {
+        case .error(let msg):
+            return msg
+        case .missingCLI:
+            return L("Doris CLI not installed — finish the install wizard first.",
+                     "Doris CLI 还没装,请先完成安装向导。")
+        default:
+            break
+        }
+        // English brand summary lives on the provider; the Chinese mirror
+        // lives here so localization stays in the UI layer.
+        switch provider.id {
+        case "claude-code":
+            return L("Auto-write a Stop hook into ~/.claude/settings.json.",
+                     "自动写入 Stop 钩子到 ~/.claude/settings.json。")
+        case "codex":
+            return L("No official hooks yet — view tutorial to set up a shell wrapper.",
+                     "暂无官方钩子,查看教程用 shell wrapper 接入。")
+        case "chatgpt":
+            return L("Use a macOS Shortcut to call doris://notify when a reply arrives.",
+                     "通过 macOS 快捷指令调用 doris://notify。")
+        default:
+            return provider.summary
+        }
+    }
+
+    @ViewBuilder
+    private func integrationActionView(provider: any IntegrationProvider, status: IntegrationStatus) -> some View {
+        switch provider.supportTier {
+        case .full:
+            switch status {
+            case .registered:
+                HStack(spacing: 6) {
+                    statusBadge(L("Registered", "已注册"), tint: CyberPalette.neonCyan)
+                    Button(L("Unregister", "解除")) {
+                        Task { try? await integrations.unregister(provider) }
+                    }
+                    .buttonStyle(.borderless)
+                    .controlSize(.small)
+                    .foregroundStyle(.primary.opacity(0.65))
+                }
+            case .missingCLI:
+                Button(L("Install CLI…", "安装 CLI…")) {
+                    // Reuse the existing FirstRun wizard as a sheet —
+                    // it already handles symlinking into /usr/local/bin
+                    // or ~/.local/bin. On dismiss we refresh and the
+                    // row flips to "未注册" so the user can click
+                    // Register without leaving Settings.
+                    showInstallWizard = true
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+            case .notRegistered, .notApplicable:
+                Button(L("Register", "注册")) {
+                    Task { try? await integrations.register(provider) }
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+            case .error:
+                Button(L("Retry", "重试")) {
+                    Task { await integrations.refresh() }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+
+        case .manual:
+            HStack(spacing: 6) {
+                statusBadge(L("Manual", "手动配置"), tint: .primary.opacity(0.55))
+                if let url = provider.tutorialURL {
+                    Button(L("Tutorial →", "查看教程 →")) {
+                        NSWorkspace.shared.open(url)
+                    }
+                    .buttonStyle(.borderless)
+                    .controlSize(.small)
+                    .foregroundStyle(CyberPalette.neonCyan)
+                }
+            }
+
+        case .unsupported:
+            statusBadge(L("Not supported", "暂不支持"), tint: .primary.opacity(0.4))
+        }
+    }
+
+    private func statusBadge(_ label: String, tint: Color) -> some View {
+        Text(label)
+            .font(.system(size: 11, weight: .semibold, design: .rounded))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(
+                Capsule().fill(tint.opacity(0.15))
+            )
+            .overlay(
+                Capsule().stroke(tint.opacity(0.45), lineWidth: 0.5)
+            )
+            .foregroundStyle(tint)
     }
 
     private var themeSection: some View {

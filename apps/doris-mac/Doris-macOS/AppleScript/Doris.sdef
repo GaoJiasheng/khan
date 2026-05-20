@@ -7,6 +7,9 @@
             <parameter name="title" code="ttl1" type="text" description="Notification title."/>
             <parameter name="body" code="bdy1" type="text" optional="yes" description="Notification body."/>
             <parameter name="mode" code="mod1" type="text" optional="yes" description="banner | fix"/>
+            <parameter name="source" code="src1" type="text" optional="yes" description="Source kind: claudeCode | codex | chatgpt | trae | vscode | feishu | cliGeneric | scheduledJob | userMemo | share | manual"/>
+            <parameter name="level" code="lvl1" type="text" optional="yes" description="Event level: critical | reminder | info (default info)"/>
+            <parameter name="click url" code="curl" type="text" optional="yes" description="URL opened when the notification is clicked, e.g. claude:// to open Claude."/>
             <result type="boolean" description="True if accepted."/>
         </command>
 

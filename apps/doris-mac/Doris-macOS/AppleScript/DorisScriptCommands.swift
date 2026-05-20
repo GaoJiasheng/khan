@@ -11,7 +11,27 @@ final class DorisPushNotificationCommand: NSScriptCommand {
         let modeString = (args["mode"] as? String) ?? "banner"
         let mode = DisplayMode(rawValue: modeString) ?? .banner
 
-        let payload = IPCNotifyPayload(title: title, body: body, displayMode: mode, source: .manual)
+        // Optional source / level / click-url — added to support routing
+        // per-app finishing notifications (Claude, ChatGPT, Codex, ...)
+        // and a click-through that opens the originating app via its
+        // URL scheme. Unknown values silently fall back to safe defaults
+        // so older AppleScript callers keep working.
+        let source = (args["source"] as? String)
+            .flatMap { SourceKind(rawValue: $0) } ?? .manual
+        let level = (args["level"] as? String)
+            .flatMap { EventLevel(rawValue: $0) } ?? .info
+        let clickAction: ClickAction? = (args["click url"] as? String)
+            .flatMap { URL(string: $0) }
+            .map { .openURL($0) }
+
+        let payload = IPCNotifyPayload(
+            title: title,
+            body: body,
+            displayMode: mode,
+            source: source,
+            level: level,
+            clickAction: clickAction
+        )
         let request = IPCRequest(kind: .notify, payload: .notify(payload))
         try? IPCDirectory.ensureDirectories()
         do {

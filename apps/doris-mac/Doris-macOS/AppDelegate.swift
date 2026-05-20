@@ -188,6 +188,67 @@ final class DorisAppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Custom URL scheme handler — `doris://notify?...` enqueues a
+    /// notification through the same IPC writer the CLI / AppleScript
+    /// command use. Lets external automation (Shortcuts, shell `open`,
+    /// browser bookmarklets) fire a Doris banner without needing TCC
+    /// Automation permission (the way AppleScript would) or App Group
+    /// write access (the way a non-signed CLI would). Query params:
+    ///   - title (required)
+    ///   - body
+    ///   - source     — SourceKind rawValue, defaults to .cliGeneric
+    ///   - level      — EventLevel rawValue, defaults to .info
+    ///   - mode       — banner | fix, defaults to banner
+    ///   - click      — URL string opened on click; can use any scheme
+    ///
+    /// Example:
+    ///   open "doris://notify?title=Claude%20done&source=claudeCode&click=claude://"
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls {
+            switch url.host {
+            case "notify":
+                handleNotifyURL(url)
+            default:
+                // Other doris:// routes (note/<id>, intent/<name>, main,
+                // new-note, sync) are handled by SwiftUI .onOpenURL
+                // observers on the windows that care; nothing to do
+                // at the app-delegate level.
+                break
+            }
+        }
+    }
+
+    private func handleNotifyURL(_ url: URL) {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
+        let q = Dictionary(uniqueKeysWithValues: (components.queryItems ?? []).compactMap { item -> (String, String)? in
+            guard let v = item.value else { return nil }
+            return (item.name, v)
+        })
+        guard let title = q["title"], !title.isEmpty else { return }
+
+        let source = q["source"].flatMap { SourceKind(rawValue: $0) } ?? .cliGeneric
+        let level  = q["level"].flatMap { EventLevel(rawValue: $0) } ?? .info
+        let mode   = q["mode"].flatMap { DisplayMode(rawValue: $0) } ?? .banner
+        let clickAction: ClickAction? = q["click"].flatMap { URL(string: $0) }.map { .openURL($0) }
+
+        let payload = IPCNotifyPayload(
+            title: title,
+            body: q["body"],
+            displayMode: mode,
+            source: source,
+            level: level,
+            clickAction: clickAction
+        )
+        let request = IPCRequest(kind: .notify, payload: .notify(payload))
+        try? IPCDirectory.ensureDirectories()
+        do {
+            try IPCWriter.enqueue(request)
+            IPCWriter.kick()
+        } catch {
+            DorisLog.ipc.error("doris://notify enqueue failed: \(String(describing: error), privacy: .public)")
+        }
+    }
+
     func application(_ application: NSApplication, didReceiveRemoteNotification userInfo: [String: Any]) {
         Task { @MainActor in
             await silentPushHandler?.handleRemoteNotification(userInfo)
