@@ -102,8 +102,12 @@ public struct ClaudeCodeIntegration: IntegrationProvider {
         // Single-quoted strings keep the body safe from shell expansion
         // in case Claude Code spawns the hook via /bin/sh -c. The
         // trailing marker is a shell comment ignored at execution.
+        // CLI option name is `--click-url` (not `--click`); earlier
+        // versions of this provider wrote `--click` and Claude Code's
+        // Stop hook silently exited 64 ("Unknown option '--click'")
+        // every time. Re-registering refreshes the command in place.
         let quotedPath = cliPath.contains(" ") ? "'\(cliPath)'" : cliPath
-        return "\(quotedPath) notify --title 'Claude task complete' --source claudeCode --level info --click 'claude://' \(marker)"
+        return "\(quotedPath) notify --title 'Claude task complete' --source claudeCode --level info --click-url 'claude://' \(marker)"
     }
 
     // MARK: - JSON read / mutate / write
