@@ -7,7 +7,15 @@ enum ClickActionRouter {
     static func execute(_ action: ClickAction) {
         switch action {
         case .openURL(let url):
-            NSWorkspace.shared.open(url)
+            // Use the configuration API with `activates = true` so the
+            // target app actually comes to front. Plain `open(url:)`
+            // from a `LSUIElement: true` agent app (Doris) hands the
+            // URL to the target without granting it activation rights
+            // — so e.g. clicking the "Claude task complete" banner
+            // would silently deliver claude:// to an already-running
+            // Claude.app without raising its window. Explicit
+            // OpenConfiguration fixes that.
+            openExternalURL(url)
         case .openNote(let id):
             if let url = URL(string: "doris://note/\(id.uuidString)") {
                 NSWorkspace.shared.open(url)
@@ -19,5 +27,15 @@ enum ClickActionRouter {
         case .markDone:
             break
         }
+    }
+
+    /// Open an arbitrary URL (typically a third-party app's scheme like
+    /// claude:// / chatgpt:// / codex://) with explicit activation, so
+    /// the target app comes to the foreground even when we're invoked
+    /// from a menu-bar agent that's not itself an activatable app.
+    private static func openExternalURL(_ url: URL) {
+        let config = NSWorkspace.OpenConfiguration()
+        config.activates = true
+        NSWorkspace.shared.open(url, configuration: config, completionHandler: nil)
     }
 }

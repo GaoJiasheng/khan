@@ -16,6 +16,15 @@ struct AnchorMessage: Equatable {
     let level: EventLevel
     let displayMode: DisplayMode
     let receivedAt: Date
+    /// What happens when the user clicks the banner card itself.
+    /// `nil` → fall back to "dismiss banner + expand Doris dropdown"
+    /// (the historical default for events that have no specific
+    /// landing place).
+    /// `.openURL(claude://)` etc. → open the originating app via
+    /// LaunchServices, without expanding Doris. This is what
+    /// Claude/Codex/ChatGPT integrations send so the user lands
+    /// straight in the source app on click.
+    let clickAction: ClickAction?
 }
 
 extension EventLevel {

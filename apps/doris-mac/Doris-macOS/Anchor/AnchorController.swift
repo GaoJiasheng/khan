@@ -159,9 +159,26 @@ final class AnchorController: NSObject, NotificationPresenter, NSWindowDelegate 
     private func buildPanel() {
         let model = self.model
         let container = self.modelContainer
-        let onTapMessage: (AnchorMessage) -> Void = { [weak self] _ in
+        // Banner click semantics:
+        //   - If the message carries an explicit `clickAction` (e.g. the
+        //     Claude Code / Codex / ChatGPT integrations always include
+        //     `.openURL("claude://")` etc.), execute that action and
+        //     dismiss the banner. The user lands straight in the source
+        //     app, with Doris staying in its idle menu-bar state.
+        //   - If there's no clickAction (CLI calls without `--click-url`,
+        //     legacy events), keep the historical "dismiss banner + open
+        //     the dropdown" behavior so the click isn't a dead-end.
+        //
+        // The avatar / logo idle-click path (handled separately, in
+        // `onTapIdle`) keeps opening the dropdown — that's the user's
+        // single explicit gesture to enter Doris itself.
+        let onTapMessage: (AnchorMessage) -> Void = { [weak self] message in
             self?.dismissActiveMessage()
-            self?.toggleExpanded()
+            if let action = message.clickAction {
+                Task { @MainActor in ClickActionRouter.execute(action) }
+            } else {
+                self?.toggleExpanded()
+            }
         }
         let onDismissMessage: (AnchorMessage) -> Void = { [weak self] _ in
             self?.dismissActiveMessage()
@@ -481,7 +498,8 @@ final class AnchorController: NSObject, NotificationPresenter, NSWindowDelegate 
             iconName: message.iconName ?? message.source.sfSymbol,
             level: message.level,
             displayMode: .banner,
-            receivedAt: message.receivedAt
+            receivedAt: message.receivedAt,
+            clickAction: message.clickAction
         )
         Task { @MainActor [weak self] in
             guard let self else { return }
@@ -513,7 +531,8 @@ final class AnchorController: NSObject, NotificationPresenter, NSWindowDelegate 
             iconName: message.iconName ?? message.source.sfSymbol,
             level: message.level,
             displayMode: .fix,
-            receivedAt: message.receivedAt
+            receivedAt: message.receivedAt,
+            clickAction: message.clickAction
         )
         Task { @MainActor [weak self] in
             guard let self else { return }

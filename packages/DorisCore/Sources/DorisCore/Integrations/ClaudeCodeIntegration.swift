@@ -106,8 +106,13 @@ public struct ClaudeCodeIntegration: IntegrationProvider {
         // versions of this provider wrote `--click` and Claude Code's
         // Stop hook silently exited 64 ("Unknown option '--click'")
         // every time. Re-registering refreshes the command in place.
+        //
+        // Level = reminder (4s + orange progress bar). `info` (1.5s)
+        // disappears before the user can react to "task done"; reminder
+        // is the sweet spot — long enough to read + click-through, not
+        // so persistent that you have to dismiss like critical.
         let quotedPath = cliPath.contains(" ") ? "'\(cliPath)'" : cliPath
-        return "\(quotedPath) notify --title 'Claude task complete' --source claudeCode --level info --click-url 'claude://' \(marker)"
+        return "\(quotedPath) notify --title 'Claude task complete' --source claudeCode --level reminder --click-url 'claude://' \(marker)"
     }
 
     // MARK: - JSON read / mutate / write
