@@ -148,10 +148,15 @@ public struct TodoRow: View {
             .buttonStyle(.plain)
             .help(L("Open editor", "打开编辑器"))
 
-            // Time — rightmost, always visible.
-            Text(RelativeTime.short(note.updatedAt))
-                .font(.caption2)
-                .foregroundStyle(.primary.opacity(0.4))
+            // Due-date chip — rightmost, always visible. Replaces the
+            // "last-modified relative time" that used to live here:
+            // when a row HAS a due date that's what the user actually
+            // cares about ("oh, this is for today"), and when there
+            // isn't one the chip becomes a discoverable "schedule"
+            // affordance. Avoids the right-click-on-TextField pitfall
+            // where macOS's text editing menu hijacks the gesture and
+            // the user can't reach the schedule submenu.
+            DueDateChipButton(note: note)
         }
         .padding(.horizontal, 8)
         // Bumped vertical padding now that rows touch (parent VStack

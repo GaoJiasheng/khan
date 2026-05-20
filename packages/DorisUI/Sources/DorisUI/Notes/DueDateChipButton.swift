@@ -16,24 +16,36 @@ public struct DueDateChipButton: View {
         Button {
             showingPicker = true
         } label: {
-            HStack(spacing: 4) {
-                Image(systemName: "calendar")
-                    .font(.system(size: 9, weight: .semibold))
-                if let due = note.dueDate {
-                    Text(due, format: .dateTime.month(.abbreviated).day())
-                        .font(.caption2.monospacedDigit())
-                } else {
-                    Text(L("Due", "截止"))
-                        .font(.caption2)
+            if let due = note.dueDate {
+                // Dated → prominent color-coded chip. Smart label:
+                // overdue / today / tomorrow / weekday-this-week /
+                // full date — gives the user "when is this due" at
+                // a glance instead of just "May 20".
+                HStack(spacing: 4) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 9, weight: .semibold))
+                    Text(smartDueLabel(for: due))
+                        .font(.caption2.weight(.semibold).monospacedDigit())
                 }
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(Capsule().fill(chipColor.opacity(0.15)))
+                .overlay(Capsule().stroke(chipColor.opacity(0.45), lineWidth: 0.6))
+                .foregroundStyle(chipColor)
+            } else {
+                // Undated → minimal, low-visual-weight calendar icon
+                // affordance. Hosts that need an even more obvious
+                // "schedule this" button can wrap in their own label.
+                Image(systemName: "calendar.badge.plus")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.primary.opacity(0.35))
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .contentShape(Rectangle())
             }
-            .padding(.horizontal, 7)
-            .padding(.vertical, 3)
-            .background(Capsule().fill(chipColor.opacity(0.15)))
-            .overlay(Capsule().stroke(chipColor.opacity(0.45), lineWidth: 0.6))
-            .foregroundStyle(note.dueDate == nil ? Color.primary.opacity(0.5) : chipColor)
         }
         .buttonStyle(.plain)
+        .help(L("Schedule…", "排期…"))
         #if os(macOS)
         .popover(isPresented: $showingPicker, arrowEdge: .bottom) {
             dueDatePopover
@@ -65,6 +77,27 @@ public struct DueDateChipButton: View {
         if due < startOfToday { return .red }
         if Calendar.current.isDateInToday(due) { return .yellow }
         return CyberPalette.neonCyan
+    }
+
+    /// "今天 / 明天 / 周X / 5月20日" labels — mirrors the same logic
+    /// TodayCalendarRow + NoteContextMenu use, so the displayed
+    /// scheduled-date copy stays consistent across the product.
+    private func smartDueLabel(for due: Date) -> String {
+        let cal = Calendar.current
+        let dueDay = cal.startOfDay(for: due)
+        let today = cal.startOfDay(for: Date())
+        if dueDay < today {
+            let days = cal.dateComponents([.day], from: dueDay, to: today).day ?? 0
+            if days == 0 { return L("Today", "今天") }
+            return L("\(days)d overdue", "逾期 \(days) 天")
+        }
+        if cal.isDateInToday(due) { return L("Today", "今天") }
+        if cal.isDateInTomorrow(due) { return L("Tomorrow", "明天") }
+        let days = cal.dateComponents([.day], from: today, to: dueDay).day ?? 0
+        if days < 7 {
+            return due.formatted(.dateTime.weekday(.abbreviated))
+        }
+        return due.formatted(.dateTime.month(.abbreviated).day())
     }
 
     #if os(macOS)
