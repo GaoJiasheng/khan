@@ -162,29 +162,38 @@ struct AnchorView: View {
         let cardWidth = m.displayMode == .fix ? AnchorPanelLayout.fixWidth : AnchorPanelLayout.bannerWidth
         let cardHeight = m.displayMode == .fix ? AnchorPanelLayout.fixHeight : AnchorPanelLayout.bannerHeight
 
-        return HStack(alignment: .center, spacing: 14) {
-            AnchorAvatarView(state: model.avatarState, size: 32)
-                .frame(width: 36, height: 36)
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
+        // Card chrome tuned for the halved 42pt banner / 54pt fix
+        // height. Avatar shrinks 36 → 22pt, title font 15 → 13pt,
+        // padding 14 → 5pt top/bottom. fix mode keeps a 1-line body
+        // squeezed in below the title; banner mode drops the body
+        // entirely — there's literally no room for two lines of text.
+        return HStack(alignment: .center, spacing: 10) {
+            AnchorAvatarView(state: model.avatarState, size: 20)
+                .frame(width: 22, height: 22)
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 5) {
                     // Tiny level glyph next to the title — only when
                     // the level is louder than info, so routine peeks
                     // don't get visually noisy.
                     if m.level != .info {
                         Image(systemName: m.level.sfSymbol)
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.system(size: 10, weight: .semibold))
                             .foregroundStyle(levelTint)
                     }
                     Text(m.title)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                 }
-                if let body = m.body, !body.isEmpty {
+                // Body only on fix-mode (sticky critical events) where
+                // the extra 12pt of card height makes room for it.
+                // Auto-dismiss banners suppress body — at 42pt there's
+                // no room and the title carries the message.
+                if m.displayMode == .fix, let body = m.body, !body.isEmpty {
                     Text(body)
-                        .font(.system(size: 13))
+                        .font(.system(size: 11))
                         .foregroundStyle(.primary.opacity(0.72))
-                        .lineLimit(2)
+                        .lineLimit(1)
                 }
             }
             Spacer(minLength: 0)
@@ -202,9 +211,9 @@ struct AnchorView: View {
                 .buttonStyle(.borderless)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, useFakeNotch ? 10 : 14)
-        .padding(.bottom, 14)
+        .padding(.horizontal, 12)
+        .padding(.top, useFakeNotch ? 4 : 5)
+        .padding(.bottom, 5)
         .frame(width: cardWidth, height: cardHeight, alignment: .top)
         .background(backgroundShape(useFakeNotch: useFakeNotch))
         // Soft level-tinted outline so the severity is legible at a
@@ -270,19 +279,14 @@ struct AnchorView: View {
                 }
             }
         )
-        // Light-mode elevation: a soft drop shadow lifts the card off
-        // the cream backdrop. Dark mode skips this because the card is
-        // already much darker than the desktop / menu bar behind it,
-        // so a shadow there just adds noise.
-        .shadow(
-            color: isLight ? Color.black.opacity(0.10) : Color.clear,
-            radius: 12, x: 0, y: 4
-        )
         // Countdown stripe — only on auto-dismiss banners. Lives at
         // the bottom edge, runs from full width to zero in linear
         // time over `level.bannerDuration`. Anchored at the leading
         // edge so the visual reads as "time remaining," depleting
-        // toward the right.
+        // toward the right. Placed BEFORE the clipShape below so the
+        // stripe's left/right ends get rounded along with the card —
+        // otherwise the stripe rectangle pokes past the corner radius
+        // on both sides.
         .overlay(alignment: .bottomLeading) {
             if m.displayMode == .banner {
                 // Stripe contrast is set explicitly per level (rather
@@ -317,6 +321,19 @@ struct AnchorView: View {
                 )
             }
         }
+        // Clip everything (background, washes, border, stripe) to the
+        // notch-drop silhouette so no overlay leaks past the rounded
+        // corners. Shadow is applied AFTER the clip so it projects
+        // from the rounded silhouette, not from the bounding box.
+        .clipShape(Self.notchDropShape())
+        // Light-mode elevation: a soft drop shadow lifts the card off
+        // the cream backdrop. Dark mode skips this because the card is
+        // already much darker than the desktop / menu bar behind it,
+        // so a shadow there just adds noise.
+        .shadow(
+            color: isLight ? Color.black.opacity(0.10) : Color.clear,
+            radius: 12, x: 0, y: 4
+        )
         .contentShape(Rectangle())
         .onTapGesture { onTapMessage(m) }
     }
@@ -487,7 +504,11 @@ struct AnchorView: View {
     /// `gap = 0` in `AnchorController.computeRect` keeps the panel
     /// snug against the menu bar so the "from the notch" feel still
     /// holds via proximity rather than geometric merging.
-    static func notchDropShape(cornerRadius: CGFloat = 22) -> UnevenRoundedRectangle {
+    // Bumped down from 22 → 10 — at the halved 42pt banner height the
+    // old 22pt radius made the card almost pill-shaped, eating into
+    // the title's horizontal space. 10 keeps it visibly rounded but
+    // overall reads as a rectangle.
+    static func notchDropShape(cornerRadius: CGFloat = 10) -> UnevenRoundedRectangle {
         UnevenRoundedRectangle(
             topLeadingRadius: cornerRadius,
             bottomLeadingRadius: cornerRadius,

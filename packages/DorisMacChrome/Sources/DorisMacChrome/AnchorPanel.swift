@@ -22,9 +22,15 @@ public enum AnchorPanelLayout {
     public static let pillIdleHeight: CGFloat = 26
 
     public static let bannerWidth: CGFloat = 420
-    public static let bannerHeight: CGFloat = 84
+    // Halved from 84pt → 42pt at the user's request. At this height
+    // there's no room for body text or a full-size avatar; the inner
+    // layout in AnchorView.expandedMessageView has been retuned to a
+    // single-line pill (compact avatar + 1-line title + countdown
+    // stripe). fix mode (sticky / critical) keeps the body text on a
+    // second line but also shrinks proportionally.
+    public static let bannerHeight: CGFloat = 42
     public static let fixWidth: CGFloat = 460
-    public static let fixHeight: CGFloat = 108
+    public static let fixHeight: CGFloat = 54
 
     public static func rendersAsFakeNotch(position: AnchorPosition, screen: NSScreen? = nil) -> Bool {
         let s = screen ?? NSScreen.main ?? NSScreen.screens.first!
