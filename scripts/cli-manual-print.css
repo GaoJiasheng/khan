@@ -1,0 +1,113 @@
+/* Print stylesheet for docs/cli-manual.md → PDF rendering.
+   Goal: clean tech-doc look at letter-size, monospace code blocks,
+   readable Chinese + English mix.
+   cupsfilter inlines this when bundled via pandoc --self-contained. */
+
+@page {
+  size: letter;
+  margin: 0.85in;
+}
+
+body {
+  font-family: "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.45;
+  color: #1d1d1f;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+h1 {
+  font-size: 22pt;
+  font-weight: 700;
+  margin-top: 0;
+  margin-bottom: 0.3em;
+  border-bottom: 1.5pt solid #1d1d1f;
+  padding-bottom: 0.18em;
+}
+
+h2 {
+  font-size: 15pt;
+  font-weight: 600;
+  margin-top: 1.7em;
+  margin-bottom: 0.4em;
+  color: #0a3a5c;
+}
+
+h3 {
+  font-size: 12.5pt;
+  font-weight: 600;
+  margin-top: 1.2em;
+  margin-bottom: 0.3em;
+  color: #444;
+}
+
+p { margin: 0.5em 0; }
+
+code, pre, .sourceCode {
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  font-size: 9pt;
+}
+
+code {
+  background: #f0f0f3;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+pre {
+  background: #1e1e26;
+  color: #e6e6ea;
+  padding: 10pt 12pt;
+  border-radius: 4pt;
+  overflow-x: auto;
+  page-break-inside: avoid;
+}
+
+pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+table {
+  border-collapse: collapse;
+  margin: 0.8em 0;
+  font-size: 9.5pt;
+  width: 100%;
+}
+
+th, td {
+  border: 0.5pt solid #c8c8c8;
+  padding: 5pt 8pt;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+a {
+  color: #0a5cd1;
+  text-decoration: none;
+}
+
+blockquote {
+  border-left: 3pt solid #f0a500;
+  margin: 0.8em 0;
+  padding: 0.3em 12pt;
+  background: #fff8e7;
+  page-break-inside: avoid;
+}
+
+hr {
+  border: none;
+  border-top: 0.5pt solid #c8c8c8;
+  margin: 1.5em 0;
+}
+
+ul, ol { padding-left: 1.6em; }
+li { margin: 0.15em 0; }

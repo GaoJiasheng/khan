@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Developer ID = direct distribution outside the Mac App Store.
+         The exported .app is signed with the user's Developer ID
+         Application certificate; gets paired with notarization for
+         Gatekeeper to silently pass it on download. -->
+    <key>method</key>
+    <string>developer-id</string>
+
+    <!-- Manual signing = use the locally-installed Developer ID
+         Application identity in the login keychain, skip Apple's
+         cloud-managed signing service (which needs higher API key
+         scopes than "Developer" to access — `signingStyle: automatic`
+         was failing with "Cloud signing permission error"). -->
+    <key>signingStyle</key>
+    <string>manual</string>
+
+    <key>signingCertificate</key>
+    <string>Developer ID Application</string>
+
+    <!-- DORIS_TEAM_ID is exported by scripts/release.sh; xcodebuild
+         interpolates $(DORIS_TEAM_ID) from project.yml settings too,
+         so the two stay in lockstep. -->
+    <key>teamID</key>
+    <string>$(DORIS_TEAM_ID)</string>
+
+    <!-- Strip Swift debug symbols out of the exported bundle to keep
+         the DMG small; the .xcarchive still has them if we ever need
+         to symbolicate a crash report. -->
+    <key>stripSwiftSymbols</key>
+    <true/>
+
+    <!-- Required by hardened-runtime apps to be notarizable. -->
+    <key>compileBitcode</key>
+    <false/>
+</dict>
+</plist>
