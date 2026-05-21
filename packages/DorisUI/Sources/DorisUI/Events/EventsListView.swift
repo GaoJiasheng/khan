@@ -13,7 +13,7 @@ public struct EventsListView: View {
     public var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 6) {
-                FilterChip(label: "All", isOn: filter == nil) { filter = nil }
+                FilterChip(label: L("All", "全部"), isOn: filter == nil) { filter = nil }
                 ForEach(SourceKind.allCases, id: \.self) { kind in
                     FilterChip(label: kind.displayName, isOn: filter == kind) { filter = kind }
                 }
@@ -27,17 +27,17 @@ public struct EventsListView: View {
                         .swipeActions(edge: .trailing) {
                             Button(role: .destructive) {
                                 message.state = .dismissed
-                            } label: { Label("Dismiss", systemImage: "xmark") }
+                            } label: { Label(L("Dismiss", "忽略"), systemImage: "xmark") }
                             Button {
                                 message.state = .actioned
-                            } label: { Label("Done", systemImage: "checkmark") }
+                            } label: { Label(L("Done", "完成"), systemImage: "checkmark") }
                             .tint(.green)
                         }
                 }
             }
             .listStyle(.inset)
         }
-        .navigationTitle("Events")
+        .navigationTitle(L("Events", "事件"))
     }
 
     private var filtered: [Message] {

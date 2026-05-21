@@ -163,7 +163,7 @@ struct CalendarTimelineScreen: View {
             Text(L("Timeline", "时间轴"))
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
-            Text("AGENDA")
+            Text(L("AGENDA", "日程"))
                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                 .foregroundStyle(CyberPalette.neonCyan.opacity(0.85))
                 .kerning(2.5)

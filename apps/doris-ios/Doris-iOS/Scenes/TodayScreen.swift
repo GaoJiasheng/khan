@@ -134,7 +134,7 @@ struct TodayScreen: View {
             Text(Date().formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
-            Text("TODAY")
+            Text(L("TODAY", "今日"))
                 .font(.system(size: 16, weight: .bold, design: .monospaced))
                 .foregroundStyle(CyberPalette.neonCyan.opacity(0.85))
                 .kerning(3)

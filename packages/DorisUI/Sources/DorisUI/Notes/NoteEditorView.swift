@@ -23,9 +23,9 @@ public struct NoteEditorView: View {
                     .scrollContentBackground(.hidden)
             }
             HStack {
-                Toggle("Checklist", isOn: $note.isChecklist)
+                Toggle(L("Checklist", "清单"), isOn: $note.isChecklist)
                     .toggleStyle(.button)
-                Toggle("Pinned", isOn: $note.pinned)
+                Toggle(L("Pinned", "置顶"), isOn: $note.pinned)
                     .toggleStyle(.button)
                 Spacer()
                 let tags = note.tags ?? []

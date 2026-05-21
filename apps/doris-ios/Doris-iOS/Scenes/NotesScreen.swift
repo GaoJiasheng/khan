@@ -137,7 +137,7 @@ struct NotesScreen: View {
                                     startPoint: .leading, endPoint: .trailing
                                 )
                             )
-                        Text("cyber notes")
+                        Text(L("cyber notes", "赛博笔记"))
                             .font(.system(size: 9, weight: .medium, design: .monospaced))
                             .foregroundStyle(CyberPalette.neonCyan.opacity(0.7))
                             .kerning(1.5)

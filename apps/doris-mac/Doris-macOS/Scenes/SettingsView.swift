@@ -24,17 +24,17 @@ struct SettingsView: View {
                 .ignoresSafeArea()
             TabView {
                 generalTab
-                    .tabItem { Label("General", systemImage: "gear") }
+                    .tabItem { Label(L("General", "通用"), systemImage: "gear") }
                 syncTab
-                    .tabItem { Label("Sync", systemImage: "icloud.fill") }
+                    .tabItem { Label(L("Sync", "同步"), systemImage: "icloud.fill") }
                 recentlyDeletedTab
-                    .tabItem { Label("Recently Deleted", systemImage: "trash") }
+                    .tabItem { Label(L("Recently Deleted", "最近删除"), systemImage: "trash") }
                 sidebarTab
-                    .tabItem { Label("Sidebar", systemImage: "sidebar.right") }
+                    .tabItem { Label(L("Sidebar", "侧栏"), systemImage: "sidebar.right") }
                 shortcutTab
-                    .tabItem { Label("Shortcuts", systemImage: "keyboard") }
+                    .tabItem { Label(L("Shortcuts", "快捷键"), systemImage: "keyboard") }
                 cliTab
-                    .tabItem { Label("CLI", systemImage: "terminal") }
+                    .tabItem { Label(L("CLI", "命令行"), systemImage: "terminal") }
             }
             .scrollContentBackground(.hidden)
             .padding()
@@ -46,11 +46,11 @@ struct SettingsView: View {
 
     private var generalTab: some View {
         Form {
-            Picker("Theme", selection: themeBinding) {
+            Picker(L("Theme", "主题"), selection: themeBinding) {
                 ForEach(DorisTheme.allCases, id: \.self) { Text($0.rawValue.capitalized).tag($0) }
             }
-            Toggle("Show hex color preview", isOn: showHexColorPreview)
-            Toggle("Auto-backup daily", isOn: autoBackupEnabled)
+            Toggle(L("Show hex color preview", "显示十六进制颜色预览"), isOn: showHexColorPreview)
+            Toggle(L("Auto-backup daily", "每日自动备份"), isOn: autoBackupEnabled)
         }
         .scrollContentBackground(.hidden)
     }
@@ -71,19 +71,19 @@ struct SettingsView: View {
 
     private var sidebarTab: some View {
         Form {
-            Picker("Edge", selection: sidebarEdge) {
-                Text("Left").tag(SidebarEdge.left)
-                Text("Right").tag(SidebarEdge.right)
+            Picker(L("Edge", "边缘"), selection: sidebarEdge) {
+                Text(L("Left", "左")).tag(SidebarEdge.left)
+                Text(L("Right", "右")).tag(SidebarEdge.right)
             }
             HStack {
-                Text("Width")
+                Text(L("Width", "宽度"))
                 Slider(value: sidebarWidth, in: 240...520, step: 10)
                 Text("\(Int(settings.sidebarWidth)) px")
             }
-            Toggle("Hot Side enabled", isOn: hotSideEnabled)
-            Toggle("Open Bar visible", isOn: openBarVisible)
-            Toggle("Pinned across spaces", isOn: pinnedAcrossSpaces)
-            Picker("Notch behavior", selection: notchBehavior) {
+            Toggle(L("Hot Side enabled", "启用边缘热区"), isOn: hotSideEnabled)
+            Toggle(L("Open Bar visible", "显示打开栏"), isOn: openBarVisible)
+            Toggle(L("Pinned across spaces", "跨桌面置顶"), isOn: pinnedAcrossSpaces)
+            Picker(L("Notch behavior", "刘海行为"), selection: notchBehavior) {
                 ForEach(NotchBehavior.allCases, id: \.self) { Text($0.rawValue).tag($0) }
             }
         }
@@ -92,9 +92,9 @@ struct SettingsView: View {
 
     private var shortcutTab: some View {
         Form {
-            KeyboardShortcuts.Recorder("Toggle sidebar", name: .toggleSidebar)
-            KeyboardShortcuts.Recorder("Toggle notch", name: .toggleNotch)
-            KeyboardShortcuts.Recorder("Open events", name: .openEvents)
+            KeyboardShortcuts.Recorder(L("Toggle sidebar", "切换侧栏"), name: .toggleSidebar)
+            KeyboardShortcuts.Recorder(L("Toggle notch", "切换刘海"), name: .toggleNotch)
+            KeyboardShortcuts.Recorder(L("Open events", "打开事件"), name: .openEvents)
         }
         .scrollContentBackground(.hidden)
     }
@@ -102,12 +102,12 @@ struct SettingsView: View {
     private var cliTab: some View {
         Form {
             HStack {
-                Text("CLI installed at")
+                Text(L("CLI installed at", "CLI 安装位置"))
                 Spacer()
-                Text(settings.cliInstalledAt ?? "(not installed)")
+                Text(settings.cliInstalledAt ?? L("(not installed)", "(未安装)"))
                     .foregroundStyle(.secondary)
             }
-            Text("Allowed source app IDs")
+            Text(L("Allowed source app IDs", "允许的来源应用 ID"))
                 .font(.headline)
             Text(settings.cliSourceAllowlist.joined(separator: ", "))
                 .font(.caption.monospaced())
@@ -354,10 +354,11 @@ private struct MacRecentlyDeletedTab: View {
                     Image(systemName: "trash")
                         .font(.system(size: 32))
                         .foregroundStyle(.secondary)
-                    Text("No recently deleted notes.")
+                    Text(L("No recently deleted notes.", "暂无最近删除的笔记。"))
                         .font(.headline)
                         .foregroundStyle(.secondary)
-                    Text("Notes archived on this device or synced from iOS appear here.")
+                    Text(L("Notes archived on this device or synced from iOS appear here.",
+                           "在本机归档或从 iOS 同步过来的笔记会出现在这里。"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -365,11 +366,11 @@ private struct MacRecentlyDeletedTab: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 HStack {
-                    Text("\(archived.count) archived note(s)")
+                    Text(L("\(archived.count) archived note(s)", "已归档 \(archived.count) 条笔记"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Button("Delete All", role: .destructive) {
+                    Button(L("Delete All", "全部删除"), role: .destructive) {
                         for n in archived { ctx.delete(n) }
                         try? ctx.save()
                     }
@@ -379,7 +380,7 @@ private struct MacRecentlyDeletedTab: View {
                     ForEach(archived) { note in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(note.title.isEmpty ? "Untitled" : note.title)
+                                Text(note.title.isEmpty ? L("Untitled", "无标题") : note.title)
                                     .font(.body)
                                     .lineLimit(1)
                                 Text(note.updatedAt, style: .relative)
@@ -387,14 +388,14 @@ private struct MacRecentlyDeletedTab: View {
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
-                            Button("Restore") {
+                            Button(L("Restore", "还原")) {
                                 note.archived = false
                                 note.touch()
                                 try? ctx.save()
                             }
                             .controlSize(.small)
                             .foregroundStyle(Color.accentColor)
-                            Button("Delete Forever") {
+                            Button(L("Delete Forever", "彻底删除")) {
                                 ctx.delete(note)
                                 try? ctx.save()
                             }

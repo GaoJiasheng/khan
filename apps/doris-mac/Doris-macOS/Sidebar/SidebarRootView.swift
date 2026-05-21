@@ -23,11 +23,11 @@ struct SidebarRootView: View {
 
     private var tabBar: some View {
         HStack {
-            Button("Events") { tab = .events }
+            Button(L("Events", "事件")) { tab = .events }
                 .fontWeight(tab == .events ? .bold : .regular)
-            Button("Notes") { tab = .notes }
+            Button(L("Notes", "笔记")) { tab = .notes }
                 .fontWeight(tab == .notes ? .bold : .regular)
-            Button("Today") { tab = .today }
+            Button(L("Today", "今日")) { tab = .today }
                 .fontWeight(tab == .today ? .bold : .regular)
             Spacer()
         }
@@ -39,6 +39,11 @@ struct SidebarRootView: View {
 
 private struct TodayView: View {
     var body: some View {
-        DorisEmptyStateView(title: "Today", systemImage: "sun.max", subtitle: "Quick captures and recent items will appear here.")
+        DorisEmptyStateView(
+            title: L("Today", "今日"),
+            systemImage: "sun.max",
+            subtitle: L("Quick captures and recent items will appear here.",
+                        "快速记录的内容和最近的项目会出现在这里。")
+        )
     }
 }
